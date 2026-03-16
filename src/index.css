@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary:        #003087;
+  --primary-light:  #4a7fd4;
+  --bg:             #00061a;
+  --card:           #000d2e;
+  --card2:          #001040;
+  --border:         #001a5c;
+  --border2:        #002480;
+  --text:           #d4e4ff;
+  --muted:          #3a6090;
+  --green:          #10b981;
+  --red:            #ef4444;
+  --accent-text:    #a8c8ff;
+}
+
+html {
+  background-color: var(--bg);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Georgia', serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Safe area for iOS notch / home bar */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 2px;
+}
+
+/* Shared input style — used on Login and other forms */
+.input-field {
+  @apply w-full bg-card2 border border-border2 rounded-lg px-3 py-2.5 text-sm text-text placeholder-muted
+         focus:outline-none focus:border-primary-light focus:ring-1 focus:ring-primary-light
+         transition-colors;
+}
+
+/* Input autofill override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0px 1000px var(--card2) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
