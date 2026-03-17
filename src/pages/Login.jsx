@@ -3,11 +3,10 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
-// The three modes available on this screen
+// The two modes available on this screen
 const MODES = {
   signIn:        { label: 'Sign In',        short: 'Sign In'    },
   createAccount: { label: 'Create Account', short: 'Sign Up'    },
-  joinByCode:    { label: 'Join by Code',   short: 'Join'       },
 }
 
 export default function Login() {
@@ -162,7 +161,7 @@ export default function Login() {
           {isNewUser && (
             <div>
               <label className="block text-xs font-medium text-accent-text mb-1.5">
-                {mode === 'joinByCode' ? 'Personal Invite Code' : 'Pool Invite Code'}
+                Pool Invite Code
               </label>
               <input
                 {...register('joinCode', {
@@ -170,7 +169,7 @@ export default function Login() {
                   setValueAs: (v) => v?.trim().toUpperCase(),
                 })}
                 type="text"
-                placeholder={mode === 'joinByCode' ? 'Your personal code' : 'Get this from your commissioner'}
+                placeholder="Get this from your commissioner"
                 autoComplete="off"
                 className="input-field uppercase tracking-widest"
               />
@@ -178,9 +177,7 @@ export default function Login() {
                 <p className="text-red text-xs mt-1">{errors.joinCode.message}</p>
               )}
               <p className="text-muted text-xs mt-1">
-                {mode === 'joinByCode'
-                  ? 'Your commissioner sent you this code.'
-                  : 'Ask your commissioner for the current season code.'}
+                Ask your commissioner for the current season code.
               </p>
             </div>
           )}
