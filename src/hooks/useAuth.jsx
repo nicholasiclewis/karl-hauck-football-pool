@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
   // Load profile whenever user changes
   useEffect(() => {
     if (user) {
-      loadProfile(user.id)
+      setTimeout(() => loadProfile(user.id), 200)
     }
   }, [user])
 
@@ -42,6 +42,7 @@ export function AuthProvider({ children }) {
         .select('*')
         .eq('id', userId)
         .maybeSingle()
+      console.log('loadProfile result:', { data, error })
       if (error) throw error
       setProfile(data ?? null)
     } catch (err) {
