@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
+import { getTeamConference, CONFERENCE_ORDER } from '../../lib/collegeTeams'
 
 const BLANK = {
   sport: 'nfl',
@@ -27,6 +28,7 @@ export default function GamesTab() {
   const [fetching, setFetching]               = useState(false)
   const [addingPicked, setAddingPicked]       = useState(false)
   const [pickerError, setPickerError]         = useState('')
+  const [confFilter, setConfFilter]           = useState(null)   // conference name or null = all
 
   useEffect(() => { loadWeeks() }, [])
   useEffect(() => { if (selectedWeekId) loadGames() }, [selectedWeekId])
@@ -88,6 +90,7 @@ export default function GamesTab() {
     setAvailableGames([])
     setSelectedIds(new Set())
     setPickerError('')
+    setConfFilter(null)
     setFetching(true)
     try {
       const fnName = sport === 'nfl' ? 'fetch-nfl-odds' : 'fetch-college-odds'
@@ -186,12 +189,55 @@ export default function GamesTab() {
 
         {!fetching && availableGames.length > 0 && (
           <>
-            <p className="text-xs" style={{ color: '#3a6090' }}>
-              {availableGames.length} games available · {selectedIds.size} selected
-            </p>
+            {/* Conference filter chips — college only */}
+            {pickerSport === 'college' && (
+              <div className="overflow-x-auto">
+                <div className="flex gap-2 pb-1" style={{ width: 'max-content' }}>
+                  <button
+                    onClick={() => setConfFilter(null)}
+                    className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
+                    style={{
+                      background:  confFilter === null ? '#003087' : '#000d2e',
+                      borderColor: confFilter === null ? '#4a7fd4' : '#001a5c',
+                      color:       confFilter === null ? '#ffffff'  : '#3a6090',
+                    }}
+                  >
+                    All
+                  </button>
+                  {CONFERENCE_ORDER.filter(conf =>
+                    availableGames.some(g => getTeamConference(g.home_team) === conf || getTeamConference(g.away_team) === conf)
+                  ).map(conf => (
+                    <button
+                      key={conf}
+                      onClick={() => setConfFilter(conf)}
+                      className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
+                      style={{
+                        background:  confFilter === conf ? '#003087' : '#000d2e',
+                        borderColor: confFilter === conf ? '#4a7fd4' : '#001a5c',
+                        color:       confFilter === conf ? '#ffffff'  : '#3a6090',
+                      }}
+                    >
+                      {conf}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
-              {availableGames.map((game) => {
+            {(() => {
+              const filtered = confFilter
+                ? availableGames.filter(g =>
+                    getTeamConference(g.home_team) === confFilter ||
+                    getTeamConference(g.away_team) === confFilter
+                  )
+                : availableGames
+              return (
+                <>
+                  <p className="text-xs" style={{ color: '#3a6090' }}>
+                    {filtered.length} game{filtered.length !== 1 ? 's' : ''}{confFilter ? ` · ${confFilter}` : ''} · {selectedIds.size} selected
+                  </p>
+                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
+                    {filtered.map((game) => {
                 const isSelected = selectedIds.has(game.odds_api_id)
                 const favTeam = game.favorite === 'home' ? game.home_team : game.away_team
                 return (
@@ -227,8 +273,11 @@ export default function GamesTab() {
                     </div>
                   </button>
                 )
-              })}
-            </div>
+                    })}
+                  </div>
+                </>
+              )
+            })()}
 
             <button
               onClick={addSelectedGames}
