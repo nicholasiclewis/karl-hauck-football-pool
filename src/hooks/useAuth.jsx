@@ -13,48 +13,37 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null) // our custom users table row
   const [loading, setLoading] = useState(true)  // true while we check if logged in
 
+  // Listen for auth state changes — only update user, never call DB here
   useEffect(() => {
-    // Safety net — never stay stuck loading for more than 8 seconds
-    const timeout = setTimeout(() => {
-      console.warn('Auth timeout reached — forcing loading to false')
-      setLoading(false)
-    }, 8000)
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null
-        setUser(currentUser)
-        if (currentUser) {
-          // Pass the token directly — never call getSession() inside this callback
-          await loadProfile(currentUser.id, session.access_token)
-        } else {
+      (_event, session) => {
+        setUser(session?.user ?? null)
+        if (!session?.user) {
           setProfile(null)
           setLoading(false)
         }
       }
     )
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
+  // Load profile whenever user changes
+  useEffect(() => {
+    if (user) {
+      loadProfile(user.id)
+    }
+  }, [user])
+
   /** Load the player's profile row from our users table */
-  async function loadProfile(userId, accessToken) {
+  async function loadProfile(userId) {
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*&limit=1`,
-        {
-          headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json',
-          },
-        }
-      )
-      const rows = await res.json()
-      setProfile(rows[0] ?? null)
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      if (error) throw error
+      setProfile(data ?? null)
     } catch (err) {
       console.error('loadProfile error:', err)
       setProfile(null)
