@@ -156,13 +156,13 @@ export default function GamesTab() {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold" style={{ color: '#a8c8ff' }}>
+          <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>
             Pick {sportLabel} Games — Week {selectedWeek?.week_number}
           </h2>
           <button
             onClick={() => setPickerSport(null)}
             className="text-xs px-3 py-1.5 rounded-lg"
-            style={{ color: '#3a6090', background: '#000d2e' }}
+            style={{ color: '#94afd4', background: '#1e293b' }}
           >
             ✕ Cancel
           </button>
@@ -177,12 +177,12 @@ export default function GamesTab() {
         {fetching && (
           <div className="py-8 text-center">
             <span className="text-2xl animate-bounce">📡</span>
-            <p className="text-xs mt-2" style={{ color: '#3a6090' }}>Fetching from Odds API...</p>
+            <p className="text-xs mt-2" style={{ color: '#94afd4' }}>Fetching from Odds API...</p>
           </div>
         )}
 
         {!fetching && availableGames.length === 0 && !pickerError && (
-          <p className="text-center text-sm py-6" style={{ color: '#3a6090' }}>
+          <p className="text-center text-sm py-6" style={{ color: '#94afd4' }}>
             No upcoming {sportLabel} games found with spread data.
           </p>
         )}
@@ -197,9 +197,9 @@ export default function GamesTab() {
                     onClick={() => setConfFilter(null)}
                     className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
                     style={{
-                      background:  confFilter === null ? '#003087' : '#000d2e',
-                      borderColor: confFilter === null ? '#4a7fd4' : '#001a5c',
-                      color:       confFilter === null ? '#ffffff'  : '#3a6090',
+                      background:  confFilter === null ? '#2563eb' : '#1e293b',
+                      borderColor: confFilter === null ? '#60a5fa' : '#374e6b',
+                      color:       confFilter === null ? '#ffffff'  : '#94afd4',
                     }}
                   >
                     All
@@ -212,9 +212,9 @@ export default function GamesTab() {
                       onClick={() => setConfFilter(conf)}
                       className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
                       style={{
-                        background:  confFilter === conf ? '#003087' : '#000d2e',
-                        borderColor: confFilter === conf ? '#4a7fd4' : '#001a5c',
-                        color:       confFilter === conf ? '#ffffff'  : '#3a6090',
+                        background:  confFilter === conf ? '#2563eb' : '#1e293b',
+                        borderColor: confFilter === conf ? '#60a5fa' : '#374e6b',
+                        color:       confFilter === conf ? '#ffffff'  : '#94afd4',
                       }}
                     >
                       {conf}
@@ -233,10 +233,10 @@ export default function GamesTab() {
                 : availableGames
               return (
                 <>
-                  <p className="text-xs" style={{ color: '#3a6090' }}>
+                  <p className="text-xs" style={{ color: '#94afd4' }}>
                     {filtered.length} game{filtered.length !== 1 ? 's' : ''}{confFilter ? ` · ${confFilter}` : ''} · {selectedIds.size} selected
                   </p>
-                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
+                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
                     {filtered.map((game) => {
                 const isSelected = selectedIds.has(game.odds_api_id)
                 const favTeam = game.favorite === 'home' ? game.home_team : game.away_team
@@ -246,7 +246,7 @@ export default function GamesTab() {
                     onClick={() => toggleSelect(game.odds_api_id)}
                     className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors"
                     style={{
-                      borderColor: '#001040',
+                      borderColor: '#253347',
                       background: isSelected ? 'rgba(74,127,212,0.1)' : 'transparent',
                     }}
                   >
@@ -254,8 +254,8 @@ export default function GamesTab() {
                     <div
                       className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2"
                       style={{
-                        background:   isSelected ? '#4a7fd4' : 'transparent',
-                        borderColor:  isSelected ? '#4a7fd4' : '#001a5c',
+                        background:   isSelected ? '#60a5fa' : 'transparent',
+                        borderColor:  isSelected ? '#60a5fa' : '#374e6b',
                       }}
                     >
                       {isSelected && <span className="text-[10px] text-white font-bold">✓</span>}
@@ -263,10 +263,10 @@ export default function GamesTab() {
 
                     {/* Game info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: '#d4e4ff' }}>
+                      <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>
                         {game.away_team} @ {game.home_team}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: '#3a6090' }}>
+                      <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
                         {favTeam} {formatSpread(-Math.abs(game.spread))}
                         {' · '}{formatKickoff(game.kickoff_time).split(' · ').slice(1).join(' ')}
                       </p>
@@ -284,8 +284,8 @@ export default function GamesTab() {
               disabled={selectedIds.size === 0 || addingPicked}
               className="w-full py-2.5 rounded-lg text-sm font-bold"
               style={{
-                background: selectedIds.size > 0 ? '#003087' : '#001040',
-                color:      selectedIds.size > 0 ? '#ffffff'  : '#3a6090',
+                background: selectedIds.size > 0 ? '#2563eb' : '#253347',
+                color:      selectedIds.size > 0 ? '#ffffff'  : '#94afd4',
               }}
             >
               {addingPicked ? 'Adding...' : `Add ${selectedIds.size} Game${selectedIds.size !== 1 ? 's' : ''}`}
@@ -302,7 +302,7 @@ export default function GamesTab() {
       {/* ── Week chips ── */}
       {weeks.length > 0 && (
         <div>
-          <label className="text-xs font-semibold block mb-2" style={{ color: '#3a6090' }}>Select Week</label>
+          <label className="text-xs font-semibold block mb-2" style={{ color: '#94afd4' }}>Select Week</label>
           <div className="flex gap-2 flex-wrap">
             {weeks.map(w => (
               <button
@@ -310,9 +310,9 @@ export default function GamesTab() {
                 onClick={() => setSelectedWeekId(w.id)}
                 className="px-3 py-1.5 rounded-full text-xs font-medium border"
                 style={{
-                  background:   selectedWeekId === w.id ? '#003087' : '#000d2e',
-                  borderColor:  selectedWeekId === w.id ? '#4a7fd4' : '#001a5c',
-                  color:        selectedWeekId === w.id ? '#ffffff'  : '#3a6090',
+                  background:   selectedWeekId === w.id ? '#2563eb' : '#1e293b',
+                  borderColor:  selectedWeekId === w.id ? '#60a5fa' : '#374e6b',
+                  color:        selectedWeekId === w.id ? '#ffffff'  : '#94afd4',
                 }}
               >
                 Week {w.week_number}
@@ -329,7 +329,7 @@ export default function GamesTab() {
             <button
               onClick={() => openPicker('nfl')}
               className="flex-1 py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: 'rgba(74,127,212,0.15)', color: '#4a7fd4' }}
+              style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
             >
               📡 Browse NFL Games
             </button>
@@ -344,14 +344,14 @@ export default function GamesTab() {
 
           {/* ── Divider ── */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: '#001040' }} />
+            <div className="flex-1 h-px" style={{ background: '#253347' }} />
             <span className="text-xs" style={{ color: '#1e3a5f' }}>or add manually</span>
-            <div className="flex-1 h-px" style={{ background: '#001040' }} />
+            <div className="flex-1 h-px" style={{ background: '#253347' }} />
           </div>
 
           {/* ── Manual add form ── */}
-          <div className="rounded-xl border p-4 space-y-3" style={{ background: '#000d2e', borderColor: '#001a5c' }}>
-            <h2 className="text-sm font-bold" style={{ color: '#a8c8ff' }}>
+          <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+            <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>
               Add Game — Week {selectedWeek?.week_number}
             </h2>
             {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
@@ -386,7 +386,7 @@ export default function GamesTab() {
                   <input type="datetime-local" required value={form.kickoff_time} onChange={e => setForm(f => ({ ...f, kickoff_time: e.target.value }))} className="input-field w-full" />
                 </Field>
               </div>
-              <button type="submit" disabled={saving} className="w-full py-2.5 rounded-lg text-sm font-bold" style={{ background: '#003087', color: '#ffffff' }}>
+              <button type="submit" disabled={saving} className="w-full py-2.5 rounded-lg text-sm font-bold" style={{ background: '#2563eb', color: '#ffffff' }}>
                 {saving ? 'Adding...' : '+ Add Game'}
               </button>
             </form>
@@ -394,31 +394,31 @@ export default function GamesTab() {
 
           {/* ── Games list ── */}
           {games.length === 0 ? (
-            <p className="text-center text-sm py-6" style={{ color: '#3a6090' }}>No games yet for this week.</p>
+            <p className="text-center text-sm py-6" style={{ color: '#94afd4' }}>No games yet for this week.</p>
           ) : (
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
               {games.map((game) => (
-                <div key={game.id} className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#001040' }}>
+                <div key={game.id} className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#253347' }}>
                   <span
                     className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
                     style={game.sport === 'nfl'
-                      ? { background: 'rgba(74,127,212,0.15)', color: '#4a7fd4' }
+                      ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
                       : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
                     }
                   >
                     {game.sport.toUpperCase()}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: '#d4e4ff' }}>
+                    <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>
                       {game.away_team} @ {game.home_team}
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#3a6090' }}>
+                    <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
                       {game.favorite === 'home' ? game.home_team : game.away_team}
                       {' '}{formatSpread(-Math.abs(game.spread))}
                       {' · '}{formatKickoff(game.kickoff_time).split(' · ').slice(1).join(' ')}
                     </p>
                   </div>
-                  <button onClick={() => deleteGame(game.id)} className="text-lg flex-shrink-0 px-2 py-1 rounded" style={{ color: '#3a6090' }}>
+                  <button onClick={() => deleteGame(game.id)} className="text-lg flex-shrink-0 px-2 py-1 rounded" style={{ color: '#94afd4' }}>
                     🗑
                   </button>
                 </div>
@@ -429,7 +429,7 @@ export default function GamesTab() {
       )}
 
       {weeks.length === 0 && !loading && (
-        <p className="text-center text-sm py-8" style={{ color: '#3a6090' }}>
+        <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>
           Create a week in the Weeks tab first.
         </p>
       )}
@@ -440,7 +440,7 @@ export default function GamesTab() {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: '#3a6090' }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>{label}</label>
       {children}
     </div>
   )

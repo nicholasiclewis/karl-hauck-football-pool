@@ -139,7 +139,7 @@ export default function Standings() {
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <span className="text-4xl animate-bounce">🏈</span>
-          <p className="text-sm" style={{ color: '#3a6090' }}>Loading standings...</p>
+          <p className="text-sm" style={{ color: '#94afd4' }}>Loading standings...</p>
         </div>
       </div>
     )
@@ -147,22 +147,22 @@ export default function Standings() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#00061a' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0f172a' }}>
       <TopNav />
 
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div
         className="border-b pt-14"
         style={{
-          background: 'linear-gradient(135deg, #0f1320 0%, #111827 100%)',
-          borderColor: '#001a5c',
+          background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)',
+          borderColor: '#374e6b',
         }}
       >
         <div className="flex items-center justify-between px-4 pt-5 pb-4">
           {/* Left: title + subtitle */}
           <div>
             <h1 className="text-2xl font-bold text-white">Standings</h1>
-            <p className="text-sm mt-0.5" style={{ color: '#a8c8ff' }}>
+            <p className="text-sm mt-0.5" style={{ color: '#93c5fd' }}>
               {subtitle}
             </p>
           </div>
@@ -171,17 +171,17 @@ export default function Standings() {
           {currentUserEntry && (
             <div
               className="flex flex-col items-center px-4 py-2 rounded-xl border"
-              style={{ background: '#000d2e', borderColor: '#001a5c' }}
+              style={{ background: '#1e293b', borderColor: '#374e6b' }}
             >
               <span
                 className="text-2xl font-black leading-none"
-                style={{ color: '#4a7fd4' }}
+                style={{ color: '#60a5fa' }}
               >
                 {currentUserEntry.total_points ?? 0}
               </span>
               <span
                 className="text-[9px] uppercase tracking-widest mt-0.5 font-bold"
-                style={{ color: '#3a6090' }}
+                style={{ color: '#94afd4' }}
               >
                 Your Pts
               </span>
@@ -221,7 +221,7 @@ export default function Standings() {
       <div className="px-4 my-4">
         <div
           className="flex rounded-xl p-1 border"
-          style={{ background: '#000d2e', borderColor: '#001a5c' }}
+          style={{ background: '#1e293b', borderColor: '#374e6b' }}
         >
           {[
             { key: 'season', label: 'Season Standings' },
@@ -232,8 +232,8 @@ export default function Standings() {
               onClick={() => setActiveTab(key)}
               className="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors"
               style={{
-                background: activeTab === key ? '#001040' : 'transparent',
-                color: activeTab === key ? '#d4e4ff' : '#3a6090',
+                background: activeTab === key ? '#253347' : 'transparent',
+                color: activeTab === key ? '#f0f6ff' : '#94afd4',
               }}
             >
               {label}
@@ -250,7 +250,7 @@ export default function Standings() {
           ) : (
             <div
               className="mx-4 rounded-xl overflow-hidden border"
-              style={{ borderColor: '#001a5c' }}
+              style={{ borderColor: '#374e6b' }}
             >
               {standings.map((entry, index) => (
                 <PlayerRow
@@ -285,9 +285,9 @@ export default function Standings() {
                       onClick={() => setSelectedWeekId(w.id)}
                       className="flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors"
                       style={{
-                        background: isSelected ? '#003087' : '#000d2e',
-                        borderColor: isSelected ? '#4a7fd4' : '#001a5c',
-                        color: isSelected ? '#ffffff' : '#3a6090',
+                        background: isSelected ? '#2563eb' : '#1e293b',
+                        borderColor: isSelected ? '#60a5fa' : '#374e6b',
+                        color: isSelected ? '#ffffff' : '#94afd4',
                       }}
                     >
                       {label}
@@ -304,30 +304,30 @@ export default function Standings() {
           ) : (
             <div
               className="mx-4 rounded-xl overflow-hidden border"
-              style={{ borderColor: '#001a5c' }}
+              style={{ borderColor: '#374e6b' }}
             >
               {/* Column headers */}
               <div
                 className="flex items-center gap-3 px-4 py-2"
-                style={{ background: '#000d2e', borderBottom: '1px solid #001040' }}
+                style={{ background: '#1e293b', borderBottom: '1px solid #253347' }}
               >
                 <span className="w-6" />
                 <span className="w-9" />
                 <span
                   className="flex-1 text-[10px] uppercase tracking-widest"
-                  style={{ color: '#3a6090' }}
+                  style={{ color: '#94afd4' }}
                 >
                   Player
                 </span>
                 <span
                   className="w-16 text-right text-[10px] uppercase tracking-widest"
-                  style={{ color: '#3a6090' }}
+                  style={{ color: '#94afd4' }}
                 >
                   Correct
                 </span>
                 <span
                   className="w-12 text-right text-[10px] uppercase tracking-widest"
-                  style={{ color: '#3a6090' }}
+                  style={{ color: '#94afd4' }}
                 >
                   Pts
                 </span>
@@ -348,11 +348,11 @@ export default function Standings() {
                     key={entry.user_id}
                     className="flex items-center gap-3 px-4 py-3"
                     style={{
-                      borderBottom: '1px solid #001040',
+                      borderBottom: '1px solid #253347',
                       background: isCurrentUser
-                        ? 'linear-gradient(90deg, #003087 0%, #001040 100%)'
+                        ? 'linear-gradient(90deg, #2563eb 0%, #253347 100%)'
                         : 'transparent',
-                      borderLeft: isCurrentUser ? '2px solid #4a7fd4' : '2px solid transparent',
+                      borderLeft: isCurrentUser ? '2px solid #60a5fa' : '2px solid transparent',
                     }}
                   >
                     {/* Rank */}
@@ -366,7 +366,7 @@ export default function Standings() {
                             ? '#94a3b8'
                             : index === 2
                             ? '#b45309'
-                            : '#d4e4ff',
+                            : '#f0f6ff',
                       }}
                     >
                       {ws ? index + 1 : '–'}
@@ -375,7 +375,7 @@ export default function Standings() {
                     {/* Avatar */}
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
-                      style={{ background: '#001a5c', color: '#ffffff' }}
+                      style={{ background: '#374e6b', color: '#ffffff' }}
                     >
                       {initials}
                     </div>
@@ -385,14 +385,14 @@ export default function Standings() {
                       <div className="flex items-center gap-1.5">
                         <span
                           className="text-sm font-semibold truncate"
-                          style={{ color: isCurrentUser ? '#ffffff' : '#d4e4ff' }}
+                          style={{ color: isCurrentUser ? '#ffffff' : '#f0f6ff' }}
                         >
                           {entry.display_name ?? 'Unknown'}
                         </span>
                         {isCurrentUser && (
                           <span
                             className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide flex-shrink-0"
-                            style={{ background: '#4a7fd4', color: '#000d2e' }}
+                            style={{ background: '#60a5fa', color: '#1e293b' }}
                           >
                             You
                           </span>
@@ -403,7 +403,7 @@ export default function Standings() {
                     {/* Correct picks */}
                     <span
                       className="w-16 text-right text-sm"
-                      style={{ color: ws ? '#d4e4ff' : '#3a6090' }}
+                      style={{ color: ws ? '#f0f6ff' : '#94afd4' }}
                     >
                       {ws ? ws.correct_picks : '–'}
                       {ws?.nfl_correct > 0 && (
@@ -416,7 +416,7 @@ export default function Standings() {
                     {/* Points */}
                     <span
                       className="w-12 text-right text-sm font-bold"
-                      style={{ color: ws ? '#4a7fd4' : '#3a6090' }}
+                      style={{ color: ws ? '#60a5fa' : '#94afd4' }}
                     >
                       {ws ? ws.total_points : '–'}
                     </span>
@@ -439,10 +439,10 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center mt-12 px-4 text-center">
       <span className="text-5xl mb-4">🏆</span>
-      <p className="font-semibold" style={{ color: '#d4e4ff' }}>
+      <p className="font-semibold" style={{ color: '#f0f6ff' }}>
         No scores yet this season
       </p>
-      <p className="text-sm mt-1" style={{ color: '#3a6090' }}>
+      <p className="text-sm mt-1" style={{ color: '#94afd4' }}>
         Standings will appear once the first week is scored.
       </p>
     </div>

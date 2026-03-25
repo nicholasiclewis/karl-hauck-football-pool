@@ -30,7 +30,7 @@ export default function BottomNav() {
               key={item.path}
               to={item.path}
               className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 min-h-[52px] transition-colors ${
-                isActive ? 'text-primary-light' : 'text-border2 hover:text-muted'
+                isActive ? 'text-primary-light' : 'text-muted hover:text-accent-text'
               }`}
             >
               <span className="text-xl leading-none">{item.icon}</span>

@@ -20,14 +20,14 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
   // Per-place styles
   const styles = {
     1: {
-      avatarGrad: 'linear-gradient(135deg, #003087, #001a5c)',
-      blockGrad:  'linear-gradient(180deg, #003087, #001a5c)',
+      avatarGrad: 'linear-gradient(135deg, #2563eb, #374e6b)',
+      blockGrad:  'linear-gradient(180deg, #2563eb, #374e6b)',
       labelColor: '#fbbf24',
       placeLabel: '1st',
     },
     2: {
-      avatarGrad: 'linear-gradient(135deg, #4a7fd4, #2a5aaa)',
-      blockGrad:  'linear-gradient(180deg, #4a7fd4, #2a5aaa)',
+      avatarGrad: 'linear-gradient(135deg, #60a5fa, #2a5aaa)',
+      blockGrad:  'linear-gradient(180deg, #60a5fa, #2a5aaa)',
       labelColor: '#94a3b8',
       placeLabel: '2nd',
     },
@@ -74,7 +74,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
       {/* Name */}
       <p
         className="text-[11px] font-semibold text-center leading-tight mb-0.5 max-w-[72px] truncate"
-        style={{ color: '#d4e4ff' }}
+        style={{ color: '#f0f6ff' }}
       >
         {shortName}
       </p>
@@ -82,7 +82,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
       {/* Points */}
       <p
         className="text-sm font-bold mb-1.5"
-        style={{ color: '#4a7fd4' }}
+        style={{ color: '#60a5fa' }}
       >
         {entry.total_points ?? 0} pts
       </p>

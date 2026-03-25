@@ -31,7 +31,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
   return (
     <div
       className="border-t border-border bg-bg"
-      style={{ borderTop: '1px solid #001a5c' }}
+      style={{ borderTop: '1px solid #374e6b' }}
     >
       {/* Header row */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
@@ -52,16 +52,16 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
           <div
             key={row.week_id}
             className="flex items-center gap-2 px-4 py-2.5 border-t border-border"
-            style={{ borderTop: '1px solid #001040' }}
+            style={{ borderTop: '1px solid #253347' }}
           >
             {/* Week chip */}
             <div className="flex-1 flex items-center gap-2">
               <span
                 className="inline-flex items-center justify-center rounded-full text-[10px] font-bold px-2.5 py-0.5 border"
                 style={{
-                  background: '#001040',
-                  borderColor: '#002480',
-                  color: '#a8c8ff',
+                  background: '#253347',
+                  borderColor: '#4a6585',
+                  color: '#93c5fd',
                   minWidth: '3rem',
                 }}
               >
@@ -82,7 +82,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
             {/* Correct picks */}
             <span
               className="w-14 text-right text-sm font-medium"
-              style={{ color: '#d4e4ff' }}
+              style={{ color: '#f0f6ff' }}
             >
               {totalCorrect}
               {nflCount > 0 && (
@@ -93,7 +93,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
             {/* Points */}
             <span
               className="w-14 text-right text-sm font-bold"
-              style={{ color: '#4a7fd4' }}
+              style={{ color: '#60a5fa' }}
             >
               {pts}
             </span>
@@ -104,13 +104,13 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
       {/* Season total footer */}
       <div
         className="flex items-center gap-2 px-4 py-2.5 border-t"
-        style={{ borderTop: '1px solid #001a5c', background: '#000d2e' }}
+        style={{ borderTop: '1px solid #374e6b', background: '#1e293b' }}
       >
         <span className="flex-1 text-[11px] uppercase tracking-widest text-muted">Season Total</span>
-        <span className="w-14 text-right text-sm font-medium" style={{ color: '#d4e4ff' }}>
+        <span className="w-14 text-right text-sm font-medium" style={{ color: '#f0f6ff' }}>
           {sorted.reduce((sum, r) => sum + (r.correct_picks ?? 0), 0)}
         </span>
-        <span className="w-14 text-right text-sm font-bold" style={{ color: '#4a7fd4' }}>
+        <span className="w-14 text-right text-sm font-bold" style={{ color: '#60a5fa' }}>
           {sorted.reduce((sum, r) => sum + (r.total_points ?? 0), 0)}
         </span>
       </div>

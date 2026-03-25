@@ -103,8 +103,8 @@ export default function WeeksTab() {
   return (
     <div className="space-y-5">
       {/* ── Create form ── */}
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#000d2e', borderColor: '#001a5c' }}>
-        <h2 className="text-sm font-bold" style={{ color: '#a8c8ff' }}>Create Week</h2>
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+        <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>Create Week</h2>
         {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
         <form onSubmit={createWeek} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -162,7 +162,7 @@ export default function WeeksTab() {
           <button
             type="submit" disabled={saving}
             className="w-full py-2.5 rounded-lg text-sm font-bold"
-            style={{ background: '#003087', color: '#ffffff' }}
+            style={{ background: '#2563eb', color: '#ffffff' }}
           >
             {saving ? 'Creating...' : '+ Create Week'}
           </button>
@@ -171,21 +171,21 @@ export default function WeeksTab() {
 
       {/* ── Weeks list ── */}
       {weeks.length === 0 ? (
-        <p className="text-center text-sm py-8" style={{ color: '#3a6090' }}>No weeks yet. Create one above.</p>
+        <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No weeks yet. Create one above.</p>
       ) : (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
           {weeks.map((week) => (
             <div
               key={week.id}
               className="flex items-center gap-3 px-4 py-3 border-b"
-              style={{ borderColor: '#001040' }}
+              style={{ borderColor: '#253347' }}
             >
               {/* Number circle */}
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 border-2"
                 style={{
-                  color:        week.is_complete ? '#10b981' : week.picks_open ? '#4a7fd4' : '#3a6090',
-                  borderColor:  week.is_complete ? '#10b981' : week.picks_open ? '#4a7fd4' : '#001a5c',
+                  color:        week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#94afd4',
+                  borderColor:  week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#374e6b',
                 }}
               >
                 {week.week_number}
@@ -193,8 +193,8 @@ export default function WeeksTab() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: '#d4e4ff' }}>Week {week.week_number}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#3a6090' }}>
+                <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>Week {week.week_number}</p>
+                <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
                   {week.container_type === 'nfl_college' ? '4 NFL · 2 CFB'
                     : week.container_type === 'nfl_only' ? '6 NFL' : '6 CFB'}
                   {week.conference ? ` · ${week.conference}` : ''}
@@ -208,8 +208,8 @@ export default function WeeksTab() {
                 style={week.is_complete
                   ? { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
                   : week.picks_open
-                  ? { background: 'rgba(74,127,212,0.15)', color: '#4a7fd4' }
-                  : { background: 'rgba(58,96,144,0.15)',  color: '#3a6090' }
+                  ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
+                  : { background: 'rgba(58,96,144,0.15)',  color: '#94afd4' }
                 }
               >
                 {week.is_complete ? 'Complete' : week.picks_open ? 'Open' : 'Closed'}
@@ -233,7 +233,7 @@ export default function WeeksTab() {
                   <button
                     onClick={() => markComplete(week)}
                     className="text-xs px-2.5 py-1 rounded-lg font-semibold"
-                    style={{ background: 'rgba(74,127,212,0.15)', color: '#4a7fd4' }}
+                    style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
                   >
                     ✓ Done
                   </button>
@@ -241,7 +241,7 @@ export default function WeeksTab() {
                 <button
                   onClick={() => deleteWeek(week)}
                   className="text-xs px-2 py-1 rounded-lg"
-                  style={{ color: '#3a6090' }}
+                  style={{ color: '#94afd4' }}
                 >
                   🗑
                 </button>
@@ -257,7 +257,7 @@ export default function WeeksTab() {
 function Field({ label, children }) {
   return (
     <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: '#3a6090' }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>{label}</label>
       {children}
     </div>
   )

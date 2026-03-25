@@ -30,7 +30,7 @@ export default function PlayerRow({
     .slice(0, 2)
 
   // Rank number colour
-  let rankColor = '#d4e4ff'
+  let rankColor = '#f0f6ff'
   if (rank === 1) rankColor = '#fbbf24'   // gold
   if (rank === 2) rankColor = '#94a3b8'   // silver
   if (rank === 3) rankColor = '#b45309'   // bronze
@@ -42,7 +42,7 @@ export default function PlayerRow({
   return (
     <div
       className="border-b"
-      style={{ borderColor: '#001040' }}
+      style={{ borderColor: '#253347' }}
     >
       {/* Main row */}
       <button
@@ -50,11 +50,11 @@ export default function PlayerRow({
         className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
         style={{
           background: isCurrentUser
-            ? 'linear-gradient(90deg, #003087 0%, #001040 100%)'
+            ? 'linear-gradient(90deg, #2563eb 0%, #253347 100%)'
             : isExpanded
-            ? '#000d2e'
+            ? '#1e293b'
             : 'transparent',
-          borderLeft: isCurrentUser ? '2px solid #4a7fd4' : '2px solid transparent',
+          borderLeft: isCurrentUser ? '2px solid #60a5fa' : '2px solid transparent',
         }}
       >
         {/* Rank */}
@@ -72,12 +72,12 @@ export default function PlayerRow({
             style={{
               background:
                 rank === 1
-                  ? 'linear-gradient(135deg, #003087, #001a5c)'
+                  ? 'linear-gradient(135deg, #2563eb, #374e6b)'
                   : rank === 2
-                  ? 'linear-gradient(135deg, #4a7fd4, #2a5aaa)'
+                  ? 'linear-gradient(135deg, #60a5fa, #2a5aaa)'
                   : rank === 3
                   ? 'linear-gradient(135deg, #b45309, #92400e)'
-                  : '#001a5c',
+                  : '#374e6b',
               color: '#ffffff',
             }}
           >
@@ -97,20 +97,20 @@ export default function PlayerRow({
           <div className="flex items-center gap-1.5">
             <span
               className="text-sm font-semibold truncate"
-              style={{ color: isCurrentUser ? '#ffffff' : '#d4e4ff' }}
+              style={{ color: isCurrentUser ? '#ffffff' : '#f0f6ff' }}
             >
               {entry.display_name ?? 'Unknown'}
             </span>
             {isCurrentUser && (
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide flex-shrink-0"
-                style={{ background: '#4a7fd4', color: '#000d2e' }}
+                style={{ background: '#60a5fa', color: '#1e293b' }}
               >
                 You
               </span>
             )}
           </div>
-          <div className="text-[11px]" style={{ color: '#3a6090' }}>
+          <div className="text-[11px]" style={{ color: '#94afd4' }}>
             {weeksPlayed} wk{weeksPlayed !== 1 ? 's' : ''} played
             &nbsp;·&nbsp;{entry.correct_picks ?? 0} correct
           </div>
@@ -119,10 +119,10 @@ export default function PlayerRow({
         {/* Points + chevron */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="text-right">
-            <div className="text-base font-bold" style={{ color: '#4a7fd4' }}>
+            <div className="text-base font-bold" style={{ color: '#60a5fa' }}>
               {entry.total_points ?? 0}
             </div>
-            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#3a6090' }}>
+            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#94afd4' }}>
               pts
             </div>
           </div>
@@ -130,7 +130,7 @@ export default function PlayerRow({
             className="text-muted text-xs transition-transform duration-200"
             style={{
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              color: '#3a6090',
+              color: '#94afd4',
             }}
           >
             ▾

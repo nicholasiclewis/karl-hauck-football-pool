@@ -37,13 +37,13 @@ export default function PlayersTab() {
   if (loading) return <Spinner />
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-2"
-        style={{ background: '#000d2e', borderBottom: '1px solid #001040' }}
+        style={{ background: '#1e293b', borderBottom: '1px solid #253347' }}
       >
-        <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#3a6090' }}>
+        <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>
           Players ({players.length})
         </span>
         <span className="text-[10px]" style={{ color: '#1e3a5f' }}>Tap badge to toggle role</span>
@@ -56,27 +56,27 @@ export default function PlayersTab() {
           <div
             key={player.id}
             className="flex items-center gap-3 px-4 py-3 border-b"
-            style={{ borderColor: '#001040' }}
+            style={{ borderColor: '#253347' }}
           >
             {/* Avatar */}
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
-              style={{ background: '#001a5c', color: '#ffffff' }}
+              style={{ background: '#374e6b', color: '#ffffff' }}
             >
               {initials}
             </div>
 
             {/* Name / email */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate" style={{ color: '#d4e4ff' }}>
+              <p className="text-sm font-semibold truncate" style={{ color: '#f0f6ff' }}>
                 {player.display_name}
                 {player.id === user?.id && (
-                  <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: '#4a7fd4', color: '#000d2e' }}>
+                  <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: '#60a5fa', color: '#1e293b' }}>
                     You
                   </span>
                 )}
               </p>
-              <p className="text-xs truncate" style={{ color: '#3a6090' }}>{player.email}</p>
+              <p className="text-xs truncate" style={{ color: '#94afd4' }}>{player.email}</p>
             </div>
 
             {/* Role badges */}
@@ -108,8 +108,8 @@ function RoleBadge({ label, active, disabled, onClick }) {
       disabled={disabled}
       className="text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors"
       style={active
-        ? { background: 'rgba(74,127,212,0.2)', color: '#4a7fd4', borderColor: '#4a7fd4' }
-        : { background: 'transparent', color: '#3a6090', borderColor: '#001a5c' }
+        ? { background: 'rgba(74,127,212,0.2)', color: '#60a5fa', borderColor: '#60a5fa' }
+        : { background: 'transparent', color: '#94afd4', borderColor: '#374e6b' }
       }
     >
       {label}

@@ -172,7 +172,7 @@ export default function ResultsTab() {
       {/* ── Week chips ── */}
       {weeks.length > 0 && (
         <div>
-          <label className="text-xs font-semibold block mb-2" style={{ color: '#3a6090' }}>Select Week</label>
+          <label className="text-xs font-semibold block mb-2" style={{ color: '#94afd4' }}>Select Week</label>
           <div className="flex gap-2 flex-wrap">
             {weeks.map(w => (
               <button
@@ -180,9 +180,9 @@ export default function ResultsTab() {
                 onClick={() => setSelectedWeekId(w.id)}
                 className="px-3 py-1.5 rounded-full text-xs font-medium border"
                 style={{
-                  background:  selectedWeekId === w.id ? '#003087' : '#000d2e',
-                  borderColor: selectedWeekId === w.id ? '#4a7fd4' : '#001a5c',
-                  color:       selectedWeekId === w.id ? '#ffffff'  : '#3a6090',
+                  background:  selectedWeekId === w.id ? '#2563eb' : '#1e293b',
+                  borderColor: selectedWeekId === w.id ? '#60a5fa' : '#374e6b',
+                  color:       selectedWeekId === w.id ? '#ffffff'  : '#94afd4',
                 }}
               >
                 Week {w.week_number}
@@ -207,9 +207,9 @@ export default function ResultsTab() {
       {/* ── Score entry ── */}
       {selectedWeekId && games.length > 0 && (
         <>
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
-            <div className="px-4 py-2 flex items-center justify-between" style={{ background: '#000d2e', borderBottom: '1px solid #001040' }}>
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#3a6090' }}>
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
+            <div className="px-4 py-2 flex items-center justify-between" style={{ background: '#1e293b', borderBottom: '1px solid #253347' }}>
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>
                 Final Scores — Week {selectedWeek?.week_number}
               </span>
               <span className="text-[10px]" style={{ color: '#1e3a5f' }}>Away – Home</span>
@@ -218,10 +218,10 @@ export default function ResultsTab() {
               <div
                 key={game.id}
                 className="flex items-center gap-3 px-4 py-3 border-b"
-                style={{ borderColor: '#001040' }}
+                style={{ borderColor: '#253347' }}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium" style={{ color: '#a8c8ff' }}>
+                  <p className="text-xs font-medium" style={{ color: '#93c5fd' }}>
                     {game.away_team} @ {game.home_team}
                   </p>
                 </div>
@@ -231,15 +231,15 @@ export default function ResultsTab() {
                     value={scores[game.id]?.away_score ?? ''}
                     onChange={e => setScores(s => ({ ...s, [game.id]: { ...s[game.id], away_score: e.target.value } }))}
                     className="w-14 text-center rounded-lg border px-2 py-1.5 text-sm"
-                    style={{ background: '#000d2e', borderColor: '#001a5c', color: '#d4e4ff' }}
+                    style={{ background: '#1e293b', borderColor: '#374e6b', color: '#f0f6ff' }}
                   />
-                  <span style={{ color: '#3a6090' }}>–</span>
+                  <span style={{ color: '#94afd4' }}>–</span>
                   <input
                     type="number" min="0" placeholder="–"
                     value={scores[game.id]?.home_score ?? ''}
                     onChange={e => setScores(s => ({ ...s, [game.id]: { ...s[game.id], home_score: e.target.value } }))}
                     className="w-14 text-center rounded-lg border px-2 py-1.5 text-sm"
-                    style={{ background: '#000d2e', borderColor: '#001a5c', color: '#d4e4ff' }}
+                    style={{ background: '#1e293b', borderColor: '#374e6b', color: '#f0f6ff' }}
                   />
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function ResultsTab() {
             onClick={fetchFromApi}
             disabled={fetching}
             className="w-full py-2.5 rounded-lg text-sm font-bold"
-            style={{ background: 'rgba(74,127,212,0.15)', color: '#4a7fd4' }}
+            style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
           >
             {fetching ? 'Fetching...' : '⬇ Fetch Scores from Odds API'}
           </button>
@@ -261,7 +261,7 @@ export default function ResultsTab() {
               onClick={saveScores}
               disabled={saving}
               className="flex-1 py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#001a5c', color: '#a8c8ff' }}
+              style={{ background: '#374e6b', color: '#93c5fd' }}
             >
               {saving ? 'Saving...' : 'Save Scores'}
             </button>
@@ -269,7 +269,7 @@ export default function ResultsTab() {
               onClick={resolvePicks}
               disabled={resolving}
               className="flex-1 py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#003087', color: '#ffffff' }}
+              style={{ background: '#2563eb', color: '#ffffff' }}
             >
               {resolving ? 'Resolving...' : 'Resolve Picks'}
             </button>
@@ -282,7 +282,7 @@ export default function ResultsTab() {
       )}
 
       {selectedWeekId && games.length === 0 && (
-        <p className="text-center text-sm py-6" style={{ color: '#3a6090' }}>No games for this week.</p>
+        <p className="text-center text-sm py-6" style={{ color: '#94afd4' }}>No games for this week.</p>
       )}
     </div>
   )

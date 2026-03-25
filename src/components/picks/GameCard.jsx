@@ -142,14 +142,14 @@ function PickBtn({ team, spread, selected, disabled, onClick }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex-1 py-2.5 px-2 rounded-lg border-2 text-center transition-all disabled:cursor-not-allowed ${
+      className={`flex-1 min-h-[52px] py-3 px-2 rounded-lg border-2 text-center transition-all disabled:cursor-not-allowed ${
         selected
           ? 'border-primary-light bg-primary/10 text-primary-light font-bold'
           : 'border-border bg-bg text-accent-text hover:border-primary-light hover:text-primary-light hover:bg-primary/5'
       }`}
     >
-      <span className="block text-[13px] font-bold leading-tight">{team}</span>
-      <span className="block text-[11px] opacity-70 mt-0.5">{spread}</span>
+      <span className="block text-[13px] font-bold leading-tight line-clamp-2">{team}</span>
+      <span className="block text-[11px] opacity-80 mt-0.5">{spread}</span>
     </button>
   )
 }

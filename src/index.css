@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --primary:        #003087;
-  --primary-light:  #4a7fd4;
-  --bg:             #00061a;
-  --card:           #000d2e;
-  --card2:          #001040;
-  --border:         #001a5c;
-  --border2:        #002480;
-  --text:           #d4e4ff;
-  --muted:          #3a6090;
-  --green:          #10b981;
-  --red:            #ef4444;
-  --accent-text:    #a8c8ff;
+  --primary:        #2563eb;
+  --primary-light:  #60a5fa;
+  --bg:             #0f172a;
+  --card:           #1e293b;
+  --card2:          #253347;
+  --border:         #374e6b;
+  --border2:        #4a6585;
+  --text:           #f0f6ff;
+  --muted:          #94afd4;
+  --green:          #4ade80;
+  --red:            #f87171;
+  --accent-text:    #93c5fd;
 }
 
 html {
@@ -24,11 +24,10 @@ html {
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Georgia', serif;
+  font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Safe area for iOS notch / home bar */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -48,9 +47,9 @@ body {
   border-radius: 2px;
 }
 
-/* Shared input style — used on Login and other forms */
+/* Shared input style */
 .input-field {
-  @apply w-full bg-card2 border border-border2 rounded-lg px-3 py-2.5 text-sm text-text placeholder-muted
+  @apply w-full bg-card2 border border-border2 rounded-lg px-3 py-3 text-sm text-text placeholder-muted
          focus:outline-none focus:border-primary-light focus:ring-1 focus:ring-primary-light
          transition-colors;
 }

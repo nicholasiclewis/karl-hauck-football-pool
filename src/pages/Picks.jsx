@@ -77,7 +77,7 @@ export default function Picks() {
       {/* ── Week Header ──────────────────────────────────────── */}
       <div
         className="border-b border-border pb-4"
-        style={{ background: 'linear-gradient(135deg, #0f1320 0%, #111827 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)' }}
       >
         {/* Week label row */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
@@ -171,7 +171,7 @@ function ScoreItem({ value, label, gold = false }) {
       <div className={`text-xl font-bold ${gold ? 'text-primary-light' : 'text-white'}`}>
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-wide text-border2 mt-0.5">{label}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted mt-0.5">{label}</div>
     </div>
   )
 }
@@ -186,7 +186,7 @@ function SectionHeader({ icon, title, count }) {
       <span className="text-[13px] tracking-widest uppercase text-muted">{icon} {title}</span>
       <div className="flex-1 h-px bg-border" />
       {count !== null && (
-        <span className="text-[11px] text-border2">{count} GAME{count !== 1 ? 'S' : ''}</span>
+        <span className="text-[11px] text-muted">{count} GAME{count !== 1 ? 'S' : ''}</span>
       )}
     </div>
   )

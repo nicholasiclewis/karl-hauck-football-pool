@@ -17,7 +17,7 @@ export default function PickRow({ game, pick }) {
   const outcomeConfig = {
     win:  { label: 'W', bg: 'rgba(16,185,129,0.15)', color: '#10b981', border: 'rgba(16,185,129,0.3)' },
     loss: { label: 'L', bg: 'rgba(239,68,68,0.15)',  color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
-    push: { label: 'P', bg: 'rgba(58,96,144,0.2)',   color: '#3a6090', border: '#001a5c' },
+    push: { label: 'P', bg: 'rgba(58,96,144,0.2)',   color: '#94afd4', border: '#374e6b' },
   }
   const oc = outcome ? outcomeConfig[outcome] : null
 
@@ -27,26 +27,26 @@ export default function PickRow({ game, pick }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 border-b"
-      style={{ borderColor: '#001040' }}
+      style={{ borderColor: '#253347' }}
     >
       {/* Sport indicator */}
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 border"
-        style={{ background: '#000d2e', borderColor: '#001a5c', color: '#3a6090' }}
+        style={{ background: '#1e293b', borderColor: '#374e6b', color: '#94afd4' }}
       >
         {game.sport === 'nfl' ? 'NFL' : 'CFB'}
       </div>
 
       {/* Matchup */}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium" style={{ color: '#3a6090' }}>
+        <div className="text-xs font-medium" style={{ color: '#94afd4' }}>
           {awayAbbr} @ {homeAbbr}
           <span className="ml-2" style={{ color: '#1e3a5f' }}>
             {formatSpread(game.spread)}
           </span>
         </div>
         {pick ? (
-          <div className="text-sm font-semibold mt-0.5" style={{ color: '#a8c8ff' }}>
+          <div className="text-sm font-semibold mt-0.5" style={{ color: '#93c5fd' }}>
             {pickedTeamName} {pickedSpread}
           </div>
         ) : (
@@ -56,7 +56,7 @@ export default function PickRow({ game, pick }) {
 
       {/* Score (if final) */}
       {game.home_score !== null && (
-        <div className="text-xs text-center flex-shrink-0" style={{ color: '#3a6090' }}>
+        <div className="text-xs text-center flex-shrink-0" style={{ color: '#94afd4' }}>
           <span>{game.away_score}</span>
           <span style={{ color: '#1e3a5f' }}> – </span>
           <span>{game.home_score}</span>

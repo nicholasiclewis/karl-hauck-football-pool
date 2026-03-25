@@ -61,7 +61,7 @@ export default function DuesTab() {
   }
 
   if (loading) return <Spinner />
-  if (!season)  return <p className="text-center text-sm py-8" style={{ color: '#3a6090' }}>No active season.</p>
+  if (!season)  return <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No active season.</p>
 
   const paidCount = entries.filter(e => e.dues?.is_paid).length
   const totalPaid = paidCount * (season.dues_amount ?? 0)
@@ -71,22 +71,22 @@ export default function DuesTab() {
       {/* ── Summary bar ── */}
       <div
         className="grid grid-cols-3 gap-px rounded-xl overflow-hidden border"
-        style={{ borderColor: '#001a5c' }}
+        style={{ borderColor: '#374e6b' }}
       >
         {[
           { val: `$${season.dues_amount ?? 0}`,           lbl: 'Per Player' },
           { val: `${paidCount} / ${entries.length}`,      lbl: 'Paid' },
           { val: `$${totalPaid.toFixed(2)}`,              lbl: 'Collected' },
         ].map(({ val, lbl }) => (
-          <div key={lbl} className="flex flex-col items-center py-3" style={{ background: '#000d2e' }}>
-            <span className="text-lg font-bold" style={{ color: '#4a7fd4' }}>{val}</span>
-            <span className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: '#2a4a70' }}>{lbl}</span>
+          <div key={lbl} className="flex flex-col items-center py-3" style={{ background: '#1e293b' }}>
+            <span className="text-lg font-bold" style={{ color: '#60a5fa' }}>{val}</span>
+            <span className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: '#6b8fbb' }}>{lbl}</span>
           </div>
         ))}
       </div>
 
       {/* ── Players list ── */}
-      <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#001a5c' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
         {entries.map(({ player, dues }) => {
           const initials = (player.display_name || '?')
             .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -95,18 +95,18 @@ export default function DuesTab() {
             <div
               key={player.id}
               className="flex items-center gap-3 px-4 py-3 border-b"
-              style={{ borderColor: '#001040' }}
+              style={{ borderColor: '#253347' }}
             >
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
-                style={{ background: '#001a5c', color: '#ffffff' }}
+                style={{ background: '#374e6b', color: '#ffffff' }}
               >
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: '#d4e4ff' }}>{player.display_name}</p>
+                <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>{player.display_name}</p>
                 {dues?.paid_at && (
-                  <p className="text-xs" style={{ color: '#3a6090' }}>
+                  <p className="text-xs" style={{ color: '#94afd4' }}>
                     Paid {new Date(dues.paid_at).toLocaleDateString()}
                   </p>
                 )}

@@ -84,27 +84,27 @@ export default function Profile() {
     .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#00061a' }}>
+    <div className="min-h-screen pb-24" style={{ background: '#0f172a' }}>
       <TopNav />
 
       {/* ── Header ── */}
       <div
         className="pt-14 border-b"
-        style={{ background: 'linear-gradient(135deg, #0f1320 0%, #111827 100%)', borderColor: '#001a5c' }}
+        style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)', borderColor: '#374e6b' }}
       >
         <div className="px-4 pt-5 pb-6 flex items-center gap-4">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0"
-            style={{ background: '#001a5c', color: '#ffffff' }}
+            style={{ background: '#374e6b', color: '#ffffff' }}
           >
             {initials}
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">{profile?.display_name ?? '—'}</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#3a6090' }}>{profile?.email}</p>
+            <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>{profile?.email}</p>
             <div className="flex gap-2 mt-1.5">
               {profile?.is_commissioner && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(74,127,212,0.2)', color: '#4a7fd4' }}>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(74,127,212,0.2)', color: '#60a5fa' }}>
                   ⚙️ Commissioner
                 </span>
               )}
@@ -125,8 +125,8 @@ export default function Profile() {
           <Section title="Dues">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#d4e4ff' }}>{season.year} Season</p>
-                <p className="text-xs mt-0.5" style={{ color: '#3a6090' }}>
+                <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>{season.year} Season</p>
+                <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
                   ${season.dues_amount ?? 0} entry fee
                 </p>
               </div>
@@ -141,7 +141,7 @@ export default function Profile() {
               </span>
             </div>
             {dues?.paid_at && (
-              <p className="text-xs mt-2" style={{ color: '#3a6090' }}>
+              <p className="text-xs mt-2" style={{ color: '#94afd4' }}>
                 Paid {new Date(dues.paid_at).toLocaleDateString()}
               </p>
             )}
@@ -167,7 +167,7 @@ export default function Profile() {
               type="submit"
               disabled={nameSaving || nameVal.trim() === profile?.display_name}
               className="w-full py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#003087', color: '#ffffff', opacity: nameSaving ? 0.6 : 1 }}
+              style={{ background: '#2563eb', color: '#ffffff', opacity: nameSaving ? 0.6 : 1 }}
             >
               {nameSaving ? 'Saving...' : 'Save Name'}
             </button>
@@ -207,7 +207,7 @@ export default function Profile() {
               type="submit"
               disabled={passSaving || !currPass || !newPass || !confPass}
               className="w-full py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#003087', color: '#ffffff', opacity: passSaving ? 0.6 : 1 }}
+              style={{ background: '#2563eb', color: '#ffffff', opacity: passSaving ? 0.6 : 1 }}
             >
               {passSaving ? 'Updating...' : 'Update Password'}
             </button>
@@ -231,8 +231,8 @@ export default function Profile() {
 
 function Section({ title, children }) {
   return (
-    <div className="rounded-xl border p-4 space-y-3" style={{ background: '#000d2e', borderColor: '#001a5c' }}>
-      <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#3a6090' }}>{title}</h2>
+    <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+      <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>{title}</h2>
       {children}
     </div>
   )

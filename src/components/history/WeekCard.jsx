@@ -18,12 +18,12 @@ export default function WeekCard({ week, score, userId }) {
   // Score circle color
   const pts = score?.total_points ?? null
   let circleColor = '#1e3a5f'   // default muted
-  let circleBorder = '#001a5c'
+  let circleBorder = '#374e6b'
   if (pts !== null) {
     if (pts >= 7)      { circleColor = '#10b981'; circleBorder = '#10b981' }
-    else if (pts >= 5) { circleColor = '#4a7fd4'; circleBorder = '#4a7fd4' }
-    else if (pts >= 3) { circleColor = '#d4e4ff'; circleBorder = '#002480' }
-    else               { circleColor = '#3a6090'; circleBorder = '#001a5c' }
+    else if (pts >= 5) { circleColor = '#60a5fa'; circleBorder = '#60a5fa' }
+    else if (pts >= 3) { circleColor = '#f0f6ff'; circleBorder = '#4a6585' }
+    else               { circleColor = '#94afd4'; circleBorder = '#374e6b' }
   }
 
   // Bonus chips
@@ -87,7 +87,7 @@ export default function WeekCard({ week, score, userId }) {
   return (
     <div
       className="border-b"
-      style={{ borderColor: '#001040' }}
+      style={{ borderColor: '#253347' }}
     >
       {/* ── Row ── */}
       <button
@@ -105,16 +105,16 @@ export default function WeekCard({ week, score, userId }) {
         {/* Week info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold" style={{ color: '#d4e4ff' }}>
+            <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>
               NFL Week {week.week_number}
             </span>
             {isInProgress && (
-              <span className="text-[10px] font-semibold" style={{ color: '#4a7fd4' }}>
+              <span className="text-[10px] font-semibold" style={{ color: '#60a5fa' }}>
                 • In Progress
               </span>
             )}
           </div>
-          <p className="text-[11px] mt-0.5" style={{ color: '#3a6090' }}>
+          <p className="text-[11px] mt-0.5" style={{ color: '#94afd4' }}>
             {weekSubLabel()}
           </p>
           {bonusChips.length > 0 && (
@@ -126,7 +126,7 @@ export default function WeekCard({ week, score, userId }) {
                   style={
                     chip.color === 'green'
                       ? { background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
-                      : { background: 'rgba(74,127,212,0.12)', color: '#4a7fd4', borderColor: 'rgba(74,127,212,0.3)' }
+                      : { background: 'rgba(74,127,212,0.12)', color: '#60a5fa', borderColor: 'rgba(74,127,212,0.3)' }
                   }
                 >
                   {chip.label}
@@ -139,12 +139,12 @@ export default function WeekCard({ week, score, userId }) {
         {/* Record + chevron */}
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           {record && (
-            <span className="text-sm font-semibold" style={{ color: '#d4e4ff' }}>{record}</span>
+            <span className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>{record}</span>
           )}
           <span
             className="text-xs transition-transform"
             style={{
-              color: '#3a6090',
+              color: '#94afd4',
               display: 'inline-block',
               transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
             }}
@@ -156,13 +156,13 @@ export default function WeekCard({ week, score, userId }) {
 
       {/* ── Expanded picks ── */}
       {expanded && (
-        <div style={{ background: '#00061a', borderTop: '1px solid #001040' }}>
+        <div style={{ background: '#0f172a', borderTop: '1px solid #253347' }}>
           {loadingPicks ? (
-            <div className="py-4 text-center text-sm" style={{ color: '#3a6090' }}>
+            <div className="py-4 text-center text-sm" style={{ color: '#94afd4' }}>
               Loading picks...
             </div>
           ) : picks.length === 0 ? (
-            <div className="py-4 text-center text-sm" style={{ color: '#3a6090' }}>
+            <div className="py-4 text-center text-sm" style={{ color: '#94afd4' }}>
               No picks made this week
             </div>
           ) : (
