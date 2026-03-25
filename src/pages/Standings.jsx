@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase'
 // ── Dues helper ─────────────────────────────────────────────────────────────
 function duesIcon(isPaid, currentWeekNumber) {
   if (isPaid) return '✅'
-  if (currentWeekNumber >= 0) return '🤡' // TEMP: force clown for preview
+  if (currentWeekNumber >= 9) return '🤡'
   return '🔴'
 }
 
