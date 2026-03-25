@@ -64,7 +64,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
         </div>
         {/* Dues overlay */}
         <span
-          className="absolute -bottom-0.5 -right-0.5 text-[10px] leading-none"
+          className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
           title="Dues status"
         >
           {duesIcon}
