@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase'
 // ── Dues helper ─────────────────────────────────────────────────────────────
 function duesIcon(isPaid, currentWeekNumber) {
   if (isPaid) return '✅'
-  if (currentWeekNumber >= 9) return '🤡'
+  if (currentWeekNumber >= 0) return '🤡' // TEMP: force clown for preview
   return '🔴'
 }
 
@@ -55,7 +55,7 @@ export default function Standings() {
       try {
         const { data } = await supabase
           .from('seasons')
-          .select('id, year')
+          .select('id, year, payout_1st, payout_2nd, payout_3rd')
           .eq('is_active', true)
           .maybeSingle()
         setSeason(data ?? null)
@@ -198,6 +198,7 @@ export default function Standings() {
               place={2}
               blockHeight={52}
               duesIcon={duesIcon(false, currentWeekNumber)}
+              payout={season?.payout_2nd ?? null}
             />
             {/* 1st place — center, tallest */}
             <PodiumSlot
@@ -205,6 +206,7 @@ export default function Standings() {
               place={1}
               blockHeight={70}
               duesIcon={duesIcon(false, currentWeekNumber)}
+              payout={season?.payout_1st ?? null}
             />
             {/* 3rd place — right, shortest */}
             <PodiumSlot
@@ -212,6 +214,7 @@ export default function Standings() {
               place={3}
               blockHeight={38}
               duesIcon={duesIcon(false, currentWeekNumber)}
+              payout={season?.payout_3rd ?? null}
             />
           </div>
         )}
@@ -252,18 +255,22 @@ export default function Standings() {
               className="mx-4 rounded-xl overflow-hidden border"
               style={{ borderColor: '#374e6b' }}
             >
-              {standings.map((entry, index) => (
-                <PlayerRow
-                  key={entry.user_id}
-                  entry={entry}
-                  rank={index + 1}
-                  isCurrentUser={entry.user_id === user?.id}
-                  isExpanded={expandedUserId === entry.user_id}
-                  onToggle={() => toggleExpand(entry.user_id)}
-                  weeks={weeks}
-                  duesIcon={duesIcon(false, currentWeekNumber)}
-                />
-              ))}
+              {standings.map((entry, index) => {
+                const payoutMap = { 1: season?.payout_1st, 2: season?.payout_2nd, 3: season?.payout_3rd }
+                return (
+                  <PlayerRow
+                    key={entry.user_id}
+                    entry={entry}
+                    rank={index + 1}
+                    isCurrentUser={entry.user_id === user?.id}
+                    isExpanded={expandedUserId === entry.user_id}
+                    onToggle={() => toggleExpand(entry.user_id)}
+                    weeks={weeks}
+                    duesIcon={duesIcon(false, currentWeekNumber)}
+                    payout={payoutMap[index + 1] ?? null}
+                  />
+                )
+              })}
             </div>
           )}
         </div>

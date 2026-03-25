@@ -21,6 +21,7 @@ export default function PlayerRow({
   onToggle,
   weeks = [],
   duesIcon = '🔴',
+  payout = null,
 }) {
   const initials = (entry.display_name || '?')
     .split(' ')
@@ -86,7 +87,7 @@ export default function PlayerRow({
           {/* Dues overlay badge */}
           <span
             className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-            title="Dues status"
+            title={duesIcon === '✅' ? 'Dues paid' : duesIcon === '🤡' ? 'Dues not paid 🤡' : 'Dues not paid'}
           >
             {duesIcon}
           </span>
@@ -94,7 +95,7 @@ export default function PlayerRow({
 
         {/* Name + weeks played */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span
               className="text-sm font-semibold truncate"
               style={{ color: isCurrentUser ? '#ffffff' : '#f0f6ff' }}
@@ -107,6 +108,14 @@ export default function PlayerRow({
                 style={{ background: '#60a5fa', color: '#1e293b' }}
               >
                 You
+              </span>
+            )}
+            {payout != null && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
+                style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}
+              >
+                ${Number(payout).toFixed(0)}
               </span>
             )}
           </div>

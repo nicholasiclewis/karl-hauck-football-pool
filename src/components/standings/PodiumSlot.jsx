@@ -7,7 +7,7 @@
  *   blockHeight — height in px for the coloured podium block (70 | 52 | 38)
  *   duesIcon    — emoji string: ✅ | 🔴 | 🎓
  */
-export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴' }) {
+export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴', payout = null }) {
   if (!entry) return <div className="flex-1" />
 
   const initials = (entry.display_name || '?')
@@ -65,7 +65,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
         {/* Dues overlay */}
         <span
           className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-          title="Dues status"
+          title={duesIcon === '✅' ? 'Dues paid' : duesIcon === '🤡' ? 'Dues not paid 🤡' : 'Dues not paid'}
         >
           {duesIcon}
         </span>
@@ -81,11 +81,21 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
 
       {/* Points */}
       <p
-        className="text-sm font-bold mb-1.5"
+        className="text-sm font-bold mb-0.5"
         style={{ color: '#60a5fa' }}
       >
         {entry.total_points ?? 0} pts
       </p>
+
+      {/* Payout */}
+      {payout != null && (
+        <p
+          className="text-[11px] font-bold mb-1.5 px-2 py-0.5 rounded-full"
+          style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}
+        >
+          ${Number(payout).toFixed(0)}
+        </p>
+      )}
 
       {/* Podium block */}
       <div
