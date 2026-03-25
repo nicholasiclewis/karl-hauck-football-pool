@@ -98,6 +98,32 @@ export default function WeeksTab() {
   const needsCollege = form.container_type !== 'nfl_only'
   const needsConf    = needsCollege && ['power4', 'group5'].includes(form.college_focus)
 
+  function randomizeFocus() {
+    // Conferences already used in saved weeks
+    const usedPower4 = new Set(weeks.filter(w => w.college_focus === 'power4' && w.conference).map(w => w.conference))
+    const usedGroup5 = new Set(weeks.filter(w => w.college_focus === 'group5' && w.conference).map(w => w.conference))
+
+    // Previous week's focus (to block back-to-back top25)
+    const prevWeekNum = parseInt(form.week_number) - 1
+    const prevFocus   = weeks.find(w => w.week_number === prevWeekNum)?.college_focus ?? null
+
+    // Build candidate pool
+    const pool = []
+    if (prevFocus !== 'top25') {
+      pool.push({ focus: 'top25', conference: '' })
+    }
+    for (const conf of CONFERENCES.power4.filter(c => !usedPower4.has(c))) {
+      pool.push({ focus: 'power4', conference: conf })
+    }
+    for (const conf of CONFERENCES.group5.filter(c => !usedGroup5.has(c))) {
+      pool.push({ focus: 'group5', conference: conf })
+    }
+
+    if (pool.length === 0) return
+    const pick = pool[Math.floor(Math.random() * pool.length)]
+    setForm(f => ({ ...f, college_focus: pick.focus, conference: pick.conference }))
+  }
+
   if (loading) return <Spinner icon="📅" />
 
   return (
@@ -135,7 +161,18 @@ export default function WeeksTab() {
             </select>
           </Field>
           {needsCollege && (
-            <Field label="College Focus">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold" style={{ color: '#94afd4' }}>College Focus</label>
+                <button
+                  type="button"
+                  onClick={randomizeFocus}
+                  className="text-xs px-3 py-1 rounded-lg font-semibold border"
+                  style={{ background: 'rgba(96,150,232,0.15)', borderColor: '#6096e8', color: '#6096e8' }}
+                >
+                  🎲 Randomize
+                </button>
+              </div>
               <select
                 value={form.college_focus}
                 onChange={e => setForm(f => ({ ...f, college_focus: e.target.value, conference: '' }))}
@@ -143,7 +180,7 @@ export default function WeeksTab() {
               >
                 {COLLEGE_FOCUSES.map(cf => <option key={cf.value} value={cf.value}>{cf.label}</option>)}
               </select>
-            </Field>
+            </div>
           )}
           {needsConf && (
             <Field label="Conference">
@@ -161,7 +198,7 @@ export default function WeeksTab() {
           )}
           <button
             type="submit" disabled={saving}
-            className="w-full py-2.5 rounded-lg text-sm font-bold"
+            className="w-full py-3 rounded-lg text-sm font-bold"
             style={{ background: '#2563eb', color: '#ffffff' }}
           >
             {saving ? 'Creating...' : '+ Create Week'}
@@ -177,71 +214,71 @@ export default function WeeksTab() {
           {weeks.map((week) => (
             <div
               key={week.id}
-              className="flex items-center gap-3 px-4 py-3 border-b"
+              className="px-4 py-3 border-b"
               style={{ borderColor: '#253347' }}
             >
-              {/* Number circle */}
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 border-2"
-                style={{
-                  color:        week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#94afd4',
-                  borderColor:  week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#374e6b',
-                }}
-              >
-                {week.week_number}
+              {/* Top row: circle + info + status */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 border-2"
+                  style={{
+                    color:       week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#94afd4',
+                    borderColor: week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#374e6b',
+                  }}
+                >
+                  {week.week_number}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>Week {week.week_number}</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
+                    {week.container_type === 'nfl_college' ? '4 NFL · 2 CFB'
+                      : week.container_type === 'nfl_only' ? '6 NFL' : '6 CFB'}
+                    {week.conference ? ` · ${week.conference}` : ''}
+                    {' · '}{week.week_start}
+                  </p>
+                </div>
+
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={week.is_complete
+                    ? { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
+                    : week.picks_open
+                    ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
+                    : { background: 'rgba(58,96,144,0.15)',  color: '#94afd4' }
+                  }
+                >
+                  {week.is_complete ? 'Complete' : week.picks_open ? 'Open' : 'Closed'}
+                </span>
               </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>Week {week.week_number}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
-                  {week.container_type === 'nfl_college' ? '4 NFL · 2 CFB'
-                    : week.container_type === 'nfl_only' ? '6 NFL' : '6 CFB'}
-                  {week.conference ? ` · ${week.conference}` : ''}
-                  {' · '}{week.week_start}
-                </p>
-              </div>
-
-              {/* Status */}
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                style={week.is_complete
-                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
-                  : week.picks_open
-                  ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
-                  : { background: 'rgba(58,96,144,0.15)',  color: '#94afd4' }
-                }
-              >
-                {week.is_complete ? 'Complete' : week.picks_open ? 'Open' : 'Closed'}
-              </span>
-
-              {/* Actions */}
-              <div className="flex gap-1.5 flex-shrink-0">
+              {/* Bottom row: action buttons, indented to align with info */}
+              <div className="flex gap-2 mt-2" style={{ paddingLeft: '52px' }}>
                 {!week.is_complete && (
                   <button
                     onClick={() => toggleOpen(week)}
-                    className="text-xs px-2.5 py-1 rounded-lg font-semibold"
+                    className="flex-1 py-2 rounded-lg text-xs font-semibold"
                     style={week.picks_open
                       ? { background: 'rgba(239,68,68,0.15)', color: '#ef4444' }
                       : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
                     }
                   >
-                    {week.picks_open ? 'Close' : 'Open'}
+                    {week.picks_open ? 'Close Picks' : 'Open Picks'}
                   </button>
                 )}
                 {!week.is_complete && (
                   <button
                     onClick={() => markComplete(week)}
-                    className="text-xs px-2.5 py-1 rounded-lg font-semibold"
+                    className="flex-1 py-2 rounded-lg text-xs font-semibold"
                     style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
                   >
-                    ✓ Done
+                    ✓ Complete
                   </button>
                 )}
                 <button
                   onClick={() => deleteWeek(week)}
-                  className="text-xs px-2 py-1 rounded-lg"
-                  style={{ color: '#94afd4' }}
+                  className="px-3 py-2 rounded-lg text-xs"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#94afd4' }}
                 >
                   🗑
                 </button>
