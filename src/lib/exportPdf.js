@@ -94,27 +94,23 @@ export async function downloadReport() {
   doc.setFillColor(...PRIMARY)
   doc.rect(0, 50, PAGE_W, 3, 'F')
 
-  // Trophy
-  doc.setFontSize(28)
-  doc.text('🏆', COL_L, 28)
-
   // Title
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(20)
   doc.setTextColor(...TEXT)
-  doc.text('Karl Hauck Football Pool', COL_L + 18, 22)
+  doc.text('Karl Hauck Football Pool', COL_L, 22)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
   doc.setTextColor(...MUTED)
-  doc.text(`${season.year} Season  ·  Generated ${date}`, COL_L + 18, 30)
+  doc.text(`${season.year} Season  ·  Generated ${date}`, COL_L, 32)
 
   // Top-3 highlight cards
   const podium = standings.slice(0, 3)
   const cardW  = (COL_R - COL_L - 8) / 3
   podium.forEach((p, i) => {
     const cx = COL_L + i * (cardW + 4)
-    const medals = ['🥇', '🥈', '🥉']
+    const medals = ['1st', '2nd', '3rd']
     doc.setFillColor(...CARD2)
     doc.roundedRect(cx, 57, cardW, 22, 2, 2, 'F')
     doc.setFillColor(...rankColor(i + 1))
@@ -196,7 +192,7 @@ export async function downloadReport() {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(16)
     doc.setTextColor(...TEXT)
-    doc.text(`🏈  Week ${week.week_number} Results`, COL_L, 18)
+    doc.text(`Week ${week.week_number} Results`, COL_L, 18)
 
     y = 36
 
