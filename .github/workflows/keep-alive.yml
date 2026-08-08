@@ -1,8 +1,19 @@
 name: Supabase Keep-Alive
 
+# BACKUP PING ONLY. The primary keep-alive is the Vercel cron in vercel.json
+# (api/keep-alive.js).
+#
+# Why this alone was not enough: GitHub disables scheduled workflows after 60
+# days with no repository activity. The last commit here was 2026-04-13, so this
+# cron stopped firing around mid-June 2026 and the Supabase project paused about
+# a week later. Nothing failed loudly — the schedule just stopped.
+#
+# If you rely on this workflow, either push to the repo at least every 60 days
+# or re-enable it in the Actions tab when GitHub disables it.
+
 on:
   schedule:
-    # Runs every 3 days at 12:00 UTC
+    # Every 3 days at 12:00 UTC (Supabase pauses after ~7 days idle)
     - cron: "0 12 */3 * *"
   workflow_dispatch: # allow manual trigger
 
@@ -11,14 +22,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/weeks?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          # Fail with a clear message rather than a confusing curl/integer error.
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_ANON_KEY repository secrets are not set."
+            exit 1
+          fi
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "$SUPABASE_URL/rest/v1/weeks?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY") || STATUS="000"
+
           echo "Response status: $STATUS"
+
+          # 000 = could not connect (DNS failure, project deleted, origin down).
+          if [ "$STATUS" = "000" ]; then
+            echo "::error::Could not reach $SUPABASE_URL — project may be paused or deleted."
+            exit 1
+          fi
           if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
-            echo "Ping failed with status $STATUS"
+            echo "::error::Ping failed with status $STATUS"
             exit 1
           fi
           echo "Supabase is alive."
