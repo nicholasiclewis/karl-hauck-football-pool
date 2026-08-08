@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MLB Run Line Test</title>
+  <style>
+    body { font-family: Inter, sans-serif; background: #0b1120; color: #ddeeff; margin: 0; padding: 24px; }
+    h1 { color: #93c5fd; margin-bottom: 8px; }
+    p.sub { color: #7799cc; margin-top: 0; margin-bottom: 24px; }
+    button#load { background: #1a47b8; color: #ddeeff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+    button#load:hover { background: #6096e8; }
+    #status { margin: 16px 0; color: #7799cc; font-size: 14px; }
+    .game { background: #121d35; border: 1px solid #1e3566; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .game .time { font-size: 12px; color: #7799cc; margin-bottom: 8px; }
+    .matchup { display: flex; gap: 12px; align-items: stretch; }
+    .team-btn {
+      flex: 1; background: #1a2848; border: 2px solid #2e4f8a; border-radius: 8px;
+      padding: 14px 10px; cursor: pointer; color: #ddeeff; font-size: 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .team-btn:hover { border-color: #6096e8; background: #1a47b8; }
+    .team-btn.picked { border-color: #22c55e; background: #14532d; }
+    .team-btn .name { font-weight: 600; }
+    .team-btn .spread { font-size: 13px; color: #93c5fd; }
+    .team-btn .fav { font-size: 11px; color: #22c55e; }
+    #result-box {
+      display: none; margin-top: 24px; background: #121d35; border: 1px solid #22c55e;
+      border-radius: 10px; padding: 20px;
+    }
+    #result-box h2 { color: #22c55e; margin-top: 0; }
+    #result-box pre { color: #93c5fd; font-size: 13px; white-space: pre-wrap; }
+    #send-btn {
+      display: none; margin-top: 12px; background: #22c55e; color: #0b1120;
+      border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 15px;
+    }
+    #send-btn:hover { background: #16a34a; }
+  </style>
+</head>
+<body>
+  <h1>MLB Run Line Test</h1>
+  <p class="sub">Tests the fetch-baseball-odds edge function end-to-end: pull → pick → send.</p>
+
+  <button id="load" onclick="loadGames()">Load Today's MLB Games</button>
+  <div id="status"></div>
+  <div id="games"></div>
+
+  <div id="result-box">
+    <h2>Pick Submitted</h2>
+    <pre id="result-text"></pre>
+  </div>
+  <button id="send-btn" onclick="submitPick()">Send Pick</button>
+
+  <script>
+    const SUPABASE_URL = 'https://jpeaijrdvbvbpcmuqhgt.supabase.co'
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZWFpanJkdmJ2YnBjbXVxaGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjE4MTgsImV4cCI6MjA4OTIzNzgxOH0.XIK-uiH08hQKMNYd0rd_0cENqUITWWfb47CKxWuX408'
+
+    let selectedPick = null
+
+    async function loadGames() {
+      const status = document.getElementById('status')
+      const gamesDiv = document.getElementById('games')
+      status.textContent = 'Fetching MLB odds...'
+      gamesDiv.innerHTML = ''
+      document.getElementById('result-box').style.display = 'none'
+      document.getElementById('send-btn').style.display = 'none'
+      selectedPick = null
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-baseball-odds`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ANON_KEY}`,
+          },
+          body: JSON.stringify({}),
+        })
+        const data = await res.json()
+
+        if (!res.ok || data.error) {
+          status.textContent = `Error: ${data.error || res.statusText}`
+          return
+        }
+
+        status.textContent = `Found ${data.games_found} MLB game(s). Click a team to pick them.`
+
+        data.games.forEach(game => {
+          const gameTime = new Date(game.game_time).toLocaleString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+          })
+
+          const homeSpread = game.home_spread > 0 ? `+${game.home_spread}` : `${game.home_spread}`
+          const awaySpread = game.away_spread > 0 ? `+${game.away_spread}` : `${game.away_spread}`
+
+          const div = document.createElement('div')
+          div.className = 'game'
+          div.innerHTML = `
+            <div class="time">${gameTime} &bull; ${game.bookmaker}</div>
+            <div class="matchup">
+              <button class="team-btn" id="btn-away-${game.id}"
+                onclick="pick('${game.id}', 'away', '${game.away_team}', ${game.away_spread})">
+                <span class="name">${game.away_team}</span>
+                <span class="spread">${awaySpread} (run line)</span>
+                ${game.favorite === 'away' ? '<span class="fav">FAVORITE</span>' : ''}
+              </button>
+              <button class="team-btn" id="btn-home-${game.id}"
+                onclick="pick('${game.id}', 'home', '${game.home_team}', ${game.home_spread})">
+                <span class="name">${game.home_team}</span>
+                <span class="spread">${homeSpread} (run line)</span>
+                ${game.favorite === 'home' ? '<span class="fav">FAVORITE</span>' : ''}
+              </button>
+            </div>
+          `
+          gamesDiv.appendChild(div)
+        })
+      } catch (err) {
+        status.textContent = `Network error: ${err.message}`
+      }
+    }
+
+    function pick(gameId, side, teamName, spread) {
+      // Clear previous selections
+      document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('picked'))
+
+      // Highlight selection
+      document.getElementById(`btn-${side}-${gameId}`).classList.add('picked')
+
+      selectedPick = { game_id: gameId, side, team: teamName, spread }
+      document.getElementById('send-btn').style.display = 'inline-block'
+      document.getElementById('status').textContent = `Selected: ${teamName} (${spread > 0 ? '+' : ''}${spread})`
+    }
+
+    function submitPick() {
+      if (!selectedPick) return
+      const box = document.getElementById('result-box')
+      document.getElementById('result-text').textContent = JSON.stringify({
+        pick: selectedPick,
+        submitted_at: new Date().toISOString(),
+        status: 'TEST — pick logged (not saved to DB)',
+      }, null, 2)
+      box.style.display = 'block'
+      document.getElementById('send-btn').style.display = 'none'
+      document.getElementById('status').textContent = 'Pick sent!'
+    }
+  </script>
+</body>
+</html>

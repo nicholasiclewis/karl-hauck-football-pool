@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NFL Preseason Pick Test</title>
+  <style>
+    body { font-family: Inter, sans-serif; background: #0b1120; color: #ddeeff; margin: 0; padding: 24px; }
+    h1 { color: #93c5fd; margin-bottom: 8px; }
+    p.sub { color: #7799cc; margin-top: 0; margin-bottom: 24px; }
+    button#load { background: #1a47b8; color: #ddeeff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+    button#load:hover { background: #6096e8; }
+    #status { margin: 16px 0; color: #7799cc; font-size: 14px; }
+    .game { background: #121d35; border: 1px solid #1e3566; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+    .game .time { font-size: 12px; color: #7799cc; margin-bottom: 8px; }
+    .matchup { display: flex; gap: 12px; align-items: stretch; }
+    .team-btn {
+      flex: 1; background: #1a2848; border: 2px solid #2e4f8a; border-radius: 8px;
+      padding: 14px 10px; cursor: pointer; color: #ddeeff; font-size: 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .team-btn:hover { border-color: #6096e8; background: #1a47b8; }
+    .team-btn.picked { border-color: #22c55e; background: #14532d; }
+    .team-btn .name { font-weight: 600; }
+    .team-btn .spread { font-size: 13px; color: #93c5fd; }
+    .team-btn .fav { font-size: 11px; color: #22c55e; }
+    .pk-tag { font-size: 11px; color: #fbbf24; }
+    #scorebar {
+      position: sticky; top: 0; background: #0b1120; border-bottom: 1px solid #1e3566;
+      padding: 12px 0; margin-bottom: 16px; display: none; z-index: 5;
+    }
+    #scorebar .row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+    #scorebar .stat { font-size: 14px; color: #7799cc; }
+    #scorebar .stat b { color: #93c5fd; font-size: 18px; }
+    .bonus { font-size: 12px; }
+    .bonus.hit { color: #22c55e; }
+    .bonus.miss { color: #7799cc; }
+    #result-box {
+      display: none; margin-top: 24px; background: #121d35; border: 1px solid #22c55e;
+      border-radius: 10px; padding: 20px;
+    }
+    #result-box h2 { color: #22c55e; margin-top: 0; }
+    #result-box pre { color: #93c5fd; font-size: 13px; white-space: pre-wrap; }
+    #send-btn {
+      display: none; margin-top: 12px; background: #22c55e; color: #0b1120;
+      border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 15px;
+    }
+    #send-btn:hover { background: #16a34a; }
+    #send-btn:disabled { background: #334155; color: #7799cc; cursor: not-allowed; }
+    .warn { background: #2a1f0a; border: 1px solid #a16207; color: #fbbf24; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>NFL Preseason Pick Test</h1>
+  <p class="sub">
+    Tests the fetch-preseason-odds edge function end-to-end: pull &rarr; pick 6 &rarr; score.
+    Uses sport key <code>americanfootball_nfl_preseason</code>. Nothing is written to the database.
+  </p>
+
+  <button id="load" onclick="loadGames()">Load Preseason Games</button>
+  <div id="status"></div>
+
+  <div id="scorebar">
+    <div class="row">
+      <span class="stat">Picks <b id="s-picks">0</b>/6</span>
+      <span class="stat">Proj. Pts <b id="s-proj">0</b></span>
+      <span class="bonus miss" id="s-b4">Any 4 correct: 4 picks to go</span>
+      <span class="bonus miss" id="s-b6">All 6 correct: 6 picks to go</span>
+    </div>
+  </div>
+
+  <div id="games"></div>
+
+  <div id="result-box">
+    <h2>Picks Submitted</h2>
+    <pre id="result-text"></pre>
+  </div>
+  <button id="send-btn" onclick="submitPicks()">Send Picks</button>
+
+  <script>
+    const SUPABASE_URL = 'https://jpeaijrdvbvbpcmuqhgt.supabase.co'
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwZWFpanJkdmJ2YnBjbXVxaGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NjE4MTgsImV4cCI6MjA4OTIzNzgxOH0.XIK-uiH08hQKMNYd0rd_0cENqUITWWfb47CKxWuX408'
+
+    // Preseason weeks are NFL-only — no college football in August.
+    const CONTAINER_TYPE = 'nfl_only'
+    const MAX_PICKS = 6
+
+    let picks = {}   // game_id -> { side, team, spread }
+    let gamesById = {}
+
+    async function loadGames() {
+      const status = document.getElementById('status')
+      const gamesDiv = document.getElementById('games')
+      status.textContent = 'Fetching NFL preseason odds...'
+      gamesDiv.innerHTML = ''
+      document.getElementById('result-box').style.display = 'none'
+      document.getElementById('send-btn').style.display = 'none'
+      picks = {}
+      gamesById = {}
+      renderScorebar()
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-preseason-odds`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ANON_KEY}`,
+          },
+          body: JSON.stringify({}),
+        })
+        const data = await res.json()
+
+        if (!res.ok || data.error) {
+          status.textContent = `Error: ${data.error || res.statusText}`
+          return
+        }
+
+        if (data.games_found === 0) {
+          status.textContent =
+            `No preseason games with spreads. The API returned ${data.events_returned} event(s) ` +
+            `— preseason lines often post only 3-5 days before kickoff.`
+          return
+        }
+
+        status.textContent =
+          `Found ${data.games_found} preseason game(s) with spreads` +
+          (data.skipped.length ? ` (${data.skipped.length} skipped — no line yet)` : '') +
+          `. Pick up to ${MAX_PICKS}.`
+
+        document.getElementById('scorebar').style.display = 'block'
+
+        data.games.forEach(game => {
+          gamesById[game.id] = game
+          const gameTime = new Date(game.game_time).toLocaleString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', timeZoneName: 'short'
+          })
+
+          const fmt = (s) => s === 0 ? 'PK' : (s > 0 ? `+${s}` : `${s}`)
+
+          const div = document.createElement('div')
+          div.className = 'game'
+          div.innerHTML = `
+            <div class="time">${gameTime} &bull; ${game.bookmaker}${game.is_pickem ? ' &bull; <span class="pk-tag">PICK’EM</span>' : ''}</div>
+            <div class="matchup">
+              <button class="team-btn" id="btn-away-${game.id}"
+                onclick="pick('${game.id}', 'away')">
+                <span class="name">${game.away_team}</span>
+                <span class="spread">${fmt(game.away_spread)}</span>
+                ${!game.is_pickem && game.favorite === 'away' ? '<span class="fav">FAVORITE</span>' : ''}
+              </button>
+              <button class="team-btn" id="btn-home-${game.id}"
+                onclick="pick('${game.id}', 'home')">
+                <span class="name">${game.home_team}</span>
+                <span class="spread">${fmt(game.home_spread)}</span>
+                ${!game.is_pickem && game.favorite === 'home' ? '<span class="fav">FAVORITE</span>' : ''}
+              </button>
+            </div>
+          `
+          gamesDiv.appendChild(div)
+        })
+      } catch (err) {
+        status.textContent = `Network error: ${err.message}`
+      }
+    }
+
+    function pick(gameId, side) {
+      const game = gamesById[gameId]
+      const already = picks[gameId]
+
+      // Clicking the same side again clears the pick.
+      if (already && already.side === side) {
+        delete picks[gameId]
+      } else {
+        if (!already && Object.keys(picks).length >= MAX_PICKS) {
+          document.getElementById('status').textContent = `Max ${MAX_PICKS} picks — deselect one first.`
+          return
+        }
+        picks[gameId] = {
+          side,
+          team: side === 'home' ? game.home_team : game.away_team,
+          spread: side === 'home' ? game.home_spread : game.away_spread,
+        }
+      }
+
+      // Repaint selection state for this game.
+      document.getElementById(`btn-home-${gameId}`).classList.toggle('picked', picks[gameId]?.side === 'home')
+      document.getElementById(`btn-away-${gameId}`).classList.toggle('picked', picks[gameId]?.side === 'away')
+
+      renderScorebar()
+    }
+
+    /** Mirrors calcProjectedPoints + bonusStatus from src/lib/gameUtils.js. */
+    function renderScorebar() {
+      const n = Object.keys(picks).length
+
+      let bonus = 0
+      if (n >= 4) bonus += 1
+      if (n >= 6) bonus += 1
+      const proj = n === 0 ? 0 : Math.min(n + bonus, 8)
+
+      document.getElementById('s-picks').textContent = n
+      document.getElementById('s-proj').textContent = proj
+
+      const b4 = document.getElementById('s-b4')
+      const b6 = document.getElementById('s-b6')
+      const plural = (k) => `${k} pick${k !== 1 ? 's' : ''} to go`
+
+      b4.textContent = n >= 4 ? 'Any 4 correct: achieved' : `Any 4 correct: ${plural(4 - n)}`
+      b4.className = 'bonus ' + (n >= 4 ? 'hit' : 'miss')
+      b6.textContent = n >= 6 ? 'All 6 correct: achieved' : `All 6 correct: ${plural(6 - n)}`
+      b6.className = 'bonus ' + (n >= 6 ? 'hit' : 'miss')
+
+      const btn = document.getElementById('send-btn')
+      btn.style.display = n > 0 ? 'inline-block' : 'none'
+      btn.disabled = n === 0
+    }
+
+    function submitPicks() {
+      const n = Object.keys(picks).length
+      if (n === 0) return
+
+      const rows = Object.entries(picks).map(([gameId, p]) => ({
+        game_id: gameId,
+        matchup: `${gamesById[gameId].away_team} @ ${gamesById[gameId].home_team}`,
+        picked: p.team,
+        side: p.side,
+        spread: p.spread === 0 ? 'PK' : p.spread,
+      }))
+
+      let bonus = 0
+      if (n >= 4) bonus += 1
+      if (n >= 6) bonus += 1
+
+      document.getElementById('result-text').textContent = JSON.stringify({
+        container_type: CONTAINER_TYPE,
+        picks: rows,
+        pick_count: n,
+        projected: { base: n, bonus, total: Math.min(n + bonus, 8) },
+        submitted_at: new Date().toISOString(),
+        status: 'TEST — picks logged (not saved to DB)',
+      }, null, 2)
+
+      document.getElementById('result-box').style.display = 'block'
+      document.getElementById('send-btn').style.display = 'none'
+      document.getElementById('status').textContent = 'Picks sent!'
+    }
+  </script>
+</body>
+</html>

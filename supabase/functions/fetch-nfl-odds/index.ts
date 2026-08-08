@@ -20,10 +20,15 @@ serve(async (req) => {
   }
 
   try {
-    const { week_id } = await req.json()
+    const { week_id, sport_key: bodySportKey } = await req.json()
     if (!week_id) {
       return json({ error: 'week_id is required' }, 400)
     }
+
+    // Sport key precedence: request body → ODDS_SPORT_KEY secret → NFL default.
+    // Lets the same function run against e.g. baseball_mlb during the off-season.
+    const sportKey =
+      bodySportKey ?? Deno.env.get('ODDS_SPORT_KEY') ?? 'americanfootball_nfl'
 
     const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY')!
     const supabase = createClient(
@@ -42,7 +47,7 @@ serve(async (req) => {
 
     // Fetch from The Odds API
     const url =
-      `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds` +
+      `https://api.the-odds-api.com/v4/sports/${sportKey}/odds` +
       `?apiKey=${ODDS_API_KEY}&regions=us&markets=spreads&oddsFormat=american&dateFormat=iso`
 
     const oddsRes = await fetch(url)
