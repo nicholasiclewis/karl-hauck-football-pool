@@ -6,26 +6,14 @@
  *
  * Mirrors fetch-baseball-odds, which served the same purpose in the off-season.
  *
- * ─────────────────────────────────────────────────────────────────────────────
- * UNAUTHENTICATED ON PURPOSE — DEV HARNESS ONLY.
- *
- * Every other write/quota-spending function requires a commissioner (see
- * _shared/auth.ts). This one stays open so test-preseason-football.html works
- * without a login. That means anyone holding the public anon key can call it
- * and spend Odds API quota (500 requests/month on the free tier).
- *
- * Before the season starts, either delete this function and its HTML harness,
- * or add:  const auth = await requireCommissioner(req); if (!auth.ok) return auth.response
- * ─────────────────────────────────────────────────────────────────────────────
+ * Commissioner required: this spends metered Odds API quota (500 requests/month
+ * on the free tier), so leaving it open would let anyone holding the public
+ * anon key drain it.
  *
  * Request body: {} (empty body ok)
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, json, requireCommissioner } from '../_shared/auth.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -33,6 +21,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireCommissioner(req)
+    if (!auth.ok) return auth.response
+
     const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY')
     if (!ODDS_API_KEY) return json({ error: 'ODDS_API_KEY not set' }, 500)
 
@@ -91,13 +82,6 @@ serve(async (req) => {
       skipped,
     })
   } catch (err) {
-    return json({ error: err.message }, 500)
+    return json({ error: (err as Error).message }, 500)
   }
 })
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}

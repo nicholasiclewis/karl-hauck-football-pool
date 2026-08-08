@@ -64,15 +64,18 @@ export function AuthProvider({ children }) {
    * Validates the season join code before creating the auth account.
    */
   async function signUp(email, password, displayName, joinCode) {
-    // Check that the join code matches the active season
-    const { data: season } = await supabase
-      .from('seasons')
-      .select('id')
-      .eq('is_active', true)
-      .eq('join_code', joinCode.trim().toUpperCase())
-      .maybeSingle()
+    // Validate the invite code server-side. This used to SELECT from seasons,
+    // which required anon read on that table — and since the anon key ships in
+    // this bundle, anyone could read join_code and let themselves in. The RPC
+    // answers yes/no without ever returning the code.
+    const { data: isValid, error: codeErr } = await supabase.rpc(
+      'verify_season_join_code',
+      { p_code: joinCode }
+    )
 
-    if (!season) {
+    if (codeErr) throw new Error('Could not verify invite code. Please try again.')
+
+    if (!isValid) {
       throw new Error('Invalid invite code. Ask your commissioner for the current code.')
     }
 
