@@ -4,14 +4,13 @@
  * Should be scheduled to run every 5 minutes via Supabase cron.
  *
  * No request body needed — processes all unlocked picks automatically.
+ *
+ * Auth: the scheduler sends x-cron-secret; a commissioner can also trigger it
+ * by hand. It takes no arguments, so without a gate any holder of the public
+ * anon key could fire it.
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, json, requireCronOrCommissioner } from '../_shared/auth.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,10 +18,9 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    const auth = await requireCronOrCommissioner(req)
+    if (!auth.ok) return auth.response
+    const supabase = auth.admin
 
     // Find all games that have kicked off but still have unlocked picks
     const { data: kickedOffGames } = await supabase
@@ -48,13 +46,6 @@ serve(async (req) => {
 
     return json({ success: true, locked: locked?.length ?? 0 })
   } catch (err) {
-    return json({ error: err.message }, 500)
+    return json({ error: (err as Error).message }, 500)
   }
 })
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}

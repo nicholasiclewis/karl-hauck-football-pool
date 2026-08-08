@@ -6,12 +6,7 @@
  * Request body: { week_id: string }
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, json, requireCommissioner } from '../_shared/auth.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -19,13 +14,13 @@ serve(async (req) => {
   }
 
   try {
+    // Commissioner only: rewrites pick outcomes and every player's weekly score.
+    const auth = await requireCommissioner(req)
+    if (!auth.ok) return auth.response
+    const supabase = auth.admin
+
     const { week_id } = await req.json()
     if (!week_id) return json({ error: 'week_id is required' }, 400)
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
 
     // Get all completed games (scores entered) for this week
     const { data: games, error: gamesErr } = await supabase
@@ -154,7 +149,7 @@ serve(async (req) => {
 
     return json({ success: true, players_updated: playerIds.length })
   } catch (err) {
-    return json({ error: err.message }, 500)
+    return json({ error: (err as Error).message }, 500)
   }
 })
 
@@ -174,9 +169,3 @@ function resolveResult(game: any): string | null {
   }
 }
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}

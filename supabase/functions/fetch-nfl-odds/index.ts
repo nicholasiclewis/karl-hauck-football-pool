@@ -6,12 +6,7 @@
  * Request body: { week_id: string }
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, json, requireCommissioner } from '../_shared/auth.ts'
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -20,6 +15,11 @@ serve(async (req) => {
   }
 
   try {
+    // Commissioner only: this writes games and spends metered Odds API quota.
+    const auth = await requireCommissioner(req)
+    if (!auth.ok) return auth.response
+    const supabase = auth.admin
+
     const { week_id, sport_key: bodySportKey } = await req.json()
     if (!week_id) {
       return json({ error: 'week_id is required' }, 400)
@@ -31,10 +31,6 @@ serve(async (req) => {
       bodySportKey ?? Deno.env.get('ODDS_SPORT_KEY') ?? 'americanfootball_nfl'
 
     const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY')!
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
 
     // Verify the week exists
     const { data: week, error: weekErr } = await supabase
@@ -93,13 +89,6 @@ serve(async (req) => {
 
     return json({ success: true, games_synced: inserted.length, games: inserted })
   } catch (err) {
-    return json({ error: err.message }, 500)
+    return json({ error: (err as Error).message }, 500)
   }
 })
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}

@@ -6,6 +6,18 @@
  *
  * Mirrors fetch-baseball-odds, which served the same purpose in the off-season.
  *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * UNAUTHENTICATED ON PURPOSE — DEV HARNESS ONLY.
+ *
+ * Every other write/quota-spending function requires a commissioner (see
+ * _shared/auth.ts). This one stays open so test-preseason-football.html works
+ * without a login. That means anyone holding the public anon key can call it
+ * and spend Odds API quota (500 requests/month on the free tier).
+ *
+ * Before the season starts, either delete this function and its HTML harness,
+ * or add:  const auth = await requireCommissioner(req); if (!auth.ok) return auth.response
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * Request body: {} (empty body ok)
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
