@@ -3,6 +3,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/keep-alive", "schedule": "0 12 * * *" }
+    { "path": "/api/keep-alive", "schedule": "0 12 * * *" },
+    { "path": "/api/sync-week-odds", "schedule": "0 13 * * 2" }
   ]
 }

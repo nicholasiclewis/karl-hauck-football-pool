@@ -22,11 +22,14 @@ serve(async (req) => {
     const { week_id } = await req.json()
     if (!week_id) return json({ error: 'week_id is required' }, 400)
 
-    // Get all completed games (scores entered) for this week
+    // Get all completed games (scores entered) for this week. Featured only:
+    // unselected import candidates are not in play and must never contribute
+    // to a score, even if a stray pick exists against one.
     const { data: games, error: gamesErr } = await supabase
       .from('games')
       .select('*')
       .eq('week_id', week_id)
+      .eq('is_featured', true)
       .not('home_score', 'is', null)
       .not('away_score', 'is', null)
 
@@ -53,6 +56,7 @@ serve(async (req) => {
       .from('games')
       .select('*')
       .eq('week_id', week_id)
+      .eq('is_featured', true)
       .not('result', 'is', null)
 
     // Get all picks for this week

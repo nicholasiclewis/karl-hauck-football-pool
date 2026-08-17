@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
-import { getTeamConference, CONFERENCE_ORDER } from '../../lib/collegeTeams'
+import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
+import { fetchTop25ForDate, buildRankMap, rankOf } from '../../lib/rankings'
+import { weekWindow, isInWeekWindow, formatWeekWindow } from '../../lib/weekWindow'
+import { SLATE_SHAPE } from '../../lib/gameSelection'
 
 const BLANK = {
   sport: 'nfl',
@@ -28,7 +31,10 @@ export default function GamesTab() {
   const [fetching, setFetching]               = useState(false)
   const [addingPicked, setAddingPicked]       = useState(false)
   const [pickerError, setPickerError]         = useState('')
-  const [confFilter, setConfFilter]           = useState(null)   // conference name or null = all
+  const [confFilter, setConfFilter]           = useState(null)   // conference name, 'TOP25', or null = all
+  const [rankMap, setRankMap]                 = useState(null)   // normalized team name -> rank
+  const [rankLabel, setRankLabel]             = useState('')
+  const [windowOnly, setWindowOnly]           = useState(true)   // restrict to the week's Tue–Mon window
 
   useEffect(() => { loadWeeks() }, [])
   useEffect(() => { if (selectedWeekId) loadGames() }, [selectedWeekId])
@@ -45,8 +51,21 @@ export default function GamesTab() {
   }
 
   async function loadGames() {
-    const { data } = await supabase.from('games').select('*').eq('week_id', selectedWeekId).order('kickoff_time')
+    // Commissioner sees everything: the featured slate plus any unselected
+    // candidates the Tuesday import brought in. Featured float to the top.
+    const { data } = await supabase
+      .from('games').select('*').eq('week_id', selectedWeekId)
+      .order('is_featured', { ascending: false })
+      .order('kickoff_time')
     setGames(data ?? [])
+  }
+
+  async function toggleFeatured(game) {
+    const next = !game.is_featured
+    const { error: err } = await supabase
+      .from('games').update({ is_featured: next }).eq('id', game.id)
+    if (err) { setError(err.message); return }
+    setGames(gs => gs.map(g => (g.id === game.id ? { ...g, is_featured: next } : g)))
   }
 
   // ── Manual add ──────────────────────────────────────────────────────────────
@@ -86,11 +105,28 @@ export default function GamesTab() {
   // ── Odds API picker ──────────────────────────────────────────────────────────
 
   async function openPicker(sport) {
+    const week = weeks.find(w => w.id === selectedWeekId)
     setPickerSport(sport)
     setAvailableGames([])
     setSelectedIds(new Set())
     setPickerError('')
-    setConfFilter(null)
+    setWindowOnly(true)
+
+    // Pre-apply the week's plan: an SEC week opens on the SEC chip, a Top 25
+    // week opens on Top 25. Saves a tap and makes the plan visible.
+    if (sport === 'college' && week?.college_focus === 'top25') setConfFilter('TOP25')
+    else if (sport === 'college' && week?.conference) setConfFilter(week.conference)
+    else setConfFilter(null)
+
+    // Rankings power the Top 25 chip and the rank badges.
+    if (sport === 'college' && week?.week_start) {
+      setRankMap(null)
+      setRankLabel('')
+      fetchTop25ForDate(week.week_start)
+        .then(poll => { setRankMap(buildRankMap(poll)); setRankLabel(poll.headline) })
+        .catch(() => setRankLabel('rankings unavailable'))
+    }
+
     setFetching(true)
     try {
       const fnName = sport === 'nfl' ? 'fetch-nfl-odds' : 'fetch-college-odds'
@@ -133,6 +169,7 @@ export default function GamesTab() {
           favorite:     g.favorite,
           kickoff_time: g.kickoff_time,
           odds_api_id:  g.odds_api_id,
+          is_featured:  true,   // picked by hand = in play
         }, { onConflict: 'odds_api_id' })
       }
       await loadGames()
@@ -189,52 +226,64 @@ export default function GamesTab() {
 
         {!fetching && availableGames.length > 0 && (
           <>
-            {/* Conference filter chips — college only */}
+            {/* Week window toggle — a week runs Tue through Mon night */}
+            {selectedWeek?.week_start && (
+              <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: '#94afd4' }}>
+                <input
+                  type="checkbox"
+                  checked={windowOnly}
+                  onChange={e => setWindowOnly(e.target.checked)}
+                />
+                Only this week ({formatWeekWindow(weekWindow(selectedWeek.week_start))})
+              </label>
+            )}
+
+            {/* Conference + Top 25 filter chips — college only */}
             {pickerSport === 'college' && (
               <div className="overflow-x-auto">
                 <div className="flex gap-2 pb-1" style={{ width: 'max-content' }}>
-                  <button
-                    onClick={() => setConfFilter(null)}
-                    className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
-                    style={{
-                      background:  confFilter === null ? '#2563eb' : '#1e293b',
-                      borderColor: confFilter === null ? '#60a5fa' : '#374e6b',
-                      color:       confFilter === null ? '#ffffff'  : '#94afd4',
-                    }}
+                  <Chip active={confFilter === null} onClick={() => setConfFilter(null)}>All</Chip>
+                  <Chip
+                    active={confFilter === 'TOP25'}
+                    onClick={() => setConfFilter('TOP25')}
+                    disabled={!rankMap}
+                    title={rankLabel || 'Loading rankings…'}
                   >
-                    All
-                  </button>
+                    ★ Top 25
+                  </Chip>
                   {CONFERENCE_ORDER.filter(conf =>
                     availableGames.some(g => getTeamConference(g.home_team) === conf || getTeamConference(g.away_team) === conf)
                   ).map(conf => (
-                    <button
-                      key={conf}
-                      onClick={() => setConfFilter(conf)}
-                      className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
-                      style={{
-                        background:  confFilter === conf ? '#2563eb' : '#1e293b',
-                        borderColor: confFilter === conf ? '#60a5fa' : '#374e6b',
-                        color:       confFilter === conf ? '#ffffff'  : '#94afd4',
-                      }}
-                    >
+                    <Chip key={conf} active={confFilter === conf} onClick={() => setConfFilter(conf)}>
                       {conf}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
               </div>
             )}
 
             {(() => {
-              const filtered = confFilter
-                ? availableGames.filter(g =>
-                    getTeamConference(g.home_team) === confFilter ||
-                    getTeamConference(g.away_team) === confFilter
-                  )
-                : availableGames
+              const window = selectedWeek?.week_start ? weekWindow(selectedWeek.week_start) : null
+              let filtered = availableGames
+              if (windowOnly && window) {
+                filtered = filtered.filter(g => isInWeekWindow(g.kickoff_time, window))
+              }
+              if (confFilter === 'TOP25') {
+                filtered = filtered.filter(g =>
+                  rankOf(g.home_team, rankMap) !== null || rankOf(g.away_team, rankMap) !== null
+                )
+              } else if (confFilter) {
+                filtered = filtered.filter(g =>
+                  getTeamConference(g.home_team) === confFilter ||
+                  getTeamConference(g.away_team) === confFilter
+                )
+              }
+              const filterLabel = confFilter === 'TOP25' ? 'Top 25' : confFilter
               return (
                 <>
                   <p className="text-xs" style={{ color: '#94afd4' }}>
-                    {filtered.length} game{filtered.length !== 1 ? 's' : ''}{confFilter ? ` · ${confFilter}` : ''} · {selectedIds.size} selected
+                    {filtered.length} game{filtered.length !== 1 ? 's' : ''}{filterLabel ? ` · ${filterLabel}` : ''} · {selectedIds.size} selected
+                    {confFilter === 'TOP25' && rankLabel ? ` · ${rankLabel}` : ''}
                   </p>
                   <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
                     {filtered.map((game) => {
@@ -264,7 +313,9 @@ export default function GamesTab() {
                     {/* Game info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>
-                        {game.away_team} @ {game.home_team}
+                        <Rank n={rankOf(game.away_team, rankMap)} />{game.away_team}
+                        {' @ '}
+                        <Rank n={rankOf(game.home_team, rankMap)} />{game.home_team}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
                         {favTeam} {formatSpread(-Math.abs(game.spread))}
@@ -396,34 +447,76 @@ export default function GamesTab() {
           {games.length === 0 ? (
             <p className="text-center text-sm py-6" style={{ color: '#94afd4' }}>No games yet for this week.</p>
           ) : (
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
-              {games.map((game) => (
-                <div key={game.id} className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: '#253347' }}>
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
-                    style={game.sport === 'nfl'
-                      ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
-                      : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
-                    }
+            <>
+              {/* Slate counter: how the featured picks compare to what the
+                  week's container type requires. */}
+              {(() => {
+                const shape = SLATE_SHAPE[selectedWeek?.container_type] ?? SLATE_SHAPE.nfl_college
+                const feat = games.filter(g => g.is_featured)
+                const nfl  = feat.filter(g => g.sport === 'nfl').length
+                const cfb  = feat.filter(g => g.sport === 'college').length
+                const ok   = nfl === shape.nfl && cfb === shape.college
+                return (
+                  <div
+                    className="rounded-xl border px-4 py-2.5 flex items-center justify-between"
+                    style={{
+                      background:  ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                      borderColor: ok ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)',
+                    }}
                   >
-                    {game.sport.toUpperCase()}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>
-                      {game.away_team} @ {game.home_team}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
-                      {game.favorite === 'home' ? game.home_team : game.away_team}
-                      {' '}{formatSpread(-Math.abs(game.spread))}
-                      {' · '}{formatKickoff(game.kickoff_time).split(' · ').slice(1).join(' ')}
-                    </p>
+                    <span className="text-xs font-semibold" style={{ color: ok ? '#10b981' : '#ef4444' }}>
+                      {ok ? '✓ Slate set' : 'Slate incomplete'}
+                    </span>
+                    <span className="text-xs" style={{ color: '#94afd4' }}>
+                      NFL {nfl}/{shape.nfl} · CFB {cfb}/{shape.college}
+                      {games.length > feat.length ? ` · ${games.length - feat.length} candidates` : ''}
+                    </span>
                   </div>
-                  <button onClick={() => deleteGame(game.id)} className="text-lg flex-shrink-0 px-2 py-1 rounded" style={{ color: '#94afd4' }}>
-                    🗑
-                  </button>
-                </div>
-              ))}
-            </div>
+                )
+              })()}
+
+              <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
+                {games.map((game) => (
+                  <div
+                    key={game.id}
+                    className="flex items-center gap-3 px-4 py-3 border-b"
+                    style={{ borderColor: '#253347', opacity: game.is_featured ? 1 : 0.55 }}
+                  >
+                    {/* Star toggles whether the game is in play this week */}
+                    <button
+                      onClick={() => toggleFeatured(game)}
+                      title={game.is_featured ? 'In play — tap to make a candidate' : 'Candidate — tap to put in play'}
+                      className="text-lg flex-shrink-0 px-1"
+                      style={{ color: game.is_featured ? '#f5b301' : '#4a6585' }}
+                    >
+                      {game.is_featured ? '★' : '☆'}
+                    </button>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
+                      style={game.sport === 'nfl'
+                        ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
+                        : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
+                      }
+                    >
+                      {game.sport.toUpperCase()}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>
+                        {game.away_team} @ {game.home_team}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
+                        {game.favorite === 'home' ? game.home_team : game.away_team}
+                        {' '}{formatSpread(-Math.abs(game.spread))}
+                        {' · '}{formatKickoff(game.kickoff_time).split(' · ').slice(1).join(' ')}
+                      </p>
+                    </div>
+                    <button onClick={() => deleteGame(game.id)} className="text-lg flex-shrink-0 px-2 py-1 rounded" style={{ color: '#94afd4' }}>
+                      🗑
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
@@ -448,4 +541,30 @@ function Field({ label, children }) {
 
 function Spinner({ icon }) {
   return <div className="py-12 text-center"><span className="text-3xl animate-bounce">{icon}</span></div>
+}
+
+/** Filter pill used for conference / Top 25 selection. */
+function Chip({ active, onClick, disabled = false, title, children }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
+      style={{
+        background:  active ? '#2563eb' : '#1e293b',
+        borderColor: active ? '#60a5fa' : '#374e6b',
+        color:       active ? '#ffffff' : '#94afd4',
+        opacity:     disabled ? 0.4 : 1,
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+/** AP rank prefix, e.g. the "#3" in "#3 Ohio State Buckeyes". */
+function Rank({ n }) {
+  if (n == null) return null
+  return <span style={{ color: '#f5b301', fontWeight: 700 }}>#{n} </span>
 }

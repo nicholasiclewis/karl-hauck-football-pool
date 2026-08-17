@@ -75,7 +75,7 @@ export default function WeekCard({ week, score, userId }) {
       setLoadingPicks(true)
       const [{ data: picksData }, { data: gamesData }] = await Promise.all([
         supabase.from('picks').select('*').eq('week_id', week.id).eq('user_id', userId),
-        supabase.from('games').select('*').eq('week_id', week.id).order('kickoff_time'),
+        supabase.from('games').select('*').eq('week_id', week.id).eq('is_featured', true).order('kickoff_time'),
       ])
       setPicks(picksData ?? [])
       setGames(gamesData ?? [])
@@ -106,7 +106,7 @@ export default function WeekCard({ week, score, userId }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>
-              NFL Week {week.week_number}
+              Week {week.week_number}
             </span>
             {isInProgress && (
               <span className="text-[10px] font-semibold" style={{ color: '#60a5fa' }}>

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { POWER4, GROUP5 } from '../../lib/conferences'
+import { isValidWeekStart, weekWindow, formatWeekWindow, poolWeekStartFor, addDays, toDateString } from '../../lib/weekWindow'
 
 const CONTAINER_TYPES = [
   { value: 'nfl_college',   label: '4 NFL + 2 College' },
@@ -16,9 +18,11 @@ const COLLEGE_FOCUSES = [
   { value: 'cfp',       label: 'CFP' },
 ]
 
+// Sourced from lib/conferences.js so there is exactly one place that knows
+// which conferences exist and which tier they belong to.
 const CONFERENCES = {
-  power4: ['SEC', 'Big Ten', 'Big 12', 'ACC'],
-  group5: ['AAC', 'Mountain West', 'Conference USA', 'MAC', 'Sun Belt'],
+  power4: POWER4.map((c) => c.key),
+  group5: GROUP5.map((c) => c.key),
 }
 
 const BLANK = {
@@ -47,13 +51,25 @@ export default function WeeksTab() {
     const { data: w } = await supabase.from('weeks').select('*').eq('season_id', s.id).order('week_number')
     const rows = w ?? []
     setWeeks(rows)
-    setForm(f => ({ ...f, week_number: rows.length + 1 }))
+    // Weeks run Tuesday→Monday, so the next one starts 7 days after the last
+    // planned week — or this week's Tuesday when starting from scratch.
+    const last = rows[rows.length - 1]
+    const nextStart = last?.week_start
+      ? toDateString(addDays(last.week_start, 7))
+      : poolWeekStartFor()
+    setForm(f => ({ ...f, week_number: rows.length + 1, week_start: nextStart }))
     setLoading(false)
   }
 
   async function createWeek(e) {
     e.preventDefault()
     setError('')
+    // The Tuesday importer looks for a week whose week_start is that day, so a
+    // week starting on any other day silently never auto-fills.
+    if (!isValidWeekStart(form.week_start) &&
+        !confirm('That start date is not a Tuesday, so odds will not import automatically for it. Create it anyway?')) {
+      return
+    }
     setSaving(true)
     try {
       const needsCollege = form.container_type !== 'nfl_only'
@@ -142,13 +158,24 @@ export default function WeeksTab() {
                 className="input-field w-full"
               />
             </Field>
-            <Field label="Week Start Date">
+            <Field label="Week Start (Tuesday)">
               <input
                 type="date" required
                 value={form.week_start}
                 onChange={e => setForm(f => ({ ...f, week_start: e.target.value }))}
                 className="input-field w-full"
               />
+              {form.week_start && (
+                isValidWeekStart(form.week_start) ? (
+                  <p className="text-[10px] mt-1" style={{ color: '#94afd4' }}>
+                    {formatWeekWindow(weekWindow(form.week_start))}
+                  </p>
+                ) : (
+                  <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>
+                    Not a Tuesday — odds won't auto-import
+                  </p>
+                )
+              )}
             </Field>
           </div>
           <Field label="Type">
@@ -235,7 +262,7 @@ export default function WeeksTab() {
                     {week.container_type === 'nfl_college' ? '4 NFL · 2 CFB'
                       : week.container_type === 'nfl_only' ? '6 NFL' : '6 CFB'}
                     {week.conference ? ` · ${week.conference}` : ''}
-                    {' · '}{week.week_start}
+                    {' · '}{formatWeekWindow(weekWindow(week.week_start))}
                   </p>
                 </div>
 
