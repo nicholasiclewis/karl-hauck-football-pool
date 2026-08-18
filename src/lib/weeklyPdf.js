@@ -1,191 +1,237 @@
 /**
  * Drawing code for the weekly PDFs.
  *
- * Split from weeklyExports.js so it pulls in no database client — that keeps
- * these renderable outside the browser, which is the only practical way to
- * look at the output while working on it.
+ * Layout follows docs/report-design-brief.md and the design returned against
+ * it: an 80px folio rail down the left carrying the week stamp and a sideways
+ * RESULTS, then a solid primary poster for the winner, a numbered storyline
+ * strip, and two tables on alternating row fills.
+ *
+ * Sections collapse rather than reserve space. No perfect week and no
+ * storylines means those blocks are omitted outright and the next section
+ * closes up against the one above — most weeks are the sparse case.
+ *
+ * Split from weeklyExports.js so it pulls in no database client, which keeps
+ * it renderable outside the browser — the only practical way to look at the
+ * output while working on it.
  *
  * A note on glyphs: jsPDF's built-in fonts are WinAnsi-encoded and have no
  * arrows, stars or box characters. Anything of that sort is drawn as vectors
  * rather than typed, or it comes out as garbage.
  */
 import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatKickoff, formatSpread } from './gameUtils.js'
 import { weekWindow, formatWeekWindow } from './weekWindow.js'
 import { formatLabel, picksNeeded, MAX_WEEK_POINTS } from './weeklyEmail.js'
 import {
-  CARD, CARD2, BORDER, PRIMARY, PLIGHT, TEXT, MUTED, GOLD, GREEN,
-  COL_L, COL_R, PAGE_W, fullBg, sectionBanner, rankColor,
+  CARD, CARD2, BORDER, PRIMARY, PLIGHT, TEXT, MUTED, GOLD, GREEN, SILVER,
+  BRONZE, ON_POSTER, PAGE_W, PAGE_H,
 } from './pdfTheme.js'
 
-const NAVY = [10, 18, 38]
+const BG   = [11, 17, 32]     // #0b1120 page
+const RAIL = [10, 18, 38]     // #0a1226 folio rail
+const RED  = [239, 68, 68]    // downward movement
 
-// ── Scoreboard furniture ─────────────────────────────────────────────────────
+// The design is 794×1123px — A4 at 96dpi — so px * 0.2646 = mm.
+const RAIL_W  = 21.2          // 80px
+const PAD     = 8             // 30px side padding inside the main column
+const L       = RAIL_W + PAD  // content left edge
+const R       = PAGE_W - PAD  // content right edge
+const W       = R - L
 
-/** Full-bleed header band: big week number left, season and dates right. */
-function scoreboardHeader(doc, { kicker, title, right, sub }) {
-  fullBg(doc)
-  doc.setFillColor(...NAVY)
-  doc.rect(0, 0, PAGE_W, 40, 'F')
-  // Accent rule under the band, echoing the app's primary.
-  doc.setFillColor(...PRIMARY)
-  doc.rect(0, 40, PAGE_W, 1.6, 'F')
+// ── Primitives ───────────────────────────────────────────────────────────────
 
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.setTextColor(...PLIGHT)
-  doc.text(kicker.toUpperCase(), COL_L, 14, { charSpace: 1.2 })
+const rgb = (doc, c) => doc.setTextColor(c[0], c[1], c[2])
+const fill = (doc, c) => doc.setFillColor(c[0], c[1], c[2])
 
-  doc.setFontSize(30)
-  doc.setTextColor(255, 255, 255)
-  doc.text(title.toUpperCase(), COL_L, 30)
-
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(...TEXT)
-  doc.text(right, COL_R, 16, { align: 'right' })
-  if (sub) {
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(8)
-    doc.setTextColor(...MUTED)
-    doc.text(sub, COL_R, 23, { align: 'right' })
-  }
-  return 52
+/** Hairline rule, the 1px #1e3566 divider used throughout. */
+function rule(doc, y, weight = 0.25, color = BORDER) {
+  doc.setDrawColor(color[0], color[1], color[2])
+  doc.setLineWidth(weight)
+  doc.line(L, y, R, y)
 }
 
-/** The winner, sized like it matters. */
-function winnerHero(doc, y, { winners, perfect, week }) {
-  const h = 30
-  doc.setFillColor(...CARD)
-  doc.roundedRect(COL_L, y, COL_R - COL_L, h, 2, 2, 'F')
-  // Gold spine down the left edge.
-  doc.setFillColor(...GOLD)
-  doc.rect(COL_L, y, 2.4, h, 'F')
-
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.setTextColor(...GOLD)
-  doc.text(winners.length > 1 ? 'CO-WINNERS' : 'WEEK WINNER', COL_L + 8, y + 9, { charSpace: 1 })
-
-  doc.setFontSize(winners.length > 1 ? 17 : 22)
-  doc.setTextColor(255, 255, 255)
-  doc.text(winners.map((w) => w.name).join('  &  '), COL_L + 8, y + 21)
-
-  // Points as a numeral block on the right.
-  doc.setFontSize(26)
-  doc.setTextColor(...GOLD)
-  doc.text(String(winners[0].points), COL_R - 8, y + 20, { align: 'right' })
-  doc.setFontSize(7)
-  doc.setTextColor(...MUTED)
-  doc.setFont('helvetica', 'normal')
-  doc.text('PTS', COL_R - 8, y + 26, { align: 'right' })
-
-  let out = y + h + 5
-
-  if (perfect.length) {
-    const ph = 11
-    doc.setFillColor(16, 60, 44)
-    doc.roundedRect(COL_L, out, COL_R - COL_L, ph, 1.5, 1.5, 'F')
-    doc.setFillColor(...GREEN)
-    doc.rect(COL_L, out, 2.4, ph, 'F')
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
-    doc.setTextColor(...GREEN)
-    doc.text('PERFECT WEEK', COL_L + 8, out + 7, { charSpace: 1 })
-    doc.setTextColor(...TEXT)
-    doc.setFont('helvetica', 'normal')
-    doc.text(
-      `${perfect.map((p) => p.name).join(', ')} — ${perfect[0].points}/${MAX_WEEK_POINTS}, clean sweep`,
-      COL_L + 46, out + 7
-    )
-    out += ph + 5
-  }
-  return out
-}
-
-/** Storyline tiles across the page. */
-function storyTiles(doc, y, stories) {
-  const items = stories.slice(0, 4)
-  if (!items.length) return y
-
-  const gap = 3
-  const w = (COL_R - COL_L - gap * (items.length - 1)) / items.length
-  const h = 22
-
-  items.forEach((s, i) => {
-    const x = COL_L + i * (w + gap)
-    doc.setFillColor(...CARD2)
-    doc.roundedRect(x, y, w, h, 1.5, 1.5, 'F')
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(6.5)
-    doc.setTextColor(...PLIGHT)
-    doc.text(s.label.toUpperCase(), x + 4, y + 6, { charSpace: 0.6 })
-
-    doc.setFontSize(12)
-    doc.setTextColor(255, 255, 255)
-    doc.text(fit(doc, s.value, w - 8, 12), x + 4, y + 14)
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(6.5)
-    doc.setTextColor(...MUTED)
-    doc.text(fit(doc, s.detail, w - 8, 6.5), x + 4, y + 19)
-  })
-
-  return y + h + 8
-}
-
-/** Shrink text until it fits the given width, so tiles never overflow. */
-function fit(doc, text, maxW, size) {
-  doc.setFontSize(size)
+/** Truncate to fit a width at the current size, so nothing overruns a column. */
+function clip(doc, text, maxW) {
   let s = String(text ?? '')
-  while (s.length > 4 && doc.getTextWidth(s) > maxW) s = s.slice(0, -1)
-  return s === String(text ?? '') ? s : `${s.slice(0, -1)}…`
+  if (doc.getTextWidth(s) <= maxW) return s
+  while (s.length > 1 && doc.getTextWidth(`${s}…`) > maxW) s = s.slice(0, -1)
+  return `${s}…`
 }
 
 /**
- * Movement indicator drawn as vectors — the font has no arrow glyphs.
- * Returns nothing; draws in place.
+ * The folio rail: week stamp at the top, the document name set sideways in the
+ * middle, the pool name at the foot. Repeated on every page so a printed run
+ * reads as one series.
  */
-function movementMark(doc, x, y, m) {
-  if (!m || m.isNew) {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(6)
-    doc.setTextColor(...PLIGHT)
-    doc.text('NEW', x, y + 0.5)
-    return
-  }
-  if (m.delta === 0) {
-    doc.setDrawColor(...MUTED)
-    doc.setLineWidth(0.4)
-    doc.line(x, y - 0.6, x + 3, y - 0.6)
-    return
-  }
-  const up = m.delta > 0
-  doc.setFillColor(...(up ? GREEN : [239, 68, 68]))
-  if (up) doc.triangle(x + 1.5, y - 3, x, y, x + 3, y, 'F')
-  else    doc.triangle(x + 1.5, y, x, y - 3, x + 3, y - 3, 'F')
+function folioRail(doc, { year, weekNumber, kind }) {
+  fill(doc, BG)
+  doc.rect(0, 0, PAGE_W, PAGE_H, 'F')
+  fill(doc, RAIL)
+  doc.rect(0, 0, RAIL_W, PAGE_H, 'F')
+  doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+  doc.setLineWidth(0.25)
+  doc.line(RAIL_W, 0, RAIL_W, PAGE_H)
+
+  const mid = RAIL_W / 2
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(6.5)
-  doc.setTextColor(...(up ? GREEN : [239, 68, 68]))
-  doc.text(String(Math.abs(m.delta)), x + 4.5, y)
+  doc.setFontSize(7)
+  rgb(doc, MUTED)
+  doc.text(String(year), mid, 14, { align: 'center', charSpace: 0.4 })
+
+  fill(doc, PRIMARY)
+  doc.rect(mid - 3.2, 17, 6.4, 0.5, 'F')
+
+  doc.text(`WK ${String(weekNumber).padStart(2, '0')}`, mid, 22, { align: 'center', charSpace: 0.4 })
+
+  // Sideways, reading bottom to top.
+  doc.setFontSize(19)
+  rgb(doc, PLIGHT)
+  doc.text(kind.toUpperCase(), mid + 6.5, PAGE_H / 2 + 28, { angle: 90, charSpace: 1.2 })
+
+  doc.setFontSize(6)
+  rgb(doc, BORDER)
+  doc.text('KBHFOOTBALLPOOL', mid + 2, PAGE_H - 16, { angle: 90, charSpace: 0.5 })
 }
 
-const tableTheme = {
-  theme: 'plain',
-  styles: {
-    fontSize: 9, cellPadding: { top: 2.6, bottom: 2.6, left: 3, right: 3 },
-    textColor: TEXT, fillColor: CARD, lineColor: BORDER, lineWidth: 0,
-  },
-  headStyles: {
-    fillColor: NAVY, textColor: PLIGHT, fontStyle: 'bold', fontSize: 7,
-    cellPadding: { top: 2.2, bottom: 2.2, left: 3, right: 3 },
-  },
-  alternateRowStyles: { fillColor: CARD2 },
-  margin: { left: COL_L, right: COL_L },
+/**
+ * The winner, set as a poster on a solid primary field.
+ * Names wrap to two lines and shrink when a co-win puts two of them up there.
+ */
+function winnerPoster(doc, y, { winners, formatText }) {
+  const names = winners.map((w) => w.name).join(' & ')
+  const two = winners.length > 1
+
+  // Measure first: the block grows with the name, it does not clip it.
+  doc.setFont('helvetica', 'bold')
+  let size = two ? 24 : 34
+  const nameW = W - 58
+  let lines = []
+  for (;;) {
+    doc.setFontSize(size)
+    lines = doc.splitTextToSize(names, nameW)
+    if (lines.length <= 2 || size <= 13) break
+    size -= 2
+  }
+  lines = lines.slice(0, 2)
+
+  const h = 26 + lines.length * (size * 0.36)
+  fill(doc, PRIMARY)
+  doc.rect(L, y, W, h, 'F')
+
+  doc.setFontSize(6.5)
+  rgb(doc, ON_POSTER)
+  doc.text(formatText.toUpperCase(), L + 7, y + 8, { charSpace: 0.7 })
+
+  doc.setFontSize(7)
+  doc.text(two ? 'CO-WINNERS' : 'WINNER', L + 7, y + 16, { charSpace: 0.9 })
+
+  doc.setFontSize(size)
+  rgb(doc, TEXT)
+  lines.forEach((line, i) => {
+    doc.text(line, L + 7, y + 24 + i * (size * 0.36))
+  })
+
+  // Points, sized to dominate, baseline-aligned with the foot of the block.
+  doc.setFontSize(two ? 38 : 46)
+  rgb(doc, GOLD)
+  const pts = String(winners[0].points)
+  const ptsW = doc.getTextWidth(pts)
+  doc.text(pts, R - 7 - 12, y + h - 7)
+  doc.setFontSize(11)
+  doc.text('PTS', R - 7 - 12 + ptsW + 1.5, y + h - 7)
+
+  return y + h
 }
+
+/** Perfect-week strip: a green tick block, the label, then who and what. */
+function perfectStrip(doc, y, perfect) {
+  const top = y + 5
+  fill(doc, GREEN)
+  doc.rect(L, top + 1.6, 2.6, 2.6, 'F')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7)
+  rgb(doc, GREEN)
+  doc.text('PERFECT WEEK', L + 5, top + 4, { charSpace: 0.8 })
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  rgb(doc, MUTED)
+  const names = perfect.map((p) => p.name).join(', ')
+  doc.text(
+    clip(doc, `— ${names}, a clean ${perfect[0].points}/${MAX_WEEK_POINTS} sweep`, W - 40),
+    L + 38, top + 4
+  )
+
+  const bottom = top + 8
+  rule(doc, bottom, 0.5)
+  return bottom
+}
+
+/** Storylines as a numbered strip, dividing the row evenly by however many. */
+function storylineStrip(doc, y, stories) {
+  const items = stories.slice(0, 4)
+  const top = y + 5
+  const colW = W / items.length
+
+  items.forEach((s, i) => {
+    const x = L + i * colW
+    if (i > 0) {
+      doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+      doc.setLineWidth(0.25)
+      doc.line(x - 3, top - 1, x - 3, top + 15)
+    }
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(20)
+    rgb(doc, BORDER)
+    doc.text(String(i + 1).padStart(2, '0'), x, top + 6)
+
+    const tx = x + 11
+    const tw = colW - 14
+
+    doc.setFontSize(6)
+    rgb(doc, MUTED)
+    doc.text(clip(doc, s.label.toUpperCase(), tw), tx, top + 2.5, { charSpace: 0.5 })
+
+    doc.setFontSize(10)
+    rgb(doc, TEXT)
+    doc.text(clip(doc, s.value, tw), tx, top + 8)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(6.5)
+    rgb(doc, MUTED)
+    doc.text(clip(doc, s.detail, tw), tx, top + 12.5)
+  })
+
+  const bottom = top + 18
+  rule(doc, bottom, 0.5)
+  return bottom
+}
+
+/** Tracked section heading over a heavy rule. */
+function sectionHead(doc, y, text, right = null) {
+  const top = y + 7
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  rgb(doc, TEXT)
+  doc.text(text.toUpperCase(), L, top, { charSpace: 0.5 })
+
+  if (right) {
+    doc.setFontSize(6.5)
+    rgb(doc, MUTED)
+    let x = R
+    for (const col of [...right].reverse()) {
+      doc.text(col.label, x, top, { align: 'right', charSpace: 0.4 })
+      x -= col.w
+    }
+  }
+  rule(doc, top + 2.5, 0.5)
+  return top + 2.5
+}
+
+const medal = (rank) => (rank === 1 ? GOLD : rank === 2 ? SILVER : rank === 3 ? BRONZE : TEXT)
 
 // ── Results PDF ──────────────────────────────────────────────────────────────
 
@@ -193,96 +239,119 @@ export function buildResultsPdf(data) {
   const { week, season, weekTable, winners, perfect, standings, movement, stories } = data
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
-  let y = scoreboardHeader(doc, {
-    kicker: `${season.year} Season`,
-    title:  `Week ${week.week_number}`,
-    right:  'RESULTS',
-    sub:    formatLabel(week),
-  })
+  folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'Results' })
 
+  let y = 18
   if (winners.length) {
-    y = winnerHero(doc, y, { winners, perfect, week })
+    y = winnerPoster(doc, y, { winners, formatText: formatLabel(week) })
   } else {
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
-    doc.setTextColor(...MUTED)
-    doc.text('No scores recorded for this week yet.', COL_L, y)
+    rgb(doc, MUTED)
+    doc.text('No scores recorded for this week yet.', L, y + 8)
     y += 12
   }
 
-  y = storyTiles(doc, y, stories)
+  // Both of these collapse when empty — most weeks have neither.
+  if (perfect.length) y = perfectStrip(doc, y, perfect)
+  if (stories.length) y = storylineStrip(doc, y, stories)
 
-  // ── This week ──
-  y = sectionBanner(doc, `Week ${week.week_number} scoreboard`, y)
-  autoTable(doc, {
-    ...tableTheme,
-    startY: y,
-    head: [['', 'PLAYER', 'W-L-P', 'BONUS', 'PTS']],
-    body: weekTable.map((r, i) => [
-      i + 1,
-      r.name,
-      `${r.correct}-${r.losses}-${r.pushes}`,
-      r.bonus ? `+${r.bonus}` : '',
-      r.points.toFixed(1),
-    ]),
-    columnStyles: {
-      0: { cellWidth: 9, halign: 'center', fontStyle: 'bold' },
-      2: { cellWidth: 22, halign: 'center' },
-      3: { cellWidth: 18, halign: 'center', textColor: GOLD },
-      4: { cellWidth: 18, halign: 'right', fontStyle: 'bold', fontSize: 11 },
-    },
-    didParseCell: (d) => {
-      if (d.section === 'body' && d.row.index < 3 && d.column.index <= 1) {
-        d.cell.styles.textColor = rankColor(d.row.index + 1)
-        d.cell.styles.fontStyle = 'bold'
-      }
-    },
+  // ── Week scoreboard ──
+  y = sectionHead(doc, y, `Week ${week.week_number} Scoreboard`)
+  weekTable.forEach((r, i) => {
+    const lead = i === 0
+    const h = lead ? 9 : 7
+    fill(doc, i % 2 === 0 ? CARD : CARD2)
+    doc.rect(L, y, W, h, 'F')
+
+    const base = y + (lead ? 6.4 : 5)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(lead ? 15 : i < 3 ? 11 : 9)
+    rgb(doc, medal(i + 1))
+    doc.text(String(i + 1), L + 2, base)
+
+    doc.setFontSize(lead ? 12 : i < 3 ? 10 : 9)
+    if (i >= 3) doc.setFont('helvetica', 'normal')
+    rgb(doc, i < 3 ? medal(i + 1) : TEXT)
+    doc.text(clip(doc, r.name, W - 60), L + 11, base)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    rgb(doc, MUTED)
+    doc.text(`${r.correct}-${r.losses}-${r.pushes}`, R - 34, base, { align: 'right' })
+    doc.text(r.bonus ? `+${Number(r.bonus).toFixed(1)}` : '—', R - 20, base, { align: 'right' })
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(lead ? 13 : 10)
+    rgb(doc, lead ? GOLD : TEXT)
+    doc.text(Number(r.points).toFixed(1), R - 2, base, { align: 'right' })
+
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+    doc.setLineWidth(0.2)
+    doc.line(L, y + h, R, y + h)
+    y += h
   })
-  y = doc.lastAutoTable.finalY + 9
 
   // ── Season standings ──
-  if (y > 215) { doc.addPage(); y = scoreboardHeader(doc, {
-    kicker: `${season.year} Season`, title: `Week ${week.week_number}`, right: 'STANDINGS',
-  }) }
+  y = sectionHead(doc, y + 4, 'Season Standings', [
+    { label: 'WK', w: 14 }, { label: 'WON', w: 14 },
+    { label: 'BACK', w: 18 }, { label: 'TOTAL', w: 18 },
+  ])
 
-  y = sectionBanner(doc, 'Season standings', y, PRIMARY)
-  const startY = y
-  autoTable(doc, {
-    ...tableTheme,
-    startY: y,
-    head: [['', '', 'PLAYER', 'WEEKS', 'WON', 'BACK', 'TOTAL']],
-    body: standings.map((r) => [
-      r.rank,
-      '',                                   // movement drawn as vectors below
-      r.name,
-      r.played,
-      r.weeksWon || '',
-      r.gap > 0 ? `-${r.gap.toFixed(1)}` : '',
-      r.points.toFixed(1),
-    ]),
-    columnStyles: {
-      0: { cellWidth: 9,  halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 12 },
-      3: { cellWidth: 16, halign: 'center', textColor: MUTED },
-      4: { cellWidth: 14, halign: 'center', textColor: GOLD },
-      5: { cellWidth: 16, halign: 'right',  textColor: MUTED },
-      6: { cellWidth: 20, halign: 'right',  fontStyle: 'bold', fontSize: 11 },
-    },
-    didParseCell: (d) => {
-      if (d.section === 'body' && d.row.index < 3 && d.column.index === 2) {
-        d.cell.styles.textColor = rankColor(d.row.index + 1)
-        d.cell.styles.fontStyle = 'bold'
-      }
-    },
-    didDrawCell: (d) => {
-      // Column 1 is left empty so the arrow can be drawn as vectors.
-      if (d.section === 'body' && d.column.index === 1) {
-        const row = standings[d.row.index]
-        movementMark(doc, d.cell.x + 3, d.cell.y + d.cell.height / 2 + 1, movement.get(row.userId))
-      }
-    },
+  standings.forEach((r, i) => {
+    const h = 6.4
+    fill(doc, i % 2 === 0 ? CARD : CARD2)
+    doc.rect(L, y, W, h, 'F')
+    const base = y + 4.4
+
+    // Movement, drawn rather than typed — the font has no arrows.
+    const m = movement.get(r.userId)
+    const mx = L + 2.5
+    if (!m || m.isNew) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(5)
+      rgb(doc, PLIGHT)
+      doc.text('NEW', mx - 0.5, base)
+    } else if (m.delta > 0) {
+      fill(doc, GREEN)
+      doc.triangle(mx + 1.4, base - 3, mx, base - 0.4, mx + 2.8, base - 0.4, 'F')
+    } else if (m.delta < 0) {
+      fill(doc, RED)
+      doc.triangle(mx + 1.4, base - 0.4, mx, base - 3, mx + 2.8, base - 3, 'F')
+    } else {
+      doc.setDrawColor(MUTED[0], MUTED[1], MUTED[2])
+      doc.setLineWidth(0.3)
+      doc.line(mx, base - 1.6, mx + 2.8, base - 1.6)
+    }
+
+    doc.setFont('helvetica', i < 3 ? 'bold' : 'normal')
+    doc.setFontSize(i < 3 ? 10 : 9)
+    rgb(doc, i < 3 ? medal(r.rank) : MUTED)
+    doc.text(String(r.rank), L + 8, base)
+
+    doc.setFontSize(9)
+    rgb(doc, i < 3 ? medal(r.rank) : TEXT)
+    doc.text(clip(doc, r.name, W - 74), L + 14, base)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    rgb(doc, TEXT)
+    doc.text(String(r.played), R - 50, base, { align: 'right' })
+    doc.text(r.weeksWon ? String(r.weeksWon) : '—', R - 36, base, { align: 'right' })
+    rgb(doc, MUTED)
+    doc.text(r.gap > 0 ? `-${r.gap.toFixed(1)}` : '—', R - 18, base, { align: 'right' })
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    rgb(doc, i === 0 ? GOLD : TEXT)
+    doc.text(Number(r.points).toFixed(1), R, base, { align: 'right' })
+
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+    doc.setLineWidth(0.2)
+    doc.line(L, y + h, R, y + h)
+    y += h
   })
 
-  footer(doc)
   return doc
 }
 
@@ -290,81 +359,84 @@ export function buildResultsPdf(data) {
 
 export function buildGamesPdf({ week, season, games, limits }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const win = weekWindow(week.week_start)
+  folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'The Slate' })
 
-  let y = scoreboardHeader(doc, {
-    kicker: `${season.year} Season`,
-    title:  `Week ${week.week_number}`,
-    right:  'THE SLATE',
-    sub:    formatWeekWindow(win),
-  })
+  let y = 18
 
-  // What each player owes, stated once and loudly.
-  const h = 22
-  doc.setFillColor(...CARD)
-  doc.roundedRect(COL_L, y, COL_R - COL_L, h, 2, 2, 'F')
-  doc.setFillColor(...PLIGHT)
-  doc.rect(COL_L, y, 2.4, h, 'F')
+  // What each player owes, on the same poster field the winner gets.
+  const h = 30
+  fill(doc, PRIMARY)
+  doc.rect(L, y, W, h, 'F')
+
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.setTextColor(...PLIGHT)
-  doc.text('YOUR PICKS', COL_L + 8, y + 8, { charSpace: 1 })
-  doc.setFontSize(14)
-  doc.setTextColor(255, 255, 255)
-  doc.text(picksNeeded(limits, '+'), COL_L + 8, y + 17)
+  doc.setFontSize(6.5)
+  rgb(doc, ON_POSTER)
+  doc.text(formatLabel(week).toUpperCase(), L + 7, y + 8, { charSpace: 0.7 })
+  doc.setFontSize(7)
+  doc.text('YOUR PICKS', L + 7, y + 16, { charSpace: 0.9 })
+
+  doc.setFontSize(20)
+  rgb(doc, TEXT)
+  doc.text(picksNeeded(limits, '+'), L + 7, y + 25)
+
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(...MUTED)
-  doc.text(`from ${games.length} games  ·  ${formatLabel(week)}`, COL_R - 8, y + 17, { align: 'right' })
-  y += h + 8
+  doc.setFontSize(7.5)
+  rgb(doc, ON_POSTER)
+  doc.text(`${games.length} games`, R - 7, y + 25, { align: 'right' })
+  doc.text(formatWeekWindow(weekWindow(week.week_start)), R - 7, y + 8, { align: 'right' })
+  y += h
 
   for (const sport of ['nfl', 'college']) {
     const list = games.filter((g) => g.sport === sport)
     if (!list.length) continue
 
-    if (y > 240) {
+    if (y > 250) {
       doc.addPage()
-      y = scoreboardHeader(doc, {
-        kicker: `${season.year} Season`, title: `Week ${week.week_number}`, right: 'THE SLATE',
-      })
+      folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'The Slate' })
+      y = 18
     }
 
-    y = sectionBanner(doc, sport === 'nfl' ? 'NFL' : 'College', y,
-      sport === 'nfl' ? PRIMARY : [16, 110, 84])
+    y = sectionHead(doc, y + 4, sport === 'nfl' ? 'NFL' : 'College')
 
-    autoTable(doc, {
-      ...tableTheme,
-      startY: y,
-      head: [['MATCHUP', 'LINE', 'KICKOFF']],
-      body: list.map((g) => [
-        `${g.away_team}  at  ${g.home_team}`,
-        `${g.favorite === 'home' ? g.home_team : g.away_team} ${formatSpread(-Math.abs(g.spread))}`,
-        formatKickoff(g.kickoff_time),
-      ]),
-      columnStyles: {
-        0: { cellWidth: 82, fontStyle: 'bold' },
-        1: { cellWidth: 52, textColor: GOLD },
-        2: { halign: 'right', textColor: MUTED, fontSize: 8 },
-      },
+    list.forEach((g, i) => {
+      const rowH = 8
+      if (y + rowH > PAGE_H - 14) {
+        doc.addPage()
+        folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'The Slate' })
+        y = 18
+      }
+      fill(doc, i % 2 === 0 ? CARD : CARD2)
+      doc.rect(L, y, W, rowH, 'F')
+      const base = y + 5.4
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9.5)
+      rgb(doc, TEXT)
+      doc.text(clip(doc, `${g.away_team}  at  ${g.home_team}`, W - 74), L + 3, base)
+
+      doc.setFontSize(8.5)
+      rgb(doc, GOLD)
+      const fav = g.favorite === 'home' ? g.home_team : g.away_team
+      doc.text(
+        clip(doc, `${fav} ${formatSpread(-Math.abs(g.spread))}`, 40),
+        R - 34, base, { align: 'right' }
+      )
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      rgb(doc, MUTED)
+      doc.text(formatKickoff(g.kickoff_time), R - 2, base, { align: 'right' })
+
+      doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+      doc.setLineWidth(0.2)
+      doc.line(L, y + rowH, R, y + rowH)
+      y += rowH
     })
-    y = doc.lastAutoTable.finalY + 9
   }
 
-  footer(doc, 'Each game locks at its own kickoff')
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(6.5)
+  rgb(doc, BORDER)
+  doc.text('Each game locks at its own kickoff', L, PAGE_H - 10)
   return doc
-}
-
-function footer(doc, note = '') {
-  const pages = doc.getNumberOfPages()
-  for (let i = 1; i <= pages; i++) {
-    doc.setPage(i)
-    doc.setDrawColor(...BORDER)
-    doc.setLineWidth(0.2)
-    doc.line(COL_L, 283, COL_R, 283)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7)
-    doc.setTextColor(...MUTED)
-    doc.text(note ? `Karl Hauck Football Pool  ·  ${note}` : 'Karl Hauck Football Pool', COL_L, 288)
-    doc.text('www.kbhfootballpool.com', COL_R, 288, { align: 'right' })
-  }
 }

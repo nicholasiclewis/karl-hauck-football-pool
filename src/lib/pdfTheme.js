@@ -13,6 +13,9 @@ export const PRIMARY = [ 26,  71, 184]   // #1a47b8
 export const PLIGHT  = [ 96, 150, 232]   // #6096e8
 export const TEXT    = [221, 238, 255]   // #ddeeff
 export const MUTED   = [119, 153, 204]   // #7799cc
+// Reversed-out label on the primary poster field — the only place text sits on
+// a saturated blue, where MUTED would disappear.
+export const ON_POSTER = [188, 211, 247] // #bcd3f7
 export const GOLD    = [251, 191,  36]   // #fbbf24
 export const SILVER  = [148, 163, 184]   // #94a3b8
 export const BRONZE  = [180,  83,   9]   // #b45309
