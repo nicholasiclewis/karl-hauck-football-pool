@@ -294,6 +294,36 @@ describe('featured slate suggestion', () => {
     assert.deepEqual(filtered.map((g) => g.away_team), ['Georgia Bulldogs'])
   })
 
+  test('a Top 25 week with no poll suggests nothing rather than everything', () => {
+    // Regression: early in the season no regular-week poll exists yet. This
+    // used to fall through to "no filter", which put an FCS team in a Top 25
+    // slate. Returning nothing is what makes the caller report the problem.
+    const college = candidates.filter((g) => g.sport === 'college')
+    assert.deepEqual(filterCollegeByFocus(college, { college_focus: 'top25' }, null), [])
+
+    const { featured, shortfall } = suggestFeatured(
+      candidates, { container_type: 'nfl_college', college_focus: 'top25' }, null
+    )
+    assert.equal(featured.filter((g) => g.sport === 'college').length, 0)
+    assert.equal(shortfall.college, 2)
+  })
+
+  test('FCS opponents are never suggested', () => {
+    // The Odds API carries FBS-vs-FCS games; neither side of an all-FCS or
+    // unrecognized matchup should reach a pool slate.
+    const withFcs = [
+      ...candidates,
+      cfb('Bowling Green Falcons', 'Tarleton State Texans', -2.5),
+      cfb('Somewhere State Cougars', 'Nowhere Tech Owls', 0.5),
+    ]
+    const { featured } = suggestFeatured(withFcs, { container_type: 'college_only' })
+    const names = featured.flatMap((g) => [g.home_team, g.away_team])
+    assert.equal(names.includes('Nowhere Tech Owls'), false, 'unrecognized matchup excluded')
+    assert.equal(names.includes('Somewhere State Cougars'), false)
+    // An FBS host against an FCS visitor is still a real game and may appear.
+    assert.ok(featured.length > 0)
+  })
+
   test('focuses we cannot compute pass everything through', () => {
     const college = candidates.filter((g) => g.sport === 'college')
     for (const focus of ['rivalry', 'confchamp', 'cfp']) {

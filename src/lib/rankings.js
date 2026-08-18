@@ -75,14 +75,27 @@ export async function fetchTop25({
   fallback = true,
   signal,
 } = {}) {
-  const order = fallback ? [poll, ...Object.keys(POLLS).filter((p) => p !== poll)] : [poll]
+  const pollOrder = fallback ? [poll, ...Object.keys(POLLS).filter((p) => p !== poll)] : [poll]
+
+  // A poll is published *before* the week it applies to, so early in the
+  // season the week being asked about has no poll of its own yet — regular
+  // week 1 in particular never does, because the preseason poll covers it.
+  // Walk back to the most recent poll that exists, ending at preseason.
+  const weekOrder = [{ seasonType, week }]
+  if (fallback) {
+    for (let w = week - 1; w >= 1 && w >= week - 3; w--) weekOrder.push({ seasonType, week: w })
+    if (seasonType !== SEASON_TYPE.preseason) {
+      weekOrder.push({ seasonType: SEASON_TYPE.preseason, week: 1 })
+    }
+  }
 
   let lastErr = null
-  for (const key of order) {
+  for (const slot of weekOrder) {
+  for (const key of pollOrder) {
     const spec = POLLS[key]
     if (!spec) continue
     try {
-      const url = `${CORE}/seasons/${year}/types/${seasonType}/weeks/${week}/rankings/${spec.id}`
+      const url = `${CORE}/seasons/${year}/types/${slot.seasonType}/weeks/${slot.week}/rankings/${spec.id}`
       const data = await getJson(url, signal)
       const ranks = data?.ranks ?? []
       if (ranks.length === 0) { lastErr = new Error(`${spec.label} empty`); continue }
@@ -112,12 +125,19 @@ export async function fetchTop25({
         poll:       key,
         pollLabel:  spec.label,
         headline:   data.shortHeadline ?? data.headline ?? spec.label,
-        year, week, seasonType,
+        year,
+        // What was asked for vs. what actually backed the answer — these
+        // differ whenever the walk-back above kicked in.
+        week:           slot.week,
+        seasonType:     slot.seasonType,
+        requestedWeek:  week,
+        requestedType:  seasonType,
         teams:      teams.sort((a, b) => a.rank - b.rank),
       }
     } catch (err) {
       lastErr = err
     }
+  }
   }
   throw lastErr ?? new Error('No poll available for that week')
 }

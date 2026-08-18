@@ -156,13 +156,18 @@ export default async function handler(req, res) {
     // ── Suggest the featured six ──────────────────────────────────────────
     // Only needed for a Top 25 week; skip the extra calls otherwise.
     let rankMap = null
+    let pollUsed = null
+    let warning = null
     if (week.college_focus === 'top25' && sports.includes('college')) {
       try {
-        rankMap = buildRankMap(await fetchTop25ForWeekStart(week.week_start))
-      } catch {
-        // Poll unavailable (e.g. before the preseason poll drops) — fall back
-        // to suggesting from all college games rather than failing the import.
-        rankMap = null
+        const poll = await fetchTop25ForWeekStart(week.week_start)
+        rankMap = buildRankMap(poll)
+        pollUsed = poll.headline
+      } catch (err) {
+        // Import the candidates regardless, but do not guess at a slate: with
+        // no poll we cannot tell which games qualify, so suggest nothing and
+        // say so rather than quietly featuring six unranked games.
+        warning = `Top 25 week but no poll available (${err.message}) — imported candidates without suggesting a slate`
       }
     }
 
@@ -195,6 +200,8 @@ export default async function handler(req, res) {
       refreshed:   stale.length,
       featured:    featured.length,
       shortfall,
+      poll:        pollUsed,
+      warning,
       apiCalls,
     }
 

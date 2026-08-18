@@ -45,7 +45,10 @@ export function filterCollegeByFocus(games, week, rankMap = null) {
   }
 
   if (focus === 'top25') {
-    if (!rankMap) return games
+    // No poll means we cannot tell which games qualify. Return nothing rather
+    // than everything — treating an unranked slate as ranked is how an FCS
+    // team ends up suggested for a Top 25 week. Callers should surface this.
+    if (!rankMap) return []
     return games.filter(
       (g) => rankOf(g.home_team, rankMap) !== null || rankOf(g.away_team, rankMap) !== null
     )
@@ -78,7 +81,12 @@ export function suggestFeatured(candidates, week, rankMap = null) {
     .sort(byClosestSpread)
 
   const college = filterCollegeByFocus(
-    candidates.filter((g) => g.sport === 'college' && g.spread != null),
+    candidates.filter((g) =>
+      g.sport === 'college' && g.spread != null &&
+      // At least one recognized FBS side. The Odds API also carries FCS
+      // opponents (Tarleton State and the like), which are never pool games.
+      (getTeamConference(g.home_team) !== null || getTeamConference(g.away_team) !== null)
+    ),
     week,
     rankMap
   ).sort(byClosestSpread)
