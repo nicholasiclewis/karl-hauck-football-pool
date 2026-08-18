@@ -24,12 +24,12 @@ import { weekWindow, formatWeekWindow } from './weekWindow.js'
 import { formatLabel, picksNeeded, MAX_WEEK_POINTS } from './weeklyEmail.js'
 import {
   CARD, CARD2, BORDER, PRIMARY, PLIGHT, TEXT, MUTED, GOLD, GREEN, SILVER,
-  BRONZE, ON_POSTER, PAGE_W, PAGE_H,
+  BRONZE, ON_POSTER, ON_POSTER_TEXT, ON_POSTER_GOLD, PAGE_W, PAGE_H,
 } from './pdfTheme.js'
 
-const BG   = [11, 17, 32]     // #0b1120 page
-const RAIL = [10, 18, 38]     // #0a1226 folio rail
-const RED  = [239, 68, 68]    // downward movement
+const BG   = [255, 255, 255]  // page
+const RAIL = [241, 245, 249]  // #f1f5f9 folio rail, a shade off the page
+const RED  = [185,  28,  28]  // #b91c1c downward movement, 5.76:1 on white
 
 // The design is 794×1123px — A4 at 96dpi — so px * 0.2646 = mm.
 const RAIL_W  = 21.2          // 80px
@@ -90,7 +90,7 @@ function folioRail(doc, { year, weekNumber, kind }) {
   doc.text(kind.toUpperCase(), mid + 6.5, PAGE_H / 2 + 28, { angle: 90, charSpace: 1.2 })
 
   doc.setFontSize(6)
-  rgb(doc, BORDER)
+  rgb(doc, SILVER)
   doc.text('KBHFOOTBALLPOOL', mid + 2, PAGE_H - 16, { angle: 90, charSpace: 0.5 })
 }
 
@@ -127,14 +127,14 @@ function winnerPoster(doc, y, { winners, formatText }) {
   doc.text(two ? 'CO-WINNERS' : 'WINNER', L + 7, y + 16, { charSpace: 0.9 })
 
   doc.setFontSize(size)
-  rgb(doc, TEXT)
+  rgb(doc, ON_POSTER_TEXT)
   lines.forEach((line, i) => {
     doc.text(line, L + 7, y + 24 + i * (size * 0.36))
   })
 
   // Points, sized to dominate, baseline-aligned with the foot of the block.
   doc.setFontSize(two ? 38 : 46)
-  rgb(doc, GOLD)
+  rgb(doc, ON_POSTER_GOLD)
   const pts = String(winners[0].points)
   const ptsW = doc.getTextWidth(pts)
   doc.text(pts, R - 7 - 12, y + h - 7)
@@ -185,7 +185,7 @@ function storylineStrip(doc, y, stories) {
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(20)
-    rgb(doc, BORDER)
+    rgb(doc, SILVER)
     doc.text(String(i + 1).padStart(2, '0'), x, top + 6)
 
     const tx = x + 11
@@ -376,7 +376,7 @@ export function buildGamesPdf({ week, season, games, limits }) {
   doc.text('YOUR PICKS', L + 7, y + 16, { charSpace: 0.9 })
 
   doc.setFontSize(20)
-  rgb(doc, TEXT)
+  rgb(doc, ON_POSTER_TEXT)
   doc.text(picksNeeded(limits, '+'), L + 7, y + 25)
 
   doc.setFont('helvetica', 'normal')
@@ -436,7 +436,7 @@ export function buildGamesPdf({ week, season, games, limits }) {
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
-  rgb(doc, BORDER)
+  rgb(doc, MUTED)
   doc.text('Each game locks at its own kickoff', L, PAGE_H - 10)
   return doc
 }

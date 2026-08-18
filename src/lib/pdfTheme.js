@@ -5,21 +5,36 @@
  * identical — these are documents players see side by side.
  */
 
-export const BG      = [ 11,  17,  32]   // #0b1120
-export const CARD    = [ 18,  29,  53]   // #121d35
-export const CARD2   = [ 26,  40,  72]   // #1a2848
-export const BORDER  = [ 30,  53, 102]   // #1e3566
-export const PRIMARY = [ 26,  71, 184]   // #1a47b8
-export const PLIGHT  = [ 96, 150, 232]   // #6096e8
-export const TEXT    = [221, 238, 255]   // #ddeeff
-export const MUTED   = [119, 153, 204]   // #7799cc
-// Reversed-out label on the primary poster field — the only place text sits on
-// a saturated blue, where MUTED would disappear.
+// These documents are printed and emailed as attachments, so the palette is
+// light: a dark A4 sheet comes off an office printer as a solid block of ink.
+//
+// Every value below was measured against the three surfaces text can land on
+// (#ffffff page, #f8fafc row, #eef2f7 alternate row) and clears 4.5:1 — the
+// dark palette's accents did not survive the inversion, with gold at 1.67:1
+// and green at 2.54:1 on white.
+//
+// The one exception is deliberate: the poster field keeps its saturated blue,
+// because white on it measures 7.96:1 and gold 4.77:1, and it is the single
+// block that carries the page.
+export const BG      = [255, 255, 255]   // #ffffff page
+export const CARD    = [248, 250, 252]   // #f8fafc row fill
+export const CARD2   = [238, 242, 247]   // #eef2f7 alternate row
+export const BORDER  = [203, 213, 225]   // #cbd5e1 hairline
+export const PRIMARY = [ 26,  71, 184]   // #1a47b8 poster field, unchanged
+export const PLIGHT  = [ 26,  71, 184]   // was #6096e8 — 2.4:1 on white
+export const TEXT    = [ 15,  23,  42]   // #0f172a
+export const MUTED   = [ 82, 103, 138]   // #52678a
+// Reversed-out label on the primary poster field, the only place text sits on
+// the saturated blue, where MUTED would disappear.
 export const ON_POSTER = [188, 211, 247] // #bcd3f7
-export const GOLD    = [251, 191,  36]   // #fbbf24
-export const SILVER  = [148, 163, 184]   // #94a3b8
-export const BRONZE  = [180,  83,   9]   // #b45309
-export const GREEN   = [ 34, 197,  94]   // #22c55e
+// The poster is the one dark surface left, so its text keeps the light values:
+// the page colours would vanish on it.
+export const ON_POSTER_TEXT = [255, 255, 255]  // 7.96:1 on the blue
+export const ON_POSTER_GOLD = [251, 191,  36]  // #fbbf24, 4.77:1 on the blue
+export const GOLD    = [148,  96,   8]   // #946008
+export const SILVER  = [ 92, 107, 127]   // #5c6b7f
+export const BRONZE  = [163,  74,   7]   // #a34a07
+export const GREEN   = [  4, 120,  87]   // #047857
 
 export const PAGE_W = 210
 export const PAGE_H = 297
