@@ -46,7 +46,10 @@ function rankColor(rank) {
 export async function downloadReport() {
   // ── Fetch data ──────────────────────────────────────────────────────────────
   const { data: season } = await supabase
-    .from('seasons').select('*').eq('is_active', true).maybeSingle()
+    // Explicit columns, not '*': join_code is commissioner-only, and asking
+    // for it would fail the query for everyone else.
+    .from('seasons').select('id,year,dues_amount,is_active,closed_at')
+    .eq('is_active', true).maybeSingle()
   if (!season) throw new Error('No active season found')
 
   const { data: weeksData } = await supabase

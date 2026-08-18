@@ -7,6 +7,7 @@ import ResultsTab from '../components/commissioner/ResultsTab'
 import PlayersTab from '../components/commissioner/PlayersTab'
 import DuesTab    from '../components/commissioner/DuesTab'
 import ReportsTab from '../components/commissioner/ReportsTab'
+import SeasonTab  from '../components/commissioner/SeasonTab'
 
 const TABS = [
   { key: 'weeks',   label: 'Weeks',   icon: '📅' },
@@ -15,6 +16,7 @@ const TABS = [
   { key: 'players', label: 'Players', icon: '👥' },
   { key: 'dues',    label: 'Dues',    icon: '💰' },
   { key: 'reports', label: 'Reports', icon: '📄' },
+  { key: 'season',  label: 'Season',  icon: '🔑' },
 ]
 
 export default function Commissioner() {
@@ -64,6 +66,7 @@ export default function Commissioner() {
         {activeTab === 'players' && <PlayersTab />}
         {activeTab === 'dues'    && <DuesTab />}
         {activeTab === 'reports' && <ReportsTab />}
+        {activeTab === 'season'  && <SeasonTab />}
       </div>
 
       <BottomNav />

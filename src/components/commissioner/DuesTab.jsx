@@ -18,7 +18,11 @@ export default function DuesTab() {
 
   async function load() {
     setLoading(true)
-    const { data: s } = await supabase.from('seasons').select('*').eq('is_active', true).maybeSingle()
+    // Explicit columns, not '*': join_code is not selectable by members, and
+    // requesting it would fail the whole query. Read it via the RPC instead.
+    const { data: s } = await supabase
+      .from('seasons').select('id,year,dues_amount,is_active,closed_at')
+      .eq('is_active', true).maybeSingle()
     if (!s) { setLoading(false); return }
     setSeason(s)
     setPayout1(s.payout_1st ?? '')
