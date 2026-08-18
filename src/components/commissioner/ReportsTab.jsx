@@ -77,16 +77,18 @@ export default function ReportsTab() {
     <div className="space-y-4 mt-2">
       {/* ── Week picker ── */}
       <div className="rounded-xl border p-4" style={{ borderColor: '#374e6b', background: '#121d35' }}>
-        <label className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</label>
-        <select value={weekId} onChange={e => { setWeekId(e.target.value); setPreview(null) }}
-                className="input-field w-full">
-          {weeks.length === 0 && <option value="">No weeks yet</option>}
-          {weeks.map(w => (
-            <option key={w.id} value={w.id}>
-              Week {w.week_number}{w.is_complete ? ' (complete)' : ''}
-            </option>
-          ))}
-        </select>
+        <label className="block">
+          <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</span>
+          <select value={weekId} onChange={e => { setWeekId(e.target.value); setPreview(null) }}
+                  className="input-field w-full">
+            {weeks.length === 0 && <option value="">No weeks yet</option>}
+            {weeks.map(w => (
+              <option key={w.id} value={w.id}>
+                Week {w.week_number}{w.is_complete ? ' (complete)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {error && (

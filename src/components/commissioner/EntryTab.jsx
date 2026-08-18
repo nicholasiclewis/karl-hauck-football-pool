@@ -118,8 +118,8 @@ export default function EntryTab() {
           For picks phoned, texted or emailed in. Works after kickoff.
         </p>
 
-        <div>
-          <label className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</label>
+        <label className="block">
+          <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</span>
           <select value={weekId ?? ''} onChange={e => setWeekId(e.target.value)} className="input-field w-full">
             {weeks.map(w => (
               <option key={w.id} value={w.id}>
@@ -128,17 +128,17 @@ export default function EntryTab() {
               </option>
             ))}
           </select>
-        </div>
+        </label>
 
-        <div>
-          <label className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Player</label>
+        <label className="block">
+          <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Player</span>
           <select value={userId} onChange={e => setUserId(e.target.value)} className="input-field w-full">
             <option value="">— select a player —</option>
             {players.map(p => (
               <option key={p.id} value={p.id}>{p.display_name}</option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
 
       {error && (

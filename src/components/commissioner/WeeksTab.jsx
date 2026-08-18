@@ -320,11 +320,14 @@ export default function WeeksTab() {
 }
 
 function Field({ label, children }) {
+  // The wrapper is the <label> so the control inside is associated with it
+  // implicitly — previously the label sat as a sibling and pointed at nothing,
+  // leaving these inputs unnamed to a screen reader.
   return (
-    <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>{label}</label>
+    <label className="block">
+      <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>{label}</span>
       {children}
-    </div>
+    </label>
   )
 }
 
