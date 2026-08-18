@@ -35,6 +35,34 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/*
+ * Keyboard focus.
+ *
+ * .input-field was the only thing in the app with a focus style, so every
+ * button, link, tab and pick control was invisible to keyboard users. This
+ * extends the same primary-light treatment to the rest.
+ *
+ * :focus-visible rather than :focus, so the ring appears for keyboard and
+ * assistive navigation but not on tap or click — which is why the app looked
+ * fine to anyone testing with a mouse.
+ */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The shared input style already draws its own ring; don't double up. */
+.input-field:focus-visible {
+  outline: none;
+  border-radius: 0.5rem;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 4px;

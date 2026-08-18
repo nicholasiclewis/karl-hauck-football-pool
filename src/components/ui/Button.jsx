@@ -12,7 +12,10 @@ export default function Button({
   className = '',
   ...props
 }) {
-  const base = 'inline-flex items-center justify-center font-semibold rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed'
+  // No focus:outline-none here — it removed the only keyboard affordance and
+  // put nothing back. The global :focus-visible rule in index.css supplies the
+  // ring, matching .input-field.
+  const base = 'inline-flex items-center justify-center font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variants = {
     primary:   'bg-primary hover:bg-primary-light text-white',
