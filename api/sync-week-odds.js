@@ -30,9 +30,12 @@ import { fetchTop25, buildRankMap, resolveWeekForDate } from '../src/lib/ranking
 /** Public project URL, used when no env var is configured. Not a secret. */
 const SUPABASE_URL_DEFAULT = 'https://jpeaijrdvbvbpcmuqhgt.supabase.co'
 
+// Preseason lives under its own Odds API key, so August weeks come back empty
+// if only the regular-season key is queried. fetch-scores merges both for the
+// same reason. Keys that are out of season 404 and are skipped.
 const SPORT_KEYS = {
-  nfl:     'americanfootball_nfl',
-  college: 'americanfootball_ncaaf',
+  nfl:     ['americanfootball_nfl', 'americanfootball_nfl_preseason'],
+  college: ['americanfootball_ncaaf'],
 }
 
 /** Which sports a week needs odds for. */
@@ -119,37 +122,55 @@ export default async function handler(req, res) {
     const candidates = []
     const apiCalls = []
 
+    const seenEvents = new Set()
+
     for (const sport of sports) {
-      const endpoint =
-        `https://api.the-odds-api.com/v4/sports/${SPORT_KEYS[sport]}/odds` +
-        `?apiKey=${oddsKey}&regions=us&markets=spreads&oddsFormat=american&dateFormat=iso`
+      let sportOk = false
 
-      const r = await fetch(endpoint)
-      apiCalls.push({
-        sport,
-        status: r.status,
-        remaining: r.headers.get('x-requests-remaining'),
-      })
-      if (!r.ok) throw new Error(`Odds API ${sport}: ${r.status} ${(await r.text()).slice(0, 200)}`)
+      for (const sportKey of SPORT_KEYS[sport]) {
+        const endpoint =
+          `https://api.the-odds-api.com/v4/sports/${sportKey}/odds` +
+          `?apiKey=${oddsKey}&regions=us&markets=spreads&oddsFormat=american&dateFormat=iso`
 
-      for (const event of await r.json()) {
-        // Only games inside this week's Tuesday→Monday window.
-        if (!isInWeekWindow(event.commence_time, window)) continue
-
-        const market = event.bookmakers?.[0]?.markets?.find((m) => m.key === 'spreads')
-        const home = market?.outcomes?.find((o) => o.name === event.home_team)
-        if (!market || !home || home.point == null) continue
-
-        candidates.push({
-          week_id:      week.id,
+        const r = await fetch(endpoint)
+        apiCalls.push({
           sport,
-          home_team:    event.home_team,
-          away_team:    event.away_team,
-          spread:       home.point,               // negative = home favored
-          favorite:     home.point < 0 ? 'home' : 'away',
-          kickoff_time: event.commence_time,
-          odds_api_id:  event.id,
+          sportKey,
+          status: r.status,
+          remaining: r.headers.get('x-requests-remaining'),
         })
+
+        // An out-of-season key 404s. Tolerate it as long as another key for
+        // this sport succeeds; only fail if every key did.
+        if (!r.ok) continue
+        sportOk = true
+
+        for (const event of await r.json()) {
+          // Only games inside this week's Tuesday→Monday window.
+          if (!isInWeekWindow(event.commence_time, window)) continue
+          // The same event can surface under more than one key.
+          if (seenEvents.has(event.id)) continue
+
+          const market = event.bookmakers?.[0]?.markets?.find((m) => m.key === 'spreads')
+          const home = market?.outcomes?.find((o) => o.name === event.home_team)
+          if (!market || !home || home.point == null) continue
+
+          seenEvents.add(event.id)
+          candidates.push({
+            week_id:      week.id,
+            sport,
+            home_team:    event.home_team,
+            away_team:    event.away_team,
+            spread:       home.point,               // negative = home favored
+            favorite:     home.point < 0 ? 'home' : 'away',
+            kickoff_time: event.commence_time,
+            odds_api_id:  event.id,
+          })
+        }
+      }
+
+      if (!sportOk) {
+        throw new Error(`Odds API: every key failed for ${sport} (${SPORT_KEYS[sport].join(', ')})`)
       }
     }
 
