@@ -35,6 +35,8 @@ export default function GamesTab() {
   const [rankMap, setRankMap]                 = useState(null)   // normalized team name -> rank
   const [rankLabel, setRankLabel]             = useState('')
   const [windowOnly, setWindowOnly]           = useState(true)   // restrict to the week's Tue–Mon window
+  const [importing, setImporting]             = useState(false)
+  const [importResult, setImportResult]       = useState('')
 
   useEffect(() => { loadWeeks() }, [])
   useEffect(() => { if (selectedWeekId) loadGames() }, [selectedWeekId])
@@ -58,6 +60,46 @@ export default function GamesTab() {
       .order('is_featured', { ascending: false })
       .order('kickoff_time')
     setGames(data ?? [])
+  }
+
+  /**
+   * Run the same import the Tuesday cron runs, for the selected week.
+   * Needed when a week is created after its Tuesday has already passed, so
+   * the scheduled run found nothing to fill.
+   */
+  async function importOdds() {
+    setImporting(true)
+    setImportResult('')
+    setError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not signed in')
+
+      const res = await fetch(`/api/sync-week-odds?week_id=${selectedWeekId}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const out = await res.json()
+      if (!res.ok || out.ok === false) throw new Error(out.error ?? `HTTP ${res.status}`)
+
+      if (out.skipped) {
+        setImportResult(out.skipped)
+      } else {
+        const short = out.shortfall?.nfl || out.shortfall?.college
+        setImportResult(
+          `${out.candidates} game${out.candidates === 1 ? '' : 's'} found · ` +
+          `${out.inserted} new · ${out.refreshed} refreshed` +
+          (out.featuredApplied ? ` · ${out.featuredApplied} starred` : '') +
+          (out.featuredSkipped ? ' · kept your existing picks' : '') +
+          (short ? ` · short ${out.shortfall.nfl} NFL / ${out.shortfall.college} CFB` : '') +
+          (out.warning ? ` · ${out.warning}` : '')
+        )
+      }
+      await loadGames()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setImporting(false)
+    }
   }
 
   async function toggleFeatured(game) {
@@ -429,6 +471,34 @@ export default function GamesTab() {
 
       {selectedWeekId && (
         <>
+          {/* ── Auto-import (same job the Tuesday cron runs) ── */}
+          <div className="space-y-2">
+            <button
+              onClick={importOdds}
+              disabled={importing}
+              className="w-full py-2.5 rounded-lg text-sm font-bold border"
+              style={{
+                background: 'rgba(245,179,1,0.12)',
+                borderColor: 'rgba(245,179,1,0.4)',
+                color: '#f5b301',
+                opacity: importing ? 0.6 : 1,
+              }}
+            >
+              {importing ? 'Importing…' : '🔄 Import odds for this week'}
+            </button>
+            <p className="text-[11px]" style={{ color: '#94afd4' }}>
+              Pulls every game in this week's window and stars a suggested slate.
+              Use it when a week was added after its Tuesday. Your existing
+              starred games are never overwritten.
+            </p>
+            {importResult && (
+              <p className="text-xs px-3 py-2 rounded-lg"
+                 style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                {importResult}
+              </p>
+            )}
+          </div>
+
           {/* ── Odds API fetch buttons ── */}
           <div className="flex gap-3">
             <button
