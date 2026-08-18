@@ -10,7 +10,7 @@ import { remainingPicks } from '../lib/gameSelection'
 
 export default function Picks() {
   const { week, games, loading: weekLoading, error: weekError } = useWeek()
-  const { picks, loading: picksLoading, error: picksError, makePick, removePick } = usePicks(week?.id)
+  const { picks, loading: picksLoading, error: picksError, makePick, removePick, clearPicks } = usePicks(week?.id)
   const [pickError, setPickError] = useState('')
 
   const loading = weekLoading
@@ -67,6 +67,32 @@ export default function Picks() {
   /** A game is out of reach when it's unpicked and that sport is full. */
   function atCap(game) {
     return !picks[game.id] && remaining[game.sport] === 0
+  }
+
+  // Only picks on games that haven't started can be retracted, so the button
+  // stays hidden once everything is locked rather than offering a no-op.
+  const clearableCount = pickedGames.filter(
+    (g) => new Date(g.kickoff_time) > new Date()
+  ).length
+
+  async function handleClearAll() {
+    if (!confirm(
+      `Clear ${clearableCount} pick${clearableCount === 1 ? '' : 's'} for this week?\n\n` +
+      'You can pick again until each game kicks off.'
+    )) return
+
+    setPickError('')
+    try {
+      const { kept } = await clearPicks()
+      if (kept > 0) {
+        setPickError(
+          `${kept} pick${kept === 1 ? '' : 's'} could not be cleared — ` +
+          `${kept === 1 ? 'that game has' : 'those games have'} already started.`
+        )
+      }
+    } catch (err) {
+      setPickError(err.message)
+    }
   }
 
   // ── Loading ─────────────────────────────────────────────────
@@ -167,6 +193,20 @@ export default function Picks() {
                 remaining.college > 0 ? `${remaining.college} more college` : null,
               ].filter(Boolean).join(' and ')} from ${games.length} games`}
         </p>
+
+        {/* Start over. Hidden once every picked game has kicked off, since
+            nothing could be retracted at that point. */}
+        {clearableCount > 0 && (
+          <div className="text-center mt-2">
+            <button
+              onClick={handleClearAll}
+              disabled={!week.picks_open}
+              className="text-[11px] text-muted underline hover:text-red disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1"
+            >
+              Clear all picks
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Pick error ───────────────────────────────────────── */}

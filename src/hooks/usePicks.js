@@ -110,5 +110,34 @@ export function usePicks(weekId) {
     }
   }
 
-  return { picks, loading, error, makePick, removePick, refetch: fetchPicks }
+  /**
+   * Retract every pick for this week.
+   *
+   * Sent as one delete rather than a loop. RLS only permits removing picks
+   * whose game has not kicked off, so the result is whatever actually went —
+   * reported back so the caller can say which ones were already locked instead
+   * of claiming a clean sweep.
+   */
+  async function clearPicks() {
+    if (!user || !weekId) throw new Error('Not logged in')
+
+    const before = Object.keys(picks).length
+    const { data, error: err } = await supabase
+      .from('picks')
+      .delete()
+      .eq('week_id', weekId)
+      .eq('user_id', user.id)
+      .select('id')
+
+    if (err) {
+      await fetchPicks()
+      throw new Error(err.message)
+    }
+
+    await fetchPicks()
+    const cleared = data?.length ?? 0
+    return { cleared, kept: Math.max(0, before - cleared) }
+  }
+
+  return { picks, loading, error, makePick, removePick, clearPicks, refetch: fetchPicks }
 }
