@@ -192,7 +192,7 @@ export const CONFERENCES = [
   {
     key: 'Sun Belt', label: 'Sun Belt', tier: 'group5',
     teams: [
-      { loc: 'Appalachian State', mascot: 'Mountaineers' },
+      { loc: 'Appalachian State', mascot: 'Mountaineers', alt: ['App State'] },
       { loc: 'Arkansas State',    mascot: 'Red Wolves' },
       { loc: 'Coastal Carolina',  mascot: 'Chanticleers' },
       { loc: 'Georgia Southern',  mascot: 'Eagles' },

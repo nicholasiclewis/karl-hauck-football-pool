@@ -1,4 +1,5 @@
 import { formatKickoff, countdownToKickoff, formatSpread, teamAbbr } from '../../lib/gameUtils'
+import TeamLogo from '../ui/TeamLogo'
 
 /**
  * Single game card — handles open, locked, and completed states.
@@ -62,9 +63,7 @@ export default function GameCard({ game, pick, onPick, disabled = false }) {
 
           {/* Home team */}
           <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-            <div className="w-11 h-11 rounded-full bg-bg border-2 border-border2 flex items-center justify-center">
-              <span className="text-xs font-bold text-accent-text">{homeAbbr}</span>
-            </div>
+            <TeamLogo team={game.home_team} sport={game.sport} abbr={homeAbbr} />
             <span className="text-sm font-bold text-white leading-tight">{game.home_team}</span>
             {isComplete && (
               <span className="text-lg font-bold text-white">{game.home_score ?? '—'}</span>
@@ -84,9 +83,7 @@ export default function GameCard({ game, pick, onPick, disabled = false }) {
 
           {/* Away team */}
           <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-            <div className="w-11 h-11 rounded-full bg-bg border-2 border-border2 flex items-center justify-center">
-              <span className="text-xs font-bold text-accent-text">{awayAbbr}</span>
-            </div>
+            <TeamLogo team={game.away_team} sport={game.sport} abbr={awayAbbr} />
             <span className="text-sm font-bold text-white leading-tight">{game.away_team}</span>
             {isComplete && (
               <span className="text-lg font-bold text-white">{game.away_score ?? '—'}</span>
