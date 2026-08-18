@@ -41,10 +41,12 @@ export default function Login() {
       } else {
         // createAccount and joinByCode both create a new account
         await signUp(data.email, data.password, data.displayName, data.joinCode)
+        // Switch first: switchMode clears the messages, so setting the success
+        // text before it would wipe the only instruction the user gets.
+        switchMode('signIn')
         setSuccessMsg(
           'Account created! Check your email for a confirmation link, then sign in.'
         )
-        switchMode('signIn')
       }
     } catch (err) {
       setServerError(err.message)

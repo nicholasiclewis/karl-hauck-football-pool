@@ -27,29 +27,36 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Load profile whenever user changes
+  // Load profile whenever user changes.
+  // The timer is cancelled on unmount or when the user changes again, and the
+  // fetch checks before writing: onAuthStateChange can fire several times in
+  // quick succession, and without this an earlier request could resolve last
+  // and overwrite the current profile.
   useEffect(() => {
-    if (user) {
-      setTimeout(() => loadProfile(user.id), 200)
+    if (!user) return
+    let cancelled = false
+    const timer = setTimeout(() => loadProfile(user.id, () => cancelled), 200)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
     }
   }, [user])
 
   /** Load the player's profile row from our users table */
-  async function loadProfile(userId) {
+  async function loadProfile(userId, isCancelled = () => false) {
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .maybeSingle()
-      console.log('loadProfile result:', { data, error })
       if (error) throw error
-      setProfile(data ?? null)
+      if (!isCancelled()) setProfile(data ?? null)
     } catch (err) {
       console.error('loadProfile error:', err)
-      setProfile(null)
+      if (!isCancelled()) setProfile(null)
     } finally {
-      setLoading(false)
+      if (!isCancelled()) setLoading(false)
     }
   }
 
