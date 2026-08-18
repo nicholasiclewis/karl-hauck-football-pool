@@ -10,7 +10,15 @@ export function useStandings(seasonId) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (seasonId) fetchStandings()
+    if (seasonId) {
+      fetchStandings()
+      return
+    }
+    // No season to load. Without this the hook sits at loading:true forever
+    // and the page spins — which is what a failed season fetch looked like,
+    // indistinguishable from a slow one.
+    setStandings([])
+    setLoading(false)
   }, [seasonId])
 
   async function fetchStandings() {

@@ -57,14 +57,19 @@ export default function Standings() {
   useEffect(() => {
     async function fetchSeason() {
       try {
-        const { data } = await supabase
+        // Capture error, not just data: supabase-js returns query failures
+        // rather than throwing, so ignoring it swallowed the whole problem —
+        // a permission error left season null with nothing logged anywhere.
+        const { data, error } = await supabase
           .from('seasons')
           .select('id, year, payout_1st, payout_2nd, payout_3rd')
           .eq('is_active', true)
           .maybeSingle()
+        if (error) throw error
         setSeason(data ?? null)
       } catch (err) {
         console.error('fetchSeason error:', err)
+        setSeason(null)
       } finally {
         setSeasonLoading(false)
       }
