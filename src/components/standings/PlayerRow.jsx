@@ -48,6 +48,8 @@ export default function PlayerRow({
       {/* Main row */}
       <button
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-label={`${entry.display_name ?? 'Unknown'}, rank ${rank}, ${entry.total_points ?? 0} points — week by week`}
         className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
         style={{
           background: isCurrentUser
@@ -86,6 +88,8 @@ export default function PlayerRow({
           </div>
           {/* Dues overlay badge */}
           <span
+            role="img"
+            aria-label={duesIcon === '✅' ? 'Dues paid' : 'Dues not paid'}
             className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
             title={duesIcon === '✅' ? 'Dues paid' : duesIcon === '🤡' ? 'Dues not paid 🤡' : 'Dues not paid'}
           >
@@ -136,6 +140,7 @@ export default function PlayerRow({
             </div>
           </div>
           <span
+            aria-hidden="true"
             className="text-muted text-xs transition-transform duration-200"
             style={{
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',

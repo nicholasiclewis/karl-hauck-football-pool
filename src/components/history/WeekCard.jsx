@@ -92,6 +92,8 @@ export default function WeekCard({ week, score, userId }) {
       {/* ── Row ── */}
       <button
         onClick={handleExpand}
+        aria-expanded={expanded}
+        aria-label={`Week ${week.week_number} — your picks`}
         className="w-full flex items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-card2 active:bg-card2"
       >
         {/* Score circle */}

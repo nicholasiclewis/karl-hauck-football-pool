@@ -304,10 +304,11 @@ export default function WeeksTab() {
                 )}
                 <button
                   onClick={() => deleteWeek(week)}
+                  aria-label={`Delete week ${week.week_number}`}
                   className="px-3 py-2 rounded-lg text-xs"
                   style={{ background: 'rgba(239,68,68,0.08)', color: '#94afd4' }}
                 >
-                  🗑
+                  <span aria-hidden="true">🗑</span>
                 </button>
               </div>
             </div>

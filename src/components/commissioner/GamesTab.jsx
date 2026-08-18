@@ -607,10 +607,12 @@ export default function GamesTab() {
                     <button
                       onClick={() => toggleFeatured(game)}
                       title={game.is_featured ? 'In play — tap to make a candidate' : 'Candidate — tap to put in play'}
+                      aria-pressed={game.is_featured}
+                      aria-label={`${game.away_team} at ${game.home_team} — in play`}
                       className="text-lg flex-shrink-0 px-1"
                       style={{ color: game.is_featured ? '#f5b301' : '#4a6585' }}
                     >
-                      {game.is_featured ? '★' : '☆'}
+                      <span aria-hidden="true">{game.is_featured ? '★' : '☆'}</span>
                     </button>
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
@@ -631,8 +633,13 @@ export default function GamesTab() {
                         {' · '}{formatKickoff(game.kickoff_time).split(' · ').slice(1).join(' ')}
                       </p>
                     </div>
-                    <button onClick={() => deleteGame(game.id)} className="text-lg flex-shrink-0 px-2 py-1 rounded" style={{ color: '#94afd4' }}>
-                      🗑
+                    <button
+                      onClick={() => deleteGame(game.id)}
+                      aria-label={`Delete ${game.away_team} at ${game.home_team}`}
+                      className="text-lg flex-shrink-0 px-2 py-1 rounded"
+                      style={{ color: '#94afd4' }}
+                    >
+                      <span aria-hidden="true">🗑</span>
                     </button>
                   </div>
                 ))}
