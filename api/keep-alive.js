@@ -13,14 +13,21 @@
  * already uses, so there are no new secrets to configure.
  */
 export default async function handler(req, res) {
-  const url = process.env.VITE_SUPABASE_URL
-  const key = process.env.VITE_SUPABASE_ANON_KEY
+  // VITE_-prefixed vars reach the frontend build but are not exposed to
+  // functions at runtime, which silently broke this ping. Prefer unprefixed
+  // names and fall back through what the project has available — any key
+  // works here, since the point is only that the query reaches Postgres.
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
+  const key =
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.VITE_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!url || !key) {
     // Loud rather than silent — a misconfigured ping is the whole failure mode.
     return res.status(500).json({
       ok: false,
-      error: 'VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set in the Vercel project',
+      error: 'Set SUPABASE_URL (and a Supabase key) in the Vercel project',
     })
   }
 
