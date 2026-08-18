@@ -5,7 +5,7 @@ import GameCard from '../components/picks/GameCard'
 import PointsPreview from '../components/picks/PointsPreview'
 import { useWeek } from '../hooks/useWeek'
 import { usePicks } from '../hooks/usePicks'
-import { weekChipLabel, calcProjectedPoints, countdownToKickoff, formatKickoff } from '../lib/gameUtils'
+import { calcProjectedPoints, countdownToKickoff, formatKickoff } from '../lib/gameUtils'
 import { remainingPicks } from '../lib/gameSelection'
 
 export default function Picks() {
@@ -98,7 +98,13 @@ export default function Picks() {
     )
   }
 
-  const weekChip = weekChipLabel(games)
+  // The chip states the week's format, so it comes from the pick limits, not
+  // from counting games: players now choose from every eligible game, so
+  // counting produced "12 NFL · 8 CFB" instead of "4 NFL · 2 CFB".
+  const weekChip = [
+    limits.nfl ? `${limits.nfl} NFL` : null,
+    limits.college ? `${limits.college} CFB` : null,
+  ].filter(Boolean).join(' · ')
 
   return (
     <div className="min-h-screen bg-bg pt-14 pb-24">
