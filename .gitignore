@@ -5,3 +5,13 @@ dist
 .DS_Store
 *.log
 supabase/.temp
+
+# Design tool exports — dropped in the repo root for review, not app code.
+# Anything adopted from them gets copied to its proper path deliberately.
+/Family Football Pool Reports.zip
+/Weekly Results Sheet.dc.html
+/_ds/
+/handoff/
+/github.md
+/support.js
+/.thumbnail
