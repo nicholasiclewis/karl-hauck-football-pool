@@ -6,6 +6,12 @@
  *   weekly  — array of weekly score objects from useStandings
  *   weeks   — array of week rows from the DB (to look up week_number labels)
  */
+/**
+ * Scores land on half points, so summing them drifts in binary floating point.
+ * One decimal is exact for these values, and whole numbers stay whole.
+ */
+const round1 = (n) => Math.round(n * 10) / 10
+
 export default function WeekBreakdown({ weekly = [], weeks = [] }) {
   // Build a lookup: week_id → week_number
   const weekMap = {}
@@ -95,7 +101,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
               className="w-14 text-right text-sm font-bold"
               style={{ color: '#60a5fa' }}
             >
-              {pts}
+              {round1(pts)}
             </span>
           </div>
         )
@@ -111,7 +117,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
           {sorted.reduce((sum, r) => sum + (r.correct_picks ?? 0), 0)}
         </span>
         <span className="w-14 text-right text-sm font-bold" style={{ color: '#60a5fa' }}>
-          {sorted.reduce((sum, r) => sum + (r.total_points ?? 0), 0)}
+          {round1(sorted.reduce((sum, r) => sum + (r.total_points ?? 0), 0))}
         </span>
       </div>
     </div>

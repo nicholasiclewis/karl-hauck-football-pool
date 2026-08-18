@@ -73,6 +73,13 @@ export function useStandings(seasonId) {
         totals[row.user_id].weekly.push(row)
       })
 
+      // Pushes score 0.5, so repeated addition drifts — a player on 19.7 shows
+      // as 19.700000000000003. Scores only ever land on a half point, so one
+      // decimal is exact rather than a rounding compromise.
+      Object.values(totals).forEach((t) => {
+        t.total_points = Math.round(t.total_points * 10) / 10
+      })
+
       const sorted = Object.values(totals).sort(
         (a, b) => b.total_points - a.total_points
       )
