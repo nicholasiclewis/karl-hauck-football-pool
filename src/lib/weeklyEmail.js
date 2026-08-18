@@ -39,7 +39,10 @@ export function picksNeeded(limits, joiner = 'and') {
  * Results email.
  * @returns {{ subject: string, body: string }}
  */
-export function buildResultsEmail({ week, season, weekTable, winners, perfect, season_table }) {
+export function buildResultsEmail({
+  week, season, weekTable, winners, perfect, season_table,
+  stories = [], movement = null,
+}) {
   const L = []
   const winnerNames = winners.map((w) => w.name).join(' & ')
 
@@ -64,18 +67,25 @@ export function buildResultsEmail({ week, season, weekTable, winners, perfect, s
     L.push('')
   }
 
+  // The bit people actually reply to.
+  if (stories.length) {
+    L.push('TALKING POINTS')
+    L.push(THIN)
+    for (const s of stories) L.push(`  ${(s.label + ':').padEnd(17)}${s.value} (${s.detail})`)
+    L.push('')
+  }
+
   L.push(`THIS WEEK (${formatLabel(week)})`)
   L.push(THIN)
   weekTable.forEach((r, i) => {
-    const extras = [
-      r.pushes ? `${r.pushes} push` : null,
-      r.bonus ? `+${r.bonus} bonus` : null,
-    ].filter(Boolean)
+    const record = r.losses == null
+      ? `${r.correct} correct`
+      : `${r.correct}-${r.losses}-${r.pushes}`
     L.push(
       `${String(i + 1).padStart(2)}. ${r.name.padEnd(20)}` +
-      `${String(r.correct).padStart(2)} correct` +
-      `${extras.length ? `, ${extras.join(', ')}` : ''}`.padEnd(26) +
-      `${r.points} pts`
+      `${record.padEnd(12)}` +
+      `${(r.bonus ? `+${r.bonus} bonus` : '').padEnd(12)}` +
+      `${String(r.points).padStart(5)} pts`
     )
   })
   L.push('')
@@ -83,10 +93,14 @@ export function buildResultsEmail({ week, season, weekTable, winners, perfect, s
   L.push('SEASON STANDINGS')
   L.push(THIN)
   season_table.forEach((r) => {
+    // Plain-text movement: arrows are safe here, unlike in the PDF's fonts.
+    const m = movement?.get?.(r.userId)
+    const move = !m || m.isNew ? '   ' : m.delta > 0 ? `+${m.delta} ` : m.delta < 0 ? `${m.delta} ` : '   '
     L.push(
       `${String(r.rank).padStart(2)}. ${r.name.padEnd(20)}` +
-      `${String(r.points).padStart(6)} pts   ` +
-      `(${r.weeksWon} week${r.weeksWon === 1 ? '' : 's'} won)`
+      `${String(r.points).padStart(6)} pts  ${move.padStart(4)}  ` +
+      `(${r.weeksWon} week${r.weeksWon === 1 ? '' : 's'} won` +
+      `${r.gap > 0 ? `, ${r.gap} back` : ''})`
     )
   })
   L.push('')
