@@ -1,35 +1,51 @@
 /**
- * Picking the featured slate for a week.
+ * Which games are eligible for a week, and how many of them a player may pick.
  *
- * The Tuesday import brings in every game in the week's window as a candidate;
- * these helpers decide which ones to suggest as the featured six. The
- * commissioner can always override from the Games tab — this only sets the
- * starting point.
+ * The pool works like this: every game matching the week's rules is eligible,
+ * and each player chooses their own slate from that pool. So a Big Ten week
+ * might offer twenty games and each player picks six of them — different
+ * players can pick entirely different games.
  *
- * Suggestion rule: closest spread first. Near-even matchups are the most
- * competitive and the hardest to call against the spread, which is what makes
- * a pool week interesting.
+ * Eligibility is mechanical (window + sport + focus), not curated. The limit
+ * lives on picks, not on the game list.
  */
 import { getTeamConference } from './conferences.js'
 import { rankOf } from './rankings.js'
 
-/** How many of each sport a week needs, by container type. */
-export const SLATE_SHAPE = {
+/**
+ * How many picks a player makes, by container type.
+ * A mixed week is exactly 4 NFL and 2 college — the bonus scoring depends on
+ * it, since "all 4 NFL correct" only means something if there are 4 to get.
+ */
+export const PICK_LIMITS = {
   nfl_college:  { nfl: 4, college: 2 },
   nfl_only:     { nfl: 6, college: 0 },
   college_only: { nfl: 0, college: 6 },
 }
 
-/** Total games in a full slate (always 6 — the scoring rules assume it). */
-export const SLATE_SIZE = 6
+/** Total picks in a full slate. */
+export const MAX_PICKS = 6
+
+/** Limits for a week, falling back to the mixed shape. */
+export function pickLimits(containerType) {
+  return PICK_LIMITS[containerType] ?? PICK_LIMITS.nfl_college
+}
+
+/** Which sports a week uses at all. */
+export function sportsFor(containerType) {
+  const limits = pickLimits(containerType)
+  return ['nfl', 'college'].filter((s) => limits[s] > 0)
+}
 
 /**
- * Narrow college candidates to the ones matching a week's college focus.
- * Focuses we can't determine mechanically (rivalry, conference championships,
- * CFP) pass everything through for the commissioner to choose from.
+ * Narrow college games to those matching a week's focus.
  *
- * @param {Array}  games    candidate college games
- * @param {object} week     week row: { college_focus, conference }
+ * Focuses we cannot determine mechanically (rivalry, conference championships,
+ * CFP) pass everything through — those are judgement calls, so every college
+ * game in the window stays eligible.
+ *
+ * @param {Array}  games    college games in the week's window
+ * @param {object} week     { college_focus, conference }
  * @param {Map}   [rankMap] from buildRankMap(), required for a 'top25' focus
  */
 export function filterCollegeByFocus(games, week, rankMap = null) {
@@ -46,8 +62,8 @@ export function filterCollegeByFocus(games, week, rankMap = null) {
 
   if (focus === 'top25') {
     // No poll means we cannot tell which games qualify. Return nothing rather
-    // than everything — treating an unranked slate as ranked is how an FCS
-    // team ends up suggested for a Top 25 week. Callers should surface this.
+    // than everything — treating an unranked slate as ranked would put an FCS
+    // team in a Top 25 week. Callers must surface this instead of shipping it.
     if (!rankMap) return []
     return games.filter(
       (g) => rankOf(g.home_team, rankMap) !== null || rankOf(g.away_team, rankMap) !== null
@@ -57,51 +73,67 @@ export function filterCollegeByFocus(games, week, rankMap = null) {
   return games
 }
 
-/** Ascending by how close the spread is to a pick'em. */
-function byClosestSpread(a, b) {
-  const d = Math.abs(Number(a.spread)) - Math.abs(Number(b.spread))
-  if (d !== 0) return d
-  // Stable tiebreak so the same slate produces the same suggestion every run.
-  return new Date(a.kickoff_time) - new Date(b.kickoff_time)
+/**
+ * Every game a player may pick from this week.
+ *
+ * @param {Array}  candidates games already limited to the week's window
+ * @param {object} week       { container_type, college_focus, conference }
+ * @param {Map}   [rankMap]   from buildRankMap(), for 'top25' weeks
+ * @returns {{ eligible: Array, bySport: object, limits: object, shortfall: object }}
+ */
+export function selectEligible(candidates, week, rankMap = null) {
+  const limits = pickLimits(week?.container_type)
+  const sports = sportsFor(week?.container_type)
+
+  const withSpread = (s) => candidates.filter((g) => g.sport === s && g.spread != null)
+
+  const nfl = sports.includes('nfl') ? withSpread('nfl') : []
+
+  const college = sports.includes('college')
+    ? filterCollegeByFocus(
+        withSpread('college').filter((g) =>
+          // At least one recognized FBS side. The Odds API also carries FCS
+          // opponents (Tarleton State and the like), never pool games.
+          getTeamConference(g.home_team) !== null || getTeamConference(g.away_team) !== null
+        ),
+        week,
+        rankMap
+      )
+    : []
+
+  const byKickoff = (a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time)
+
+  return {
+    eligible: [...nfl, ...college].sort(byKickoff),
+    bySport:  { nfl: nfl.length, college: college.length },
+    limits,
+    // Fewer eligible games than a player must pick means the week cannot be
+    // completed — worth surfacing rather than discovering on Sunday.
+    shortfall: {
+      nfl:     Math.max(0, limits.nfl - nfl.length),
+      college: Math.max(0, limits.college - college.length),
+    },
+  }
 }
 
 /**
- * Suggest the featured slate for a week.
- *
- * @param {Array}  candidates all in-window games ({ sport, spread, kickoff_time, ... })
- * @param {object} week       week row: { container_type, college_focus, conference }
- * @param {Map}   [rankMap]   from buildRankMap(), for 'top25' weeks
- * @returns {{ featured: Array, shape: object, shortfall: object }}
+ * How many more picks a player may make in each sport.
+ * @param {Array}  picked  the player's current picks, each with a `sport`
+ * @param {string} containerType
  */
-export function suggestFeatured(candidates, week, rankMap = null) {
-  const shape = SLATE_SHAPE[week?.container_type] ?? SLATE_SHAPE.nfl_college
-
-  const nfl = candidates
-    .filter((g) => g.sport === 'nfl' && g.spread != null)
-    .sort(byClosestSpread)
-
-  const college = filterCollegeByFocus(
-    candidates.filter((g) =>
-      g.sport === 'college' && g.spread != null &&
-      // At least one recognized FBS side. The Odds API also carries FCS
-      // opponents (Tarleton State and the like), which are never pool games.
-      (getTeamConference(g.home_team) !== null || getTeamConference(g.away_team) !== null)
-    ),
-    week,
-    rankMap
-  ).sort(byClosestSpread)
-
-  const pickedNfl = nfl.slice(0, shape.nfl)
-  const pickedCollege = college.slice(0, shape.college)
-
+export function remainingPicks(picked, containerType) {
+  const limits = pickLimits(containerType)
+  const used = {
+    nfl:     picked.filter((p) => p.sport === 'nfl').length,
+    college: picked.filter((p) => p.sport === 'college').length,
+  }
   return {
-    featured: [...pickedNfl, ...pickedCollege],
-    shape,
-    // Non-zero means the window didn't have enough qualifying games; the
-    // caller should surface this rather than silently ship a short week.
-    shortfall: {
-      nfl:     Math.max(0, shape.nfl - pickedNfl.length),
-      college: Math.max(0, shape.college - pickedCollege.length),
+    used,
+    limits,
+    remaining: {
+      nfl:     Math.max(0, limits.nfl - used.nfl),
+      college: Math.max(0, limits.college - used.college),
     },
+    complete: used.nfl === limits.nfl && used.college === limits.college,
   }
 }

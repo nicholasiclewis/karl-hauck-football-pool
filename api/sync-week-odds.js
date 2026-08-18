@@ -24,7 +24,7 @@
  *   ?dry=1                   report what would happen, write nothing
  */
 import { weekWindow, poolToday, isInWeekWindow, formatWeekWindow } from '../src/lib/weekWindow.js'
-import { suggestFeatured } from '../src/lib/gameSelection.js'
+import { selectEligible, sportsFor } from '../src/lib/gameSelection.js'
 import { fetchTop25, buildRankMap, resolveWeekForDate } from '../src/lib/rankings.js'
 
 /** Public project URL, used when no env var is configured. Not a secret. */
@@ -36,13 +36,6 @@ const SUPABASE_URL_DEFAULT = 'https://jpeaijrdvbvbpcmuqhgt.supabase.co'
 const SPORT_KEYS = {
   nfl:     ['americanfootball_nfl', 'americanfootball_nfl_preseason'],
   college: ['americanfootball_ncaaf'],
-}
-
-/** Which sports a week needs odds for. */
-function sportsFor(containerType) {
-  if (containerType === 'nfl_only') return ['nfl']
-  if (containerType === 'college_only') return ['college']
-  return ['nfl', 'college']
 }
 
 /** Constant-time compare, so a wrong secret leaks nothing via timing. */
@@ -221,8 +214,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── Suggest the featured six ──────────────────────────────────────────
-    // Only needed for a Top 25 week; skip the extra calls otherwise.
+    // ── Narrow to the games players may actually pick ─────────────────────
+    // There is no curation step, so what gets imported is exactly what the
+    // players see. The focus filter has to run here, not as a suggestion.
     let rankMap = null
     let pollUsed = null
     let warning = null
@@ -232,14 +226,14 @@ export default async function handler(req, res) {
         rankMap = buildRankMap(poll)
         pollUsed = poll.headline
       } catch (err) {
-        // Import the candidates regardless, but do not guess at a slate: with
-        // no poll we cannot tell which games qualify, so suggest nothing and
-        // say so rather than quietly featuring six unranked games.
-        warning = `Top 25 week but no poll available (${err.message}) — imported candidates without suggesting a slate`
+        // Without a poll we cannot tell which games qualify. selectEligible
+        // returns no college games in that case, so the week imports short
+        // and says why rather than quietly offering unranked ones.
+        warning = `Top 25 week but no poll available (${err.message}) — no college games imported`
       }
     }
 
-    const { featured, shape, shortfall } = suggestFeatured(candidates, week, rankMap)
+    const { eligible, bySport, limits, shortfall } = selectEligible(candidates, week, rankMap)
 
     // ── What's already in the table for this week ─────────────────────────
     const existing = await readJson(
@@ -247,10 +241,9 @@ export default async function handler(req, res) {
       'existing games'
     )
     const byEventId = new Map(existing.filter((g) => g.odds_api_id).map((g) => [g.odds_api_id, g]))
-    const alreadyFeatured = existing.filter((g) => g.is_featured).length
 
-    const fresh = candidates.filter((c) => !byEventId.has(c.odds_api_id))
-    const stale = candidates.filter((c) => byEventId.has(c.odds_api_id))
+    const fresh = eligible.filter((c) => !byEventId.has(c.odds_api_id))
+    const stale = eligible.filter((c) => byEventId.has(c.odds_api_id))
 
     const summary = {
       ok: true,
@@ -262,11 +255,12 @@ export default async function handler(req, res) {
       container:   week.container_type,
       focus:       week.college_focus ?? null,
       conference:  week.conference ?? null,
-      slate:       shape,
-      candidates:  candidates.length,
+      pickLimits:  limits,
+      inWindow:    candidates.length,
+      eligible:    eligible.length,
+      bySport,
       inserted:    fresh.length,
       refreshed:   stale.length,
-      featured:    featured.length,
       shortfall,
       poll:        pollUsed,
       warning,
@@ -276,18 +270,18 @@ export default async function handler(req, res) {
     if (dryRun) {
       return res.status(200).json({
         ...summary,
-        wouldFeature: featured.map((g) => `${g.away_team} @ ${g.home_team} (${g.spread})`),
+        sample: eligible.slice(0, 12).map((g) => `${g.away_team} @ ${g.home_team} (${g.spread})`),
       })
     }
 
     // ── Write ─────────────────────────────────────────────────────────────
-    // New games go in as candidates. is_featured is deliberately omitted from
-    // the refresh path so a re-run never clobbers the commissioner's picks.
+    // Everything eligible goes in as playable. Players choose their own slate
+    // from these, so there is nothing to curate down to.
     if (fresh.length) {
       const r = await db('games', {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(fresh.map((g) => ({ ...g, is_featured: false }))),
+        body: JSON.stringify(fresh.map((g) => ({ ...g, is_featured: true }))),
       })
       if (!r.ok) throw new Error(`insert games: ${r.status} ${(await r.text()).slice(0, 300)}`)
     }
@@ -306,35 +300,7 @@ export default async function handler(req, res) {
       if (!r.ok) throw new Error(`refresh game: ${r.status} ${(await r.text()).slice(0, 200)}`)
     }
 
-    // Only seed the suggestion when the commissioner hasn't picked yet.
-    let featuredApplied = 0
-    if (alreadyFeatured === 0 && featured.length) {
-      const ids = await readJson(
-        await db(
-          `games?select=id,odds_api_id&week_id=eq.${week.id}&odds_api_id=in.(${
-            featured.map((g) => `"${g.odds_api_id}"`).join(',')
-          })`
-        ),
-        'lookup featured'
-      )
-      if (ids.length) {
-        const r = await db(`games?id=in.(${ids.map((g) => g.id).join(',')})`, {
-          method: 'PATCH',
-          headers: { Prefer: 'return=minimal' },
-          body: JSON.stringify({ is_featured: true }),
-        })
-        if (!r.ok) throw new Error(`set featured: ${r.status} ${(await r.text()).slice(0, 200)}`)
-        featuredApplied = ids.length
-      }
-    }
-
-    return res.status(200).json({
-      ...summary,
-      featuredApplied,
-      featuredSkipped: alreadyFeatured > 0
-        ? `week already has ${alreadyFeatured} featured game(s); left untouched`
-        : null,
-    })
+    return res.status(200).json(summary)
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message })
   }

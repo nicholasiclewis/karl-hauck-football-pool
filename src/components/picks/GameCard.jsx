@@ -7,10 +7,11 @@ import TeamLogo from '../ui/TeamLogo'
  * Props:
  *   game       — game row from DB
  *   pick       — current user's pick for this game (or null)
- *   onPick     — fn(gameId, 'home'|'away')
- *   disabled   — week is not open
+ *   onPick     — fn(gameId, 'home'|'away'); tapping the picked side retracts it
+ *   disabled   — week is not open, or this game is out of reach
+ *   capReached — unpicked and this sport's limit is already used up
  */
-export default function GameCard({ game, pick, onPick, disabled = false }) {
+export default function GameCard({ game, pick, onPick, disabled = false, capReached = false }) {
   const kickedOff  = new Date(game.kickoff_time) <= new Date()
   const isLocked   = kickedOff || pick?.is_locked
   const isComplete = game.result !== null
@@ -37,7 +38,9 @@ export default function GameCard({ game, pick, onPick, disabled = false }) {
     <div
       className={`mx-4 mb-3 bg-card rounded-2xl border overflow-hidden transition-colors ${
         hasPick && !isLocked ? 'border-primary-light' : 'border-border'
-      } ${isLocked && !isComplete ? 'opacity-60' : ''}`}
+      } ${isLocked && !isComplete ? 'opacity-60' : ''} ${
+        capReached && !isLocked ? 'opacity-50' : ''
+      }`}
     >
       <div className="p-4">
 
@@ -112,22 +115,33 @@ export default function GameCard({ game, pick, onPick, disabled = false }) {
             )}
           </div>
         ) : (
-          <div className="flex gap-2">
-            <PickBtn
-              team={game.home_team}
-              spread={formatSpread(homeSpread)}
-              selected={pickedHome}
-              disabled={disabled}
-              onClick={() => onPick(game.id, 'home')}
-            />
-            <PickBtn
-              team={game.away_team}
-              spread={formatSpread(awaySpread)}
-              selected={pickedAway}
-              disabled={disabled}
-              onClick={() => onPick(game.id, 'away')}
-            />
-          </div>
+          <>
+            <div className="flex gap-2">
+              <PickBtn
+                team={game.home_team}
+                spread={formatSpread(homeSpread)}
+                selected={pickedHome}
+                disabled={disabled}
+                onClick={() => onPick(game.id, 'home')}
+              />
+              <PickBtn
+                team={game.away_team}
+                spread={formatSpread(awaySpread)}
+                selected={pickedAway}
+                disabled={disabled}
+                onClick={() => onPick(game.id, 'away')}
+              />
+            </div>
+            {capReached ? (
+              <p className="text-[11px] text-muted text-center mt-2">
+                Limit reached — retract another pick to choose this one
+              </p>
+            ) : hasPick ? (
+              <p className="text-[11px] text-muted text-center mt-2">
+                Tap your pick again to retract it
+              </p>
+            ) : null}
+          </>
         )}
       </div>
     </div>

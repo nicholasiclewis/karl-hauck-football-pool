@@ -4,7 +4,7 @@ import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
 import { fetchTop25ForDate, buildRankMap, rankOf } from '../../lib/rankings'
 import { weekWindow, isInWeekWindow, formatWeekWindow } from '../../lib/weekWindow'
-import { SLATE_SHAPE, SLATE_SIZE } from '../../lib/gameSelection'
+import { pickLimits } from '../../lib/gameSelection'
 
 const BLANK = {
   sport: 'nfl',
@@ -210,13 +210,9 @@ export default function GamesTab() {
     setPickerError('')
     try {
       const toAdd = availableGames.filter(g => selectedIds.has(g.odds_api_id))
-      // Picking a handful means "these are my games". Grabbing a whole slate
-      // means "pull everything in so I can choose" — the same thing the
-      // Tuesday importer does. Featuring 90 games would show all 90 to
-      // players, so bulk adds land as candidates for you to star.
-      const asCandidates = toAdd.length > SLATE_SIZE
-
-      // One request rather than one per game — a select-all can be 90 rows.
+      // Anything added here is eligible for players to pick from, however many
+      // there are — they choose their own slate out of the pool.
+      // One request rather than one per game: a select-all can be 90 rows.
       const { error: err } = await supabase.from('games').upsert(
         toAdd.map(g => ({
           week_id:      selectedWeekId,
@@ -227,7 +223,7 @@ export default function GamesTab() {
           favorite:     g.favorite,
           kickoff_time: g.kickoff_time,
           odds_api_id:  g.odds_api_id,
-          is_featured:  !asCandidates,
+          is_featured:  true,
         })),
         { onConflict: 'odds_api_id' }
       )
@@ -433,8 +429,6 @@ export default function GamesTab() {
             >
               {addingPicked
                 ? 'Adding...'
-                : selectedIds.size > SLATE_SIZE
-                ? `Add ${selectedIds.size} as candidates`
                 : `Add ${selectedIds.size} Game${selectedIds.size !== 1 ? 's' : ''}`}
             </button>
           </>
@@ -575,26 +569,36 @@ export default function GamesTab() {
               {/* Slate counter: how the featured picks compare to what the
                   week's container type requires. */}
               {(() => {
-                const shape = SLATE_SHAPE[selectedWeek?.container_type] ?? SLATE_SHAPE.nfl_college
-                const feat = games.filter(g => g.is_featured)
-                const nfl  = feat.filter(g => g.sport === 'nfl').length
-                const cfb  = feat.filter(g => g.sport === 'college').length
-                const ok   = nfl === shape.nfl && cfb === shape.college
+                // Players choose their own slate from everything eligible, so
+                // the pool only has to be big enough to pick from.
+                const limits = pickLimits(selectedWeek?.container_type)
+                const live = games.filter(g => g.is_featured)
+                const nfl  = live.filter(g => g.sport === 'nfl').length
+                const cfb  = live.filter(g => g.sport === 'college').length
+                const ok   = nfl >= limits.nfl && cfb >= limits.college
                 return (
                   <div
-                    className="rounded-xl border px-4 py-2.5 flex items-center justify-between"
+                    className="rounded-xl border px-4 py-2.5"
                     style={{
                       background:  ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
                       borderColor: ok ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)',
                     }}
                   >
-                    <span className="text-xs font-semibold" style={{ color: ok ? '#10b981' : '#ef4444' }}>
-                      {ok ? '✓ Slate set' : 'Slate incomplete'}
-                    </span>
-                    <span className="text-xs" style={{ color: '#94afd4' }}>
-                      NFL {nfl}/{shape.nfl} · CFB {cfb}/{shape.college}
-                      {games.length > feat.length ? ` · ${games.length - feat.length} candidates` : ''}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: ok ? '#10b981' : '#ef4444' }}>
+                        {ok ? '✓ Enough games' : 'Not enough games'}
+                      </span>
+                      <span className="text-xs" style={{ color: '#94afd4' }}>
+                        {nfl} NFL · {cfb} CFB eligible
+                      </span>
+                    </div>
+                    <p className="text-[11px] mt-1" style={{ color: '#94afd4' }}>
+                      Players pick {[
+                        limits.nfl ? `${limits.nfl} NFL` : null,
+                        limits.college ? `${limits.college} college` : null,
+                      ].filter(Boolean).join(' + ')} from these
+                      {!ok && ' — import more or the week cannot be completed'}
+                    </p>
                   </div>
                 )
               })()}

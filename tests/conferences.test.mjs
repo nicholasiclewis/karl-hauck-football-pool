@@ -35,7 +35,13 @@ import {
   toDateString,
 } from '../src/lib/weekWindow.js'
 
-import { suggestFeatured, filterCollegeByFocus, SLATE_SHAPE } from '../src/lib/gameSelection.js'
+import {
+  selectEligible,
+  remainingPicks,
+  pickLimits,
+  sportsFor,
+  MAX_PICKS,
+} from '../src/lib/gameSelection.js'
 
 // ── Alignment integrity ──────────────────────────────────────────────────────
 
@@ -241,7 +247,8 @@ const cfb = (home, away, spread, kickoff = '2026-09-12T20:00:00Z') =>
 const nflGame = (home, away, spread, kickoff = '2026-09-13T17:00:00Z') =>
   ({ sport: 'nfl', home_team: home, away_team: away, spread, kickoff_time: kickoff })
 
-describe('featured slate suggestion', () => {
+
+describe('eligible games', () => {
   const candidates = [
     nflGame('Baltimore Ravens', 'Kansas City Chiefs', -13.5),
     nflGame('Los Angeles Rams', 'San Francisco 49ers', 1.5),
@@ -253,87 +260,124 @@ describe('featured slate suggestion', () => {
     cfb('Akron Zips', 'Kent State Golden Flashes', -21),
   ]
 
-  test('nfl_college takes the 4 and 2 closest spreads', () => {
-    const { featured, shortfall } = suggestFeatured(candidates, { container_type: 'nfl_college' })
-    assert.equal(featured.length, 6)
-    assert.deepEqual(featured.filter((g) => g.sport === 'nfl').map((g) => g.spread), [1.5, -2.5, -6.5, -7])
-    assert.deepEqual(featured.filter((g) => g.sport === 'college').map((g) => g.spread), [3, -4.5])
-    assert.deepEqual(shortfall, { nfl: 0, college: 0 })
+  test('a mixed week offers every game in both sports', () => {
+    // The whole point: players see all of them and choose their own six.
+    const { eligible, bySport, limits } = selectEligible(candidates, { container_type: 'nfl_college' })
+    assert.equal(eligible.length, 8)
+    assert.deepEqual(bySport, { nfl: 5, college: 3 })
+    assert.deepEqual(limits, { nfl: 4, college: 2 })
   })
 
-  test('nfl_only takes 6 NFL games and no college', () => {
-    const { featured, shortfall } = suggestFeatured(candidates, { container_type: 'nfl_only' })
-    assert.equal(featured.filter((g) => g.sport === 'college').length, 0)
-    // Only 5 NFL candidates exist, so this is a short week and says so.
-    assert.equal(featured.length, 5)
+  test('a single-sport week offers only that sport', () => {
+    const nflOnly = selectEligible(candidates, { container_type: 'nfl_only' })
+    assert.equal(nflOnly.bySport.college, 0)
+    assert.equal(nflOnly.bySport.nfl, 5)
+
+    const cfbOnly = selectEligible(candidates, { container_type: 'college_only' })
+    assert.equal(cfbOnly.bySport.nfl, 0)
+    assert.equal(cfbOnly.bySport.college, 3)
+  })
+
+  test('a shortfall is reported when the pool cannot fill a slate', () => {
+    // 5 NFL games but a 6-pick NFL week: nobody could complete it.
+    const { shortfall } = selectEligible(candidates, { container_type: 'nfl_only' })
     assert.deepEqual(shortfall, { nfl: 1, college: 0 })
+
+    const fine = selectEligible(candidates, { container_type: 'nfl_college' })
+    assert.deepEqual(fine.shortfall, { nfl: 0, college: 0 })
   })
 
-  test('slate shapes always total six', () => {
-    for (const shape of Object.values(SLATE_SHAPE)) {
-      assert.equal(shape.nfl + shape.college, 6)
-    }
-  })
-
-  test('a conference week only suggests that conference', () => {
-    const { featured } = suggestFeatured(candidates, {
-      container_type: 'nfl_college', college_focus: 'power4', conference: 'Big Ten',
+  test('a conference week offers only that conference', () => {
+    const { eligible } = selectEligible(candidates, {
+      container_type: 'college_only', college_focus: 'power4', conference: 'Big Ten',
     })
-    const college = featured.filter((g) => g.sport === 'college')
-    // Oregon is Big Ten; Utah is Big 12, Alabama/Georgia SEC, Akron/Kent MAC.
-    assert.deepEqual(college.map((g) => g.away_team), ['Oregon Ducks'])
+    assert.deepEqual(eligible.map((g) => g.away_team), ['Oregon Ducks'])
   })
 
-  test('a Top 25 week keeps games with a ranked side', () => {
+  test('a Top 25 week offers only games with a ranked side', () => {
     const rankMap = new Map([[normalizeTeamName('Georgia Bulldogs'), 3]])
-    const filtered = filterCollegeByFocus(
-      candidates.filter((g) => g.sport === 'college'),
-      { college_focus: 'top25' },
-      rankMap
+    const { eligible } = selectEligible(
+      candidates, { container_type: 'college_only', college_focus: 'top25' }, rankMap
     )
-    assert.deepEqual(filtered.map((g) => g.away_team), ['Georgia Bulldogs'])
+    assert.deepEqual(eligible.map((g) => g.away_team), ['Georgia Bulldogs'])
   })
 
-  test('a Top 25 week with no poll suggests nothing rather than everything', () => {
-    // Regression: early in the season no regular-week poll exists yet. This
-    // used to fall through to "no filter", which put an FCS team in a Top 25
-    // slate. Returning nothing is what makes the caller report the problem.
-    const college = candidates.filter((g) => g.sport === 'college')
-    assert.deepEqual(filterCollegeByFocus(college, { college_focus: 'top25' }, null), [])
-
-    const { featured, shortfall } = suggestFeatured(
-      candidates, { container_type: 'nfl_college', college_focus: 'top25' }, null
+  test('a Top 25 week with no poll offers nothing rather than everything', () => {
+    // Regression: treating "no poll" as "no filter" put an FCS team in a
+    // Top 25 week. Offering none makes the importer report the problem.
+    const { eligible, shortfall } = selectEligible(
+      candidates, { container_type: 'college_only', college_focus: 'top25' }, null
     )
-    assert.equal(featured.filter((g) => g.sport === 'college').length, 0)
-    assert.equal(shortfall.college, 2)
+    assert.equal(eligible.length, 0)
+    assert.equal(shortfall.college, 6)
   })
 
-  test('FCS opponents are never suggested', () => {
-    // The Odds API carries FBS-vs-FCS games; neither side of an all-FCS or
-    // unrecognized matchup should reach a pool slate.
+  test('FCS matchups are never eligible', () => {
     const withFcs = [
       ...candidates,
-      cfb('Bowling Green Falcons', 'Tarleton State Texans', -2.5),
       cfb('Somewhere State Cougars', 'Nowhere Tech Owls', 0.5),
     ]
-    const { featured } = suggestFeatured(withFcs, { container_type: 'college_only' })
-    const names = featured.flatMap((g) => [g.home_team, g.away_team])
-    assert.equal(names.includes('Nowhere Tech Owls'), false, 'unrecognized matchup excluded')
-    assert.equal(names.includes('Somewhere State Cougars'), false)
-    // An FBS host against an FCS visitor is still a real game and may appear.
-    assert.ok(featured.length > 0)
+    const { eligible } = selectEligible(withFcs, { container_type: 'college_only' })
+    const names = eligible.flatMap((g) => [g.home_team, g.away_team])
+    assert.equal(names.includes('Nowhere Tech Owls'), false)
   })
 
-  test('focuses we cannot compute pass everything through', () => {
-    const college = candidates.filter((g) => g.sport === 'college')
+  test('focuses we cannot compute offer everything', () => {
     for (const focus of ['rivalry', 'confchamp', 'cfp']) {
-      assert.equal(filterCollegeByFocus(college, { college_focus: focus }).length, college.length, focus)
+      const { bySport } = selectEligible(candidates, { container_type: 'college_only', college_focus: focus })
+      assert.equal(bySport.college, 3, focus)
     }
   })
 
-  test('suggestion is stable — same input, same slate', () => {
-    const a = suggestFeatured(candidates, { container_type: 'nfl_college' })
-    const b = suggestFeatured([...candidates].reverse(), { container_type: 'nfl_college' })
-    assert.deepEqual(a.featured.map((g) => g.spread), b.featured.map((g) => g.spread))
+  test('games without a spread are not offered', () => {
+    const { eligible } = selectEligible(
+      [...candidates, { sport: 'nfl', home_team: 'A', away_team: 'B', spread: null, kickoff_time: '2026-09-13T17:00:00Z' }],
+      { container_type: 'nfl_only' }
+    )
+    assert.equal(eligible.length, 5)
+  })
+})
+
+describe('per-sport pick limits', () => {
+  const picked = (nfl, college) => [
+    ...Array.from({ length: nfl }, () => ({ sport: 'nfl' })),
+    ...Array.from({ length: college }, () => ({ sport: 'college' })),
+  ]
+
+  test('a mixed week caps at 4 NFL and 2 college independently', () => {
+    const r = remainingPicks(picked(4, 0), 'nfl_college')
+    assert.deepEqual(r.remaining, { nfl: 0, college: 2 })
+    assert.equal(r.complete, false, 'NFL full but college still open')
+  })
+
+  test('complete requires exactly the full split', () => {
+    assert.equal(remainingPicks(picked(4, 2), 'nfl_college').complete, true)
+    assert.equal(remainingPicks(picked(4, 1), 'nfl_college').complete, false)
+    assert.equal(remainingPicks(picked(3, 2), 'nfl_college').complete, false)
+    assert.equal(remainingPicks(picked(6, 0), 'nfl_only').complete, true)
+    assert.equal(remainingPicks(picked(0, 6), 'college_only').complete, true)
+  })
+
+  test('a single-sport week leaves no room in the other sport', () => {
+    const r = remainingPicks(picked(0, 0), 'nfl_only')
+    assert.deepEqual(r.remaining, { nfl: 6, college: 0 })
+  })
+
+  test('remaining never goes negative', () => {
+    const r = remainingPicks(picked(9, 9), 'nfl_college')
+    assert.deepEqual(r.remaining, { nfl: 0, college: 0 })
+  })
+
+  test('every week shape totals six picks', () => {
+    for (const type of ['nfl_college', 'nfl_only', 'college_only']) {
+      const l = pickLimits(type)
+      assert.equal(l.nfl + l.college, MAX_PICKS, type)
+    }
+  })
+
+  test('sportsFor lists only the sports a week uses', () => {
+    assert.deepEqual(sportsFor('nfl_college'), ['nfl', 'college'])
+    assert.deepEqual(sportsFor('nfl_only'), ['nfl'])
+    assert.deepEqual(sportsFor('college_only'), ['college'])
   })
 })

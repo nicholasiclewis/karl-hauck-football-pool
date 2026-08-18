@@ -6,10 +6,11 @@ import PointsPreview from '../components/picks/PointsPreview'
 import { useWeek } from '../hooks/useWeek'
 import { usePicks } from '../hooks/usePicks'
 import { weekChipLabel, calcProjectedPoints, countdownToKickoff, formatKickoff } from '../lib/gameUtils'
+import { remainingPicks } from '../lib/gameSelection'
 
 export default function Picks() {
   const { week, games, loading: weekLoading, error: weekError } = useWeek()
-  const { picks, loading: picksLoading, error: picksError, makePick } = usePicks(week?.id)
+  const { picks, loading: picksLoading, error: picksError, makePick, removePick } = usePicks(week?.id)
   const [pickError, setPickError] = useState('')
 
   const loading = weekLoading
@@ -17,6 +18,11 @@ export default function Picks() {
   // Split games into NFL and college sections
   const nflGames     = games.filter((g) => g.sport === 'nfl')
   const collegeGames = games.filter((g) => g.sport === 'college')
+
+  // Every eligible game is offered; each player picks their own slate, capped
+  // per sport. Count what's used by joining picks back to their games.
+  const pickedGames = games.filter((g) => picks[g.id])
+  const { used, limits, remaining, complete } = remainingPicks(pickedGames, week?.container_type)
 
   // Score bar calculations
   const picksCount     = Object.keys(picks).length
@@ -33,10 +39,34 @@ export default function Picks() {
   async function handlePick(gameId, side) {
     setPickError('')
     try {
+      // Tapping the side you already picked retracts it — that's how you free
+      // a slot when you're at the cap and want a different game.
+      if (picks[gameId]?.picked_team === side) {
+        await removePick(gameId)
+        return
+      }
+
+      // Changing sides on a game you already picked doesn't use a new slot.
+      if (!picks[gameId]) {
+        const sport = games.find((g) => g.id === gameId)?.sport
+        if (sport && remaining[sport] === 0) {
+          setPickError(
+            `You've already picked ${limits[sport]} ${sport === 'nfl' ? 'NFL' : 'college'} ` +
+            `game${limits[sport] === 1 ? '' : 's'}. Tap one of them to swap it out.`
+          )
+          return
+        }
+      }
+
       await makePick(gameId, side)
     } catch (err) {
       setPickError(err.message)
     }
+  }
+
+  /** A game is out of reach when it's unpicked and that sport is full. */
+  function atCap(game) {
+    return !picks[game.id] && remaining[game.sport] === 0
   }
 
   // ── Loading ─────────────────────────────────────────────────
@@ -101,14 +131,36 @@ export default function Picks() {
 
         {/* Score bar */}
         <div className="mx-4 bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between gap-2">
-          <ScoreItem value={picksCount}           label="Picked"      />
+          <ScoreItem
+            value={`${picksCount}/${limits.nfl + limits.college}`}
+            label="Picked"
+            gold={complete}
+          />
           <Divider />
-          <ScoreItem value={games.length}         label="Total Games" />
-          <Divider />
-          <ScoreItem value={projectedPts}         label="Proj. Pts"   gold />
-          <Divider />
-          <ScoreItem value={8}                    label="Max Pts"     />
+          {limits.nfl > 0 && (
+            <>
+              <ScoreItem value={`${used.nfl}/${limits.nfl}`} label="NFL" />
+              <Divider />
+            </>
+          )}
+          {limits.college > 0 && (
+            <>
+              <ScoreItem value={`${used.college}/${limits.college}`} label="College" />
+              <Divider />
+            </>
+          )}
+          <ScoreItem value={projectedPts} label="Proj. Pts" gold />
         </div>
+
+        {/* How many are still to make, or confirmation they're all in */}
+        <p className="text-[11px] text-center mt-2 px-4" style={{ color: complete ? '#10b981' : '#94afd4' }}>
+          {complete
+            ? '✓ All picks in — tap a pick to change it before kickoff'
+            : `Choose ${[
+                remaining.nfl > 0 ? `${remaining.nfl} more NFL` : null,
+                remaining.college > 0 ? `${remaining.college} more college` : null,
+              ].filter(Boolean).join(' and ')} from ${games.length} games`}
+        </p>
       </div>
 
       {/* ── Pick error ───────────────────────────────────────── */}
@@ -121,14 +173,20 @@ export default function Picks() {
       {/* ── NFL Games ────────────────────────────────────────── */}
       {nflGames.length > 0 && (
         <>
-          <SectionHeader icon="🏈" title="NFL Games" count={nflGames.length} />
+          <SectionHeader
+            icon="🏈"
+            title="NFL Games"
+            count={nflGames.length}
+            progress={limits.nfl > 0 ? `${used.nfl}/${limits.nfl} picked` : null}
+          />
           {nflGames.map((game) => (
             <GameCard
               key={game.id}
               game={game}
               pick={picks[game.id] ?? null}
               onPick={handlePick}
-              disabled={!week.picks_open}
+              disabled={!week.picks_open || atCap(game)}
+              capReached={atCap(game)}
             />
           ))}
         </>
@@ -137,14 +195,20 @@ export default function Picks() {
       {/* ── College Games ────────────────────────────────────── */}
       {collegeGames.length > 0 && (
         <>
-          <SectionHeader icon="🎓" title="College Games" count={collegeGames.length} />
+          <SectionHeader
+            icon="🎓"
+            title="College Games"
+            count={collegeGames.length}
+            progress={limits.college > 0 ? `${used.college}/${limits.college} picked` : null}
+          />
           {collegeGames.map((game) => (
             <GameCard
               key={game.id}
               game={game}
               pick={picks[game.id] ?? null}
               onPick={handlePick}
-              disabled={!week.picks_open}
+              disabled={!week.picks_open || atCap(game)}
+              capReached={atCap(game)}
             />
           ))}
         </>
@@ -180,11 +244,14 @@ function Divider() {
   return <div className="w-px h-8 bg-border" />
 }
 
-function SectionHeader({ icon, title, count }) {
+function SectionHeader({ icon, title, count, progress = null }) {
   return (
     <div className="flex items-center gap-2.5 px-4 pt-5 pb-2.5">
       <span className="text-[13px] tracking-widest uppercase text-muted">{icon} {title}</span>
       <div className="flex-1 h-px bg-border" />
+      {progress && (
+        <span className="text-[11px] text-primary-light font-semibold">{progress}</span>
+      )}
       {count !== null && (
         <span className="text-[11px] text-muted">{count} GAME{count !== 1 ? 'S' : ''}</span>
       )}

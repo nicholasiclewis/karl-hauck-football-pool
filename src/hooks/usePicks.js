@@ -76,5 +76,32 @@ export function usePicks(weekId) {
     }
   }
 
-  return { picks, loading, error, makePick, refetch: fetchPicks }
+  /**
+   * Retract a pick. Players choose 6 games out of many, so removing one is how
+   * they free a slot to pick a different game.
+   */
+  async function removePick(gameId) {
+    if (!user) throw new Error('Not logged in')
+
+    const previous = picks[gameId]
+    setPicks((prev) => {
+      const next = { ...prev }
+      delete next[gameId]
+      return next
+    })
+
+    const { error: err } = await supabase
+      .from('picks')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('user_id', user.id)
+
+    if (err) {
+      // Put it back rather than leaving the UI lying about what's saved.
+      setPicks((prev) => (previous ? { ...prev, [gameId]: previous } : prev))
+      throw new Error(err.message)
+    }
+  }
+
+  return { picks, loading, error, makePick, removePick, refetch: fetchPicks }
 }
