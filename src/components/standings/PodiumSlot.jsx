@@ -91,7 +91,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = '🔴
       {payout != null && (
         <p
           className="text-[11px] font-bold mb-1.5 px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}
+          style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
         >
           ${Number(payout).toFixed(0)}
         </p>

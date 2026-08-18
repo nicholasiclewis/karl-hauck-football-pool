@@ -130,7 +130,7 @@ export default function History() {
             {[
               { val: totalPts.toFixed(1), lbl: 'Total Pts', color: '#60a5fa' },
               { val: totalWins,           lbl: 'Wins',      color: '#10b981' },
-              { val: totalLoss,           lbl: 'Losses',    color: '#ef4444' },
+              { val: totalLoss,           lbl: 'Losses',    color: '#f87171' },
               { val: totalPush,           lbl: 'Pushes',    color: '#f0f6ff' },
             ].map(({ val, lbl, color }) => (
               <div

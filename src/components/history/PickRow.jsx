@@ -16,7 +16,7 @@ export default function PickRow({ game, pick }) {
   const outcome = pick?.outcome ?? null
   const outcomeConfig = {
     win:  { label: 'W', bg: 'rgba(16,185,129,0.15)', color: '#10b981', border: 'rgba(16,185,129,0.3)' },
-    loss: { label: 'L', bg: 'rgba(239,68,68,0.15)',  color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
+    loss: { label: 'L', bg: 'rgba(239,68,68,0.15)',  color: '#f87171', border: 'rgba(239,68,68,0.3)' },
     push: { label: 'P', bg: 'rgba(58,96,144,0.2)',   color: '#94afd4', border: '#374e6b' },
   }
   const oc = outcome ? outcomeConfig[outcome] : null

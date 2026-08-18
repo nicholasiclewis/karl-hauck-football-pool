@@ -165,7 +165,7 @@ export default function DuesTab() {
               {payoutSaving ? 'Saving...' : 'Save Payouts'}
             </button>
             {payoutMsg && (
-              <span className="text-xs font-semibold" style={{ color: payoutMsg === 'Saved!' ? '#4ade80' : '#f87171' }}>
+              <span className="text-xs font-semibold" style={{ color: payoutMsg === 'Saved!' ? '#10b981' : '#f87171' }}>
                 {payoutMsg}
               </span>
             )}
@@ -218,7 +218,7 @@ export default function DuesTab() {
                 disabled={toggling === player.id}
                 className="text-xs font-bold px-3 py-1.5 rounded-full border flex-shrink-0"
                 style={isPaid
-                  ? { background: 'rgba(74,222,128,0.15)', color: '#4ade80', borderColor: 'rgba(74,222,128,0.3)' }
+                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
                   : { background: 'rgba(248,113,113,0.1)', color: '#f87171', borderColor: 'rgba(248,113,113,0.3)' }
                 }
               >

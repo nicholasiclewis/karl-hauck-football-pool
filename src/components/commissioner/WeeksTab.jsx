@@ -147,7 +147,7 @@ export default function WeeksTab() {
       {/* ── Create form ── */}
       <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
         <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>Create Week</h2>
-        {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
+        {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}
         <form onSubmit={createWeek} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Week #">
@@ -171,7 +171,7 @@ export default function WeeksTab() {
                     {formatWeekWindow(weekWindow(form.week_start))}
                   </p>
                 ) : (
-                  <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>
+                  <p className="text-[10px] mt-1" style={{ color: '#f87171' }}>
                     Not a Tuesday — odds won't auto-import
                   </p>
                 )
@@ -286,7 +286,7 @@ export default function WeeksTab() {
                     onClick={() => toggleOpen(week)}
                     className="flex-1 py-2 rounded-lg text-xs font-semibold"
                     style={week.picks_open
-                      ? { background: 'rgba(239,68,68,0.15)', color: '#ef4444' }
+                      ? { background: 'rgba(239,68,68,0.15)', color: '#f87171' }
                       : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
                     }
                   >

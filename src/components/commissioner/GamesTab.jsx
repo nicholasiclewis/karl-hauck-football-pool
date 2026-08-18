@@ -264,7 +264,7 @@ export default function GamesTab() {
         </div>
 
         {pickerError && (
-          <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
+          <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
             {pickerError}
           </p>
         )}
@@ -516,7 +516,7 @@ export default function GamesTab() {
             <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>
               Add Game — Week {selectedWeek?.week_number}
             </h2>
-            {error && <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>}
+            {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}
             <form onSubmit={addGame} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Sport">
@@ -578,7 +578,7 @@ export default function GamesTab() {
                     }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold" style={{ color: ok ? '#10b981' : '#ef4444' }}>
+                      <span className="text-xs font-semibold" style={{ color: ok ? '#10b981' : '#f87171' }}>
                         {ok ? '✓ Enough games' : 'Not enough games'}
                       </span>
                       <span className="text-xs" style={{ color: '#94afd4' }}>

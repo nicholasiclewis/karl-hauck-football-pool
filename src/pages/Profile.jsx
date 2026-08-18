@@ -134,7 +134,7 @@ export default function Profile() {
                 className="text-sm font-bold px-3 py-1.5 rounded-full border"
                 style={dues?.is_paid
                   ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
-                  : { background: 'rgba(239,68,68,0.1)',   color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }
+                  : { background: 'rgba(239,68,68,0.1)',   color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }
                 }
               >
                 {dues?.is_paid ? '✓ Paid' : 'Unpaid'}
@@ -159,7 +159,7 @@ export default function Profile() {
               placeholder="Your name"
             />
             {nameMsg && (
-              <p className="text-xs" style={{ color: nameMsg === 'Saved!' ? '#10b981' : '#ef4444' }}>
+              <p className="text-xs" style={{ color: nameMsg === 'Saved!' ? '#10b981' : '#f87171' }}>
                 {nameMsg}
               </p>
             )}
@@ -201,7 +201,7 @@ export default function Profile() {
               className="input-field w-full"
               autoComplete="new-password"
             />
-            {passErr && <p className="text-xs" style={{ color: '#ef4444' }}>{passErr}</p>}
+            {passErr && <p className="text-xs" style={{ color: '#f87171' }}>{passErr}</p>}
             {passMsg && <p className="text-xs" style={{ color: '#10b981' }}>{passMsg}</p>}
             <button
               type="submit"
@@ -218,7 +218,7 @@ export default function Profile() {
         <button
           onClick={signOut}
           className="w-full py-2.5 rounded-lg text-sm font-bold"
-          style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+          style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
         >
           Sign Out
         </button>

@@ -113,7 +113,7 @@ export default function PlayerRow({
             {payout != null && (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
-                style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}
+                style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
               >
                 ${Number(payout).toFixed(0)}
               </span>
