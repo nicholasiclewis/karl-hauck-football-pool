@@ -81,7 +81,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
               </span>
               <span className="block text-[9px] text-muted uppercase tracking-wide">Spread</span>
             </div>
-            <span className="text-[11px] text-border2">@</span>
+            <span className="text-[11px] text-muted">@</span>
           </div>
 
           {/* Away team */}

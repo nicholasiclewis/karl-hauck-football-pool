@@ -182,7 +182,7 @@ export default function DuesTab() {
         ].map(({ val, lbl }) => (
           <div key={lbl} className="flex flex-col items-center py-3" style={{ background: '#1e293b' }}>
             <span className="text-lg font-bold" style={{ color: '#60a5fa' }}>{val}</span>
-            <span className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: '#6b8fbb' }}>{lbl}</span>
+            <span className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: '#94afd4' }}>{lbl}</span>
           </div>
         ))}
       </div>

@@ -139,7 +139,7 @@ export default function History() {
                 style={{ background: '#1e293b' }}
               >
                 <span className="text-xl font-bold leading-none" style={{ color }}>{val}</span>
-                <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: '#6b8fbb' }}>{lbl}</span>
+                <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: '#94afd4' }}>{lbl}</span>
               </div>
             ))}
           </div>

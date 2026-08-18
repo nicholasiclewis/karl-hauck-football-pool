@@ -59,7 +59,7 @@ export default function PointsPreview({ week, games, picks }) {
 
   return (
     <div className="mx-4 mb-6 bg-bg border border-border rounded-xl p-4">
-      <p className="text-[10px] tracking-widest uppercase text-border2 mb-3">
+      <p className="text-[10px] tracking-widest uppercase text-muted mb-3">
         Live Points Tracker
       </p>
 
