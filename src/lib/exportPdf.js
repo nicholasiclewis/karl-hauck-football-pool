@@ -2,45 +2,14 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { supabase } from './supabase'
 
-// ── Palette (matches app) ─────────────────────────────────────────────────────
-const BG        = [11,  17,  32]   // #0b1120
-const CARD      = [18,  29,  53]   // #121d35
-const CARD2     = [26,  40,  72]   // #1a2848
-const BORDER    = [30,  53, 102]   // #1e3566
-const PRIMARY   = [26,  71, 184]   // #1a47b8
-const PLIGHT    = [96, 150, 232]   // #6096e8
-const TEXT      = [221,238,255]    // #ddeeff
-const MUTED     = [119,153,204]    // #7799cc
-const GOLD      = [251,191, 36]    // #fbbf24
-const SILVER    = [148,163,184]    // #94a3b8
-const BRONZE    = [180, 83,  9]    // #b45309
-const GREEN     = [ 34,197, 94]    // #22c55e
-const PAGE_W    = 210
-const COL_L     = 14
-const COL_R     = PAGE_W - 14
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function fullBg(doc) {
-  doc.setFillColor(...BG)
-  doc.rect(0, 0, PAGE_W, 297, 'F')
-}
-
-function sectionBanner(doc, text, y, color = PRIMARY) {
-  doc.setFillColor(...color)
-  doc.roundedRect(COL_L, y, COL_R - COL_L, 9, 1.5, 1.5, 'F')
-  doc.setFontSize(9)
-  doc.setTextColor(...TEXT)
-  doc.setFont('helvetica', 'bold')
-  doc.text(text.toUpperCase(), COL_L + 4, y + 6.2)
-  return y + 14
-}
-
-function rankColor(rank) {
-  if (rank === 1) return GOLD
-  if (rank === 2) return SILVER
-  if (rank === 3) return BRONZE
-  return TEXT
-}
+// Palette and page helpers are shared with the weekly exports so the documents
+// players see side by side look like they came from the same place.
+import {
+  BG, CARD, CARD2, BORDER, PRIMARY, PLIGHT, TEXT, MUTED,
+  GOLD, SILVER, BRONZE, GREEN,
+  PAGE_W, COL_L, COL_R,
+  fullBg, sectionBanner, rankColor,
+} from './pdfTheme'
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export async function downloadReport() {

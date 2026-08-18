@@ -8,10 +8,12 @@ import PlayersTab from '../components/commissioner/PlayersTab'
 import DuesTab    from '../components/commissioner/DuesTab'
 import ReportsTab from '../components/commissioner/ReportsTab'
 import SeasonTab  from '../components/commissioner/SeasonTab'
+import EntryTab   from '../components/commissioner/EntryTab'
 
 const TABS = [
   { key: 'weeks',   label: 'Weeks',   icon: '📅' },
   { key: 'games',   label: 'Games',   icon: '🏈' },
+  { key: 'entry',   label: 'Entry',   icon: '✍️' },
   { key: 'results', label: 'Results', icon: '📊' },
   { key: 'players', label: 'Players', icon: '👥' },
   { key: 'dues',    label: 'Dues',    icon: '💰' },
@@ -62,6 +64,7 @@ export default function Commissioner() {
       <div className="px-4 py-4">
         {activeTab === 'weeks'   && <WeeksTab />}
         {activeTab === 'games'   && <GamesTab />}
+        {activeTab === 'entry'   && <EntryTab />}
         {activeTab === 'results' && <ResultsTab />}
         {activeTab === 'players' && <PlayersTab />}
         {activeTab === 'dues'    && <DuesTab />}
