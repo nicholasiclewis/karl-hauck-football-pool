@@ -27,6 +27,9 @@ import { weekWindow, poolToday, isInWeekWindow, formatWeekWindow } from '../src/
 import { suggestFeatured } from '../src/lib/gameSelection.js'
 import { fetchTop25, buildRankMap, resolveWeekForDate } from '../src/lib/rankings.js'
 
+/** Public project URL, used when no env var is configured. Not a secret. */
+const SUPABASE_URL_DEFAULT = 'https://jpeaijrdvbvbpcmuqhgt.supabase.co'
+
 const SPORT_KEYS = {
   nfl:     'americanfootball_nfl',
   college: 'americanfootball_ncaaf',
@@ -46,7 +49,11 @@ export default async function handler(req, res) {
     if (sent !== secret) return res.status(401).json({ ok: false, error: 'Unauthorized' })
   }
 
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
+  // VITE_-prefixed vars reach the frontend build but are not exposed to
+  // functions at runtime. The project URL is public — it ships in every
+  // browser bundle — so it falls back to a constant rather than failing when
+  // Vercel's env config drifts. An env var still wins if one is set.
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? SUPABASE_URL_DEFAULT
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   const oddsKey = process.env.ODDS_API_KEY
 
