@@ -90,16 +90,23 @@ export function usePicks(weekId) {
       return next
     })
 
-    const { error: err } = await supabase
+    // .select() matters: a DELETE blocked by RLS comes back as success with
+    // zero rows, so without checking what was actually removed the UI would
+    // show the pick gone and then have it reappear on the next load.
+    const { data, error: err } = await supabase
       .from('picks')
       .delete()
       .eq('game_id', gameId)
       .eq('user_id', user.id)
+      .select('id')
 
-    if (err) {
+    if (err || !data?.length) {
       // Put it back rather than leaving the UI lying about what's saved.
       setPicks((prev) => (previous ? { ...prev, [gameId]: previous } : prev))
-      throw new Error(err.message)
+      throw new Error(
+        err?.message ??
+        'Could not retract that pick — it may already be locked because the game has started.'
+      )
     }
   }
 

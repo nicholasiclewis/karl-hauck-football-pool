@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
 import { fetchTop25ForDate, buildRankMap, rankOf } from '../../lib/rankings'
-import { weekWindow, isInWeekWindow, formatWeekWindow } from '../../lib/weekWindow'
+import { weekWindow, formatWeekWindow } from '../../lib/weekWindow'
 import { pickLimits } from '../../lib/gameSelection'
 
 const BLANK = {
@@ -34,7 +34,6 @@ export default function GamesTab() {
   const [confFilter, setConfFilter]           = useState(null)   // conference name, 'TOP25', or null = all
   const [rankMap, setRankMap]                 = useState(null)   // normalized team name -> rank
   const [rankLabel, setRankLabel]             = useState('')
-  const [windowOnly, setWindowOnly]           = useState(true)   // restrict to the week's Tue–Mon window
   const [importing, setImporting]             = useState(false)
   const [importResult, setImportResult]       = useState('')
 
@@ -152,7 +151,6 @@ export default function GamesTab() {
     setAvailableGames([])
     setSelectedIds(new Set())
     setPickerError('')
-    setWindowOnly(true)
 
     // Pre-apply the week's plan: an SEC week opens on the SEC chip, a Top 25
     // week opens on Top 25. Saves a tap and makes the plan visible.
@@ -171,16 +169,20 @@ export default function GamesTab() {
 
     setFetching(true)
     try {
-      const fnName = sport === 'nfl' ? 'fetch-nfl-odds' : 'fetch-college-odds'
-      const { data, error: fnErr } = await supabase.functions.invoke(fnName, {
-        body: { week_id: selectedWeekId },
-      })
-      if (fnErr) throw new Error(fnErr.message)
-      if (data?.error) throw new Error(data.error)
+      // Read-only listing from the same code path as the import, so it applies
+      // this week's window and focus. The old fetch-nfl-odds edge function
+      // upserted every event it saw, meaning simply opening the picker wrote
+      // the league's whole schedule into the week.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not signed in')
 
-      // fetch-nfl-odds returns { games } (already inserted), fetch-college-odds returns { games }
-      const list = data?.games ?? []
-      setAvailableGames(list)
+      const res = await fetch(`/api/sync-week-odds?week_id=${selectedWeekId}&list=1`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = await res.json()
+      if (!res.ok || data.ok === false) throw new Error(data.error ?? `HTTP ${res.status}`)
+
+      setAvailableGames((data.games ?? []).filter(g => g.sport === sport))
     } catch (err) {
       setPickerError(err.message)
     } finally {
@@ -282,16 +284,11 @@ export default function GamesTab() {
 
         {!fetching && availableGames.length > 0 && (
           <>
-            {/* Week window toggle — a week runs Tue through Mon night */}
+            {/* The server already limits this to the week's Tue–Mon window */}
             {selectedWeek?.week_start && (
-              <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: '#94afd4' }}>
-                <input
-                  type="checkbox"
-                  checked={windowOnly}
-                  onChange={e => setWindowOnly(e.target.checked)}
-                />
-                Only this week ({formatWeekWindow(weekWindow(selectedWeek.week_start))})
-              </label>
+              <p className="text-xs" style={{ color: '#94afd4' }}>
+                Showing games for {formatWeekWindow(weekWindow(selectedWeek.week_start))}
+              </p>
             )}
 
             {/* Conference + Top 25 filter chips — college only */}
@@ -319,11 +316,7 @@ export default function GamesTab() {
             )}
 
             {(() => {
-              const window = selectedWeek?.week_start ? weekWindow(selectedWeek.week_start) : null
               let filtered = availableGames
-              if (windowOnly && window) {
-                filtered = filtered.filter(g => isInWeekWindow(g.kickoff_time, window))
-              }
               if (confFilter === 'TOP25') {
                 filtered = filtered.filter(g =>
                   rankOf(g.home_team, rankMap) !== null || rankOf(g.away_team, rankMap) !== null

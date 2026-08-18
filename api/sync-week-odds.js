@@ -23,7 +23,9 @@
  *   ?week_id=<uuid>          import a specific week by id
  *   ?dry=1                   report what would happen, write nothing
  */
-import { weekWindow, poolToday, isInWeekWindow, formatWeekWindow } from '../src/lib/weekWindow.js'
+import {
+  weekWindow, poolToday, poolWeekStartFor, isInWeekWindow, formatWeekWindow,
+} from '../src/lib/weekWindow.js'
 import { selectEligible, sportsFor } from '../src/lib/gameSelection.js'
 import { fetchTop25, buildRankMap, resolveWeekForDate } from '../src/lib/rankings.js'
 
@@ -110,6 +112,13 @@ export default async function handler(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
 
   const dryRun = req.query?.dry === '1' || req.query?.dry === 'true'
+  // list mode powers the dashboard picker: same window and focus rules as the
+  // import, but it returns the games instead of writing them. Browsing must
+  // never modify the week.
+  const listOnly = req.query?.list === '1' || req.query?.list === 'true'
+  // state mode only opens/closes weeks; it never calls the Odds API, so it is
+  // safe to run daily without spending credits.
+  const stateOnly = req.query?.state === '1' || req.query?.state === 'true'
 
   const db = (path, init = {}) =>
     fetch(`${url}/rest/v1/${path}`, {
@@ -140,6 +149,18 @@ export default async function handler(req, res) {
     const filter = req.query?.week_id
       ? `id=eq.${req.query.week_id}`
       : `season_id=eq.${season.id}&week_start=eq.${weekStart}`
+
+    // State-only mode: open/close weeks without touching the Odds API. Runs
+    // daily so a week closes the morning after its last game rather than
+    // waiting for the next Tuesday import.
+    if (stateOnly) {
+      const current = await readJson(
+        await db(`weeks?select=*&season_id=eq.${season.id}&week_start=eq.${poolWeekStartFor()}&limit=1`),
+        'current week'
+      )
+      const weekState = await manageWeekState({ db, readJson, season, week: current[0] ?? null })
+      return res.status(200).json({ ok: true, mode: 'state', season: season.year, weekState })
+    }
 
     const weeks = await readJson(
       await db(`weeks?select=*&${filter}&limit=1`),
@@ -267,6 +288,21 @@ export default async function handler(req, res) {
       apiCalls,
     }
 
+    if (listOnly) {
+      // Every game in the window, flagged with whether the week's rules make
+      // it pickable, so the picker can show near-misses without importing them.
+      const eligibleIds = new Set(eligible.map((g) => g.odds_api_id))
+      const known = new Set(existing.map((g) => g.odds_api_id))
+      return res.status(200).json({
+        ...summary,
+        games: candidates.map((g) => ({
+          ...g,
+          eligible: eligibleIds.has(g.odds_api_id),
+          alreadyAdded: known.has(g.odds_api_id),
+        })),
+      })
+    }
+
     if (dryRun) {
       return res.status(200).json({
         ...summary,
@@ -300,10 +336,79 @@ export default async function handler(req, res) {
       if (!r.ok) throw new Error(`refresh game: ${r.status} ${(await r.text()).slice(0, 200)}`)
     }
 
-    return res.status(200).json(summary)
+    // ── Week state ────────────────────────────────────────────────────────
+    // Opening happens here because this runs the morning a week begins, and a
+    // week with games ready should not sit closed waiting to be switched on.
+    // Closing keys off the last kickoff rather than the calendar: once every
+    // game has started there is nothing left to pick.
+    const weekState = await manageWeekState({
+      db, readJson, season, week, gameCount: eligible.length,
+    })
+
+    return res.status(200).json({ ...summary, weekState })
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message })
   }
+}
+
+/**
+ * Open the current week and close any week that has run its course.
+ *
+ * A week closes once its last game has kicked off — not when the calendar week
+ * ends — so a slate that finishes Saturday does not sit open until Tuesday.
+ * Completed weeks are never reopened.
+ */
+async function manageWeekState({ db, readJson, season, week, gameCount = null }) {
+  const now = Date.now()
+  const opened = []
+  const closed = []
+
+  // Open the current week once it actually has games to pick from. Opening an
+  // empty week would just show players a blank slate.
+  if (week && !week.is_complete && !week.picks_open) {
+    let count = gameCount
+    if (count === null) {
+      const rows = await readJson(
+        await db(`games?select=id&week_id=eq.${week.id}&is_featured=eq.true&limit=1`),
+        'week games'
+      )
+      count = rows.length
+    }
+    if (count > 0) {
+      const r = await db(`weeks?id=eq.${week.id}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ picks_open: true }),
+      })
+      if (r.ok) opened.push(week.week_number)
+    }
+  }
+
+  // Any other open week in this season whose games have all started.
+  const skip = week ? `&id=neq.${week.id}` : ''
+  const others = await readJson(
+    await db(`weeks?select=id,week_number&season_id=eq.${season.id}&picks_open=eq.true&is_complete=eq.false${skip}`),
+    'open weeks'
+  )
+
+  for (const w of others) {
+    const games = await readJson(
+      await db(`games?select=kickoff_time&week_id=eq.${w.id}&is_featured=eq.true&order=kickoff_time.desc&limit=1`),
+      'last kickoff'
+    )
+    const last = games[0]?.kickoff_time
+    // No games at all also means nothing left to pick.
+    if (last && new Date(last).getTime() > now) continue
+
+    const r = await db(`weeks?id=eq.${w.id}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ picks_open: false }),
+    })
+    if (r.ok) closed.push(w.week_number)
+  }
+
+  return { opened, closed }
 }
 
 /** Top 25 covering the Saturday of a week that starts on `weekStart`. */
