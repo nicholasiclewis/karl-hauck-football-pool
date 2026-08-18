@@ -176,7 +176,7 @@ export default function Standings() {
 
       {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div
-        className="border-b pt-14"
+        className="border-b pt-header"
         style={{
           background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)',
           borderColor: '#374e6b',

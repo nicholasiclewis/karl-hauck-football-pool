@@ -111,7 +111,7 @@ export default function History() {
 
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
       <div
-        className="pt-14 border-b"
+        className="pt-header border-b"
         style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)', borderColor: '#374e6b' }}
       >
         <div className="px-4 pt-5 pb-4">

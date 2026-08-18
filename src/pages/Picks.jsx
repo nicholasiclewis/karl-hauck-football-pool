@@ -84,7 +84,7 @@ export default function Picks() {
   // ── No active week ───────────────────────────────────────────
   if (!week) {
     return (
-      <div className="min-h-screen bg-bg pt-14 pb-24">
+      <div className="min-h-screen bg-bg pt-header pb-24">
         <TopNav />
         <div className="flex flex-col items-center justify-center mt-20 px-4 text-center">
           <span className="text-5xl mb-4">🏈</span>
@@ -107,7 +107,7 @@ export default function Picks() {
   ].filter(Boolean).join(' · ')
 
   return (
-    <div className="min-h-screen bg-bg pt-14 pb-24">
+    <div className="min-h-screen bg-bg pt-header pb-24">
       <TopNav />
 
       {/* ── Week Header ──────────────────────────────────────── */}

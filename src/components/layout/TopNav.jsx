@@ -12,7 +12,7 @@ export default function TopNav() {
   const shortName = lastName ? `${firstName} ${lastName[0]}.` : firstName
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border safe-top">
       <div className="flex items-center justify-between px-4 h-14">
         {/* Logo */}
         <div className="text-lg font-bold tracking-wider">

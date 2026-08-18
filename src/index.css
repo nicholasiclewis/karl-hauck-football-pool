@@ -75,6 +75,26 @@ input:focus-visible,
   border-radius: 2px;
 }
 
+/*
+ * Safe areas.
+ *
+ * index.html sets viewport-fit=cover and a translucent status bar, so the page
+ * extends under the notch / Dynamic Island. The bottom inset was handled in two
+ * places but the top was handled nowhere, which left the fixed header sitting
+ * underneath the island on newer iPhones — logo and avatar unreachable.
+ *
+ * env() resolves to 0px where there is no inset, so desktop and older devices
+ * are unaffected.
+ */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Clears the fixed header: its 3.5rem body plus whatever the notch takes. */
+.pt-header {
+  padding-top: calc(3.5rem + env(safe-area-inset-top));
+}
+
 /* Shared input style */
 .input-field {
   @apply w-full bg-card2 border border-border2 rounded-lg px-3 py-3 text-sm text-text placeholder-muted
