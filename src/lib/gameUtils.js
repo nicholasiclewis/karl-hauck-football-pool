@@ -1,22 +1,28 @@
 /**
  * Shared utility functions for displaying game data.
  */
+import { POOL_TZ } from './weekWindow.js'
 
-const DAYS   = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+// Kickoffs are quoted in Eastern because that is how the schedule is published
+// and how the pool's weeks are defined. This has to be forced: the previous
+// implementation read the viewer's local clock and appended "ET" regardless,
+// so a player in Denver saw an 8:15 ET kickoff labelled "5:15 PM ET".
+const KICKOFF_FMT = new Intl.DateTimeFormat('en-US', {
+  timeZone: POOL_TZ,
+  weekday: 'short', month: 'short', day: 'numeric',
+  hour: 'numeric', minute: '2-digit', hour12: true,
+})
 
 /** Format a kickoff timestamp → "THU · OCT 17 · 8:15 PM ET" */
 export function formatKickoff(dateStr) {
   const d = new Date(dateStr)
-  const day   = DAYS[d.getDay()]
-  const month = MONTHS[d.getMonth()]
-  const date  = d.getDate()
-  let   h     = d.getHours()
-  const m     = d.getMinutes()
-  const ampm  = h >= 12 ? 'PM' : 'AM'
-  h = h % 12 || 12
-  const time  = m === 0 ? `${h}:00 ${ampm}` : `${h}:${String(m).padStart(2,'0')} ${ampm}`
-  return `${day} · ${month} ${date} · ${time} ET`
+  if (Number.isNaN(d.getTime())) return ''
+
+  const p = {}
+  for (const part of KICKOFF_FMT.formatToParts(d)) p[part.type] = part.value
+
+  return `${p.weekday.toUpperCase()} · ${p.month.toUpperCase()} ${p.day} · ` +
+         `${p.hour}:${p.minute} ${p.dayPeriod.toUpperCase()} ET`
 }
 
 /** "Locks in 2d 14h" countdown string, or null if already locked */
