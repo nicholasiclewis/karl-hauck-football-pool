@@ -4,7 +4,7 @@ import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
 import { fetchTop25ForDate, buildRankMap, rankOf } from '../../lib/rankings'
 import { weekWindow, isInWeekWindow, formatWeekWindow } from '../../lib/weekWindow'
-import { SLATE_SHAPE } from '../../lib/gameSelection'
+import { SLATE_SHAPE, SLATE_SIZE } from '../../lib/gameSelection'
 
 const BLANK = {
   sport: 'nfl',
@@ -154,13 +154,29 @@ export default function GamesTab() {
     })
   }
 
+  /** Select or clear every game currently passing the filters. */
+  function setAllFiltered(list, selected) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      for (const g of list) selected ? next.add(g.odds_api_id) : next.delete(g.odds_api_id)
+      return next
+    })
+  }
+
   async function addSelectedGames() {
     setAddingPicked(true)
     setPickerError('')
     try {
       const toAdd = availableGames.filter(g => selectedIds.has(g.odds_api_id))
-      for (const g of toAdd) {
-        await supabase.from('games').upsert({
+      // Picking a handful means "these are my games". Grabbing a whole slate
+      // means "pull everything in so I can choose" — the same thing the
+      // Tuesday importer does. Featuring 90 games would show all 90 to
+      // players, so bulk adds land as candidates for you to star.
+      const asCandidates = toAdd.length > SLATE_SIZE
+
+      // One request rather than one per game — a select-all can be 90 rows.
+      const { error: err } = await supabase.from('games').upsert(
+        toAdd.map(g => ({
           week_id:      selectedWeekId,
           sport:        pickerSport,
           away_team:    g.away_team,
@@ -169,9 +185,11 @@ export default function GamesTab() {
           favorite:     g.favorite,
           kickoff_time: g.kickoff_time,
           odds_api_id:  g.odds_api_id,
-          is_featured:  true,   // picked by hand = in play
-        }, { onConflict: 'odds_api_id' })
-      }
+          is_featured:  !asCandidates,
+        })),
+        { onConflict: 'odds_api_id' }
+      )
+      if (err) throw err
       await loadGames()
       setPickerSport(null)
       setAvailableGames([])
@@ -281,10 +299,42 @@ export default function GamesTab() {
               const filterLabel = confFilter === 'TOP25' ? 'Top 25' : confFilter
               return (
                 <>
-                  <p className="text-xs" style={{ color: '#94afd4' }}>
-                    {filtered.length} game{filtered.length !== 1 ? 's' : ''}{filterLabel ? ` · ${filterLabel}` : ''} · {selectedIds.size} selected
-                    {confFilter === 'TOP25' && rankLabel ? ` · ${rankLabel}` : ''}
-                  </p>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-xs" style={{ color: '#94afd4' }}>
+                      {filtered.length} game{filtered.length !== 1 ? 's' : ''}{filterLabel ? ` · ${filterLabel}` : ''} · {selectedIds.size} selected
+                      {confFilter === 'TOP25' && rankLabel ? ` · ${rankLabel}` : ''}
+                    </p>
+                    <div className="flex gap-2 flex-shrink-0">
+                      {(() => {
+                        const allOn = filtered.length > 0 &&
+                          filtered.every(g => selectedIds.has(g.odds_api_id))
+                        return (
+                          <button
+                            onClick={() => setAllFiltered(filtered, !allOn)}
+                            disabled={filtered.length === 0}
+                            className="text-xs px-3 py-1 rounded-lg font-semibold border"
+                            style={{
+                              background: 'rgba(96,150,232,0.15)',
+                              borderColor: '#6096e8',
+                              color: '#6096e8',
+                              opacity: filtered.length === 0 ? 0.4 : 1,
+                            }}
+                          >
+                            {allOn ? 'Deselect all' : `Select all${filterLabel ? ` ${filterLabel}` : ''}`}
+                          </button>
+                        )
+                      })()}
+                      {selectedIds.size > 0 && (
+                        <button
+                          onClick={() => setSelectedIds(new Set())}
+                          className="text-xs px-3 py-1 rounded-lg"
+                          style={{ background: '#1e293b', color: '#94afd4' }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
                     {filtered.map((game) => {
                 const isSelected = selectedIds.has(game.odds_api_id)
@@ -339,7 +389,11 @@ export default function GamesTab() {
                 color:      selectedIds.size > 0 ? '#ffffff'  : '#94afd4',
               }}
             >
-              {addingPicked ? 'Adding...' : `Add ${selectedIds.size} Game${selectedIds.size !== 1 ? 's' : ''}`}
+              {addingPicked
+                ? 'Adding...'
+                : selectedIds.size > SLATE_SIZE
+                ? `Add ${selectedIds.size} as candidates`
+                : `Add ${selectedIds.size} Game${selectedIds.size !== 1 ? 's' : ''}`}
             </button>
           </>
         )}
