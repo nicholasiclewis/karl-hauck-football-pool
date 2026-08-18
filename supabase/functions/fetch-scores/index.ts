@@ -40,11 +40,13 @@ serve(async (req) => {
 
     const ODDS_API_KEY = Deno.env.get('ODDS_API_KEY')!
 
-    // Fetch our games for this week
+    // Fetch our games for this week. Featured only — the rest are unselected
+    // import candidates that nobody picked and that need no scores.
     const { data: dbGames, error: dbErr } = await supabase
       .from('games')
       .select('id, sport, home_team, away_team, odds_api_id')
       .eq('week_id', week_id)
+      .eq('is_featured', true)
 
     if (dbErr) throw dbErr
     if (!dbGames?.length) return json({ error: 'No games found for this week' }, 404)

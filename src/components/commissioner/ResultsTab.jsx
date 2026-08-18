@@ -33,7 +33,9 @@ export default function ResultsTab() {
   }
 
   async function loadGames() {
-    const { data } = await supabase.from('games').select('*').eq('week_id', selectedWeekId).order('kickoff_time')
+    // Featured only — scores are entered for the six games in play, not for
+    // the unselected candidates the Tuesday import leaves in the table.
+    const { data } = await supabase.from('games').select('*').eq('week_id', selectedWeekId).eq('is_featured', true).order('kickoff_time')
     const gs = data ?? []
     setGames(gs)
     const map = {}
@@ -94,7 +96,7 @@ export default function ResultsTab() {
       if (!week) throw new Error('Week not found')
 
       // Reload freshest game data
-      const { data: freshGames } = await supabase.from('games').select('*').eq('week_id', selectedWeekId)
+      const { data: freshGames } = await supabase.from('games').select('*').eq('week_id', selectedWeekId).eq('is_featured', true)
       const gameMap = Object.fromEntries((freshGames ?? []).map(g => [g.id, g]))
 
       // Fetch all picks for this week

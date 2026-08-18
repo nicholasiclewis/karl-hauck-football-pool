@@ -60,7 +60,7 @@ export async function downloadReport() {
   const allScores = scoresData ?? []
 
   const { data: gamesData } = await supabase
-    .from('games').select('*').in('week_id', weekIds).order('kickoff_time')
+    .from('games').select('*').in('week_id', weekIds).eq('is_featured', true).order('kickoff_time')
   const allGames = gamesData ?? []
 
   // ── Build season standings ──────────────────────────────────────────────────

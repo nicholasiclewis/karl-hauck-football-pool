@@ -46,10 +46,14 @@ export function useWeek() {
       setWeek(weekData)
 
       if (weekData) {
+        // Featured only. The Tuesday importer parks every game in the week's
+        // window in this table as a candidate; the six the commissioner
+        // selected are the ones players pick from.
         const { data: gamesData, error: gamesErr } = await supabase
           .from('games')
           .select('*')
           .eq('week_id', weekData.id)
+          .eq('is_featured', true)
           .order('kickoff_time')
 
         if (gamesErr) throw gamesErr
