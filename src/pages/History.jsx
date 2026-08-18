@@ -39,23 +39,32 @@ export default function History() {
 
       setWeeks(weeksData ?? [])
 
-      // User's weekly scores
+      // User's weekly scores, plus how many picks they actually made each week.
+      // weekly_scores records correct and pushed picks but not the total, so
+      // losses have to be derived against the real pick count.
       const weekIds = (weeksData ?? []).map((w) => w.id)
       if (weekIds.length > 0) {
-        const { data: scoresData } = await supabase
-          .from('weekly_scores')
-          .select('*')
-          .eq('user_id', user.id)
-          .in('week_id', weekIds)
+        const [{ data: scoresData }, { data: picksData }] = await Promise.all([
+          supabase.from('weekly_scores').select('*')
+            .eq('user_id', user.id).in('week_id', weekIds),
+          supabase.from('picks').select('week_id')
+            .eq('user_id', user.id).in('week_id', weekIds),
+        ])
+
+        const madeByWeek = {}
+        picksData?.forEach((p) => {
+          madeByWeek[p.week_id] = (madeByWeek[p.week_id] ?? 0) + 1
+        })
 
         const scoresMap = {}
         scoresData?.forEach((s) => {
-          // Calculate losses: games played minus correct - pushes
+          const made    = madeByWeek[s.week_id] ?? 0
+          const correct = s.correct_picks ?? 0
+          const pushes  = s.push_count ?? 0
           scoresMap[s.week_id] = {
             ...s,
-            total_losses: Math.max(0, (s.correct_picks + s.push_count)
-              ? (6 - s.correct_picks - s.push_count)
-              : 0),
+            // Anything picked that was neither correct nor a push is a loss.
+            total_losses: Math.max(0, made - correct - pushes),
           }
         })
         setScores(scoresMap)
