@@ -63,9 +63,19 @@ GRANT EXECUTE ON FUNCTION public.regenerate_season_join_code() TO authenticated;
 
 -- ── 3. Take the column away from ordinary members ──────────
 -- Column-level privileges are checked before RLS, so this holds regardless of
--- the row policy. Every other column stays readable, which is what the app
--- needs — only join_code is sensitive.
-REVOKE SELECT (join_code) ON public.seasons FROM authenticated;
+-- the row policy.
+--
+-- A column-level REVOKE alone does nothing here: Supabase grants SELECT on the
+-- whole table to authenticated, and a table-wide grant already implies every
+-- column. Postgres has no way to subtract one column from it. The table grant
+-- has to go, and the columns we do want handed back explicitly.
+--
+-- Any column added to seasons later will be unreadable until it is added to
+-- this list — which is the safe direction to fail.
+REVOKE SELECT ON public.seasons FROM authenticated;
+
+GRANT SELECT (id, year, dues_amount, is_active, closed_at, used_conferences)
+  ON public.seasons TO authenticated;
 
 COMMENT ON COLUMN public.seasons.join_code IS
   'Pool-wide invite code. Not selectable by ordinary members: read it with '
@@ -79,5 +89,13 @@ BEGIN
   IF has_column_privilege('authenticated', 'public.seasons', 'join_code', 'SELECT') THEN
     RAISE EXCEPTION 'authenticated can still select seasons.join_code';
   END IF;
+
+  -- The app reads these on every page; losing them would break more than it
+  -- protects, so confirm the re-grant landed rather than assuming.
+  IF NOT has_column_privilege('authenticated', 'public.seasons', 'year', 'SELECT')
+     OR NOT has_column_privilege('authenticated', 'public.seasons', 'dues_amount', 'SELECT') THEN
+    RAISE EXCEPTION 'the column re-grant did not apply; seasons is now unreadable';
+  END IF;
+
   RAISE NOTICE 'join_code is now commissioner-only; signup still works via verify_season_join_code().';
 END $$;
