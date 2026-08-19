@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { isRemembered } from '../lib/authStorage'
 
 // The two modes available on this screen
 const MODES = {
@@ -21,7 +22,11 @@ export default function Login() {
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-  } = useForm()
+  } = useForm({
+    // Comes back the way the player left it. switchMode calls reset(), which
+    // restores these, so the box keeps its state across the tab switcher too.
+    defaultValues: { remember: isRemembered() },
+  })
 
   function switchMode(newMode) {
     setMode(newMode)
@@ -36,7 +41,7 @@ export default function Login() {
 
     try {
       if (mode === 'signIn') {
-        await signIn(data.email, data.password)
+        await signIn(data.email, data.password, data.remember)
         navigate('/')
       } else if (mode === 'resetPassword') {
         await resetPassword(data.email)
@@ -187,6 +192,25 @@ export default function Login() {
               <p className="text-red text-xs mt-1">{errors.password.message}</p>
             )}
           </div>
+          )}
+
+          {/* Keep me signed in — sign-in only. Creating an account still has
+              to go through the confirmation email and a real sign-in, and a
+              reset link carries its own session. */}
+          {mode === 'signIn' && (
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                {...register('remember')}
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border border-border2 bg-card2 accent-primary-light"
+              />
+              <span className="text-xs text-accent-text leading-snug">
+                Keep me signed in
+                <span className="block text-muted">
+                  Uncheck on a shared or borrowed device.
+                </span>
+              </span>
+            </label>
           )}
 
           {/* Join / Invite Code — new users only */}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { setRemembered } from '../lib/authStorage'
 
 // Create a context — think of this as a global variable any component can read
 const AuthContext = createContext(null)
@@ -65,8 +66,16 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /** Sign in with email + password */
-  async function signIn(email, password) {
+  /**
+   * Sign in with email + password.
+   *
+   * `remember` decides where the session is kept, so it has to be set before
+   * the token exists — Supabase writes it through the storage adapter the
+   * instant sign-in succeeds. Remembered sessions survive closing the browser;
+   * the rest end with the tab.
+   */
+  async function signIn(email, password, remember = true) {
+    setRemembered(remember)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
   }
