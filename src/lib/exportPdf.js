@@ -50,6 +50,11 @@ export async function downloadReport() {
     totals[row.user_id].correct_picks += row.correct_picks
     totals[row.user_id].weeks_played  += 1
   }
+  // Pushes score 0.5, so repeated addition drifts — a player on 19.7 prints
+  // as 19.700000000000003. One decimal is exact for half-point scores.
+  Object.values(totals).forEach((t) => {
+    t.total_points = Math.round(t.total_points * 10) / 10
+  })
   const standings = Object.values(totals).sort((a, b) => b.total_points - a.total_points)
 
   const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })

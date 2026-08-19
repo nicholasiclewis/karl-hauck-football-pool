@@ -46,6 +46,11 @@ export function standingsAfter(scores, weekIds, names) {
     }
   }
 
+  // Pushes score 0.5, so repeated addition drifts — the email prints these
+  // raw, so a player on 19.7 would read 19.700000000000003. One decimal is
+  // exact for half-point scores.
+  for (const t of totals.values()) t.points = Math.round(t.points * 10) / 10
+
   const table = [...totals.values()]
     .sort((a, b) => b.points - a.points || b.correct - a.correct || a.name.localeCompare(b.name))
 
