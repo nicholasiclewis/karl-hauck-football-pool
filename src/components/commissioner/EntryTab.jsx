@@ -21,12 +21,14 @@ export default function EntryTab() {
   const [userId, setUserId]     = useState('')
   const [games, setGames]       = useState([])
   const [picks, setPicks]       = useState({})
+  const [counts, setCounts]     = useState(null) // user id -> { nfl, college }, null until loaded
+  const [showDone, setShowDone] = useState(false)
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(null)   // game id being written
   const [error, setError]       = useState('')
 
   useEffect(() => { init() }, [])
-  useEffect(() => { if (weekId) loadGames() }, [weekId])
+  useEffect(() => { if (weekId) { loadGames(); loadCounts() } }, [weekId])
   useEffect(() => { if (weekId && userId) loadPicks() }, [weekId, userId])
 
   async function init() {
@@ -41,7 +43,9 @@ export default function EntryTab() {
     ])
     setWeeks(w ?? [])
     setPlayers(u ?? [])
-    if (w?.length) setWeekId(w[0].id)
+    // The open week is the one the commissioner is chasing picks for. Weeks
+    // are newest-first, so w[0] is the fallback once the season is over.
+    if (w?.length) setWeekId((w.find(x => x.picks_open) ?? w[0]).id)
     setLoading(false)
   }
 
@@ -49,6 +53,36 @@ export default function EntryTab() {
     const { data } = await supabase
       .from('games').select('*').eq('week_id', weekId).eq('is_featured', true).order('kickoff_time')
     setGames(data ?? [])
+  }
+
+  /**
+   * How many picks every player has in this week — the summary above the form.
+   * Reads the sport off the joined game rather than the local `games` list, so
+   * a pick against a game since un-featured still counts.
+   */
+  async function loadCounts() {
+    setCounts(null)
+    const { data } = await supabase
+      .from('picks')
+      .select('user_id, games:game_id ( sport )')
+      .eq('week_id', weekId)
+
+    const map = {}
+    for (const p of data ?? []) {
+      const sport = p.games?.sport
+      if (!sport) continue
+      map[p.user_id] ??= { nfl: 0, college: 0 }
+      map[p.user_id][sport] += 1
+    }
+    setCounts(map)
+  }
+
+  /** Keep the summary in step with a pick the commissioner just entered. */
+  function bumpCount(playerId, sport, delta) {
+    setCounts(prev => {
+      const cur = prev?.[playerId] ?? { nfl: 0, college: 0 }
+      return { ...prev, [playerId]: { ...cur, [sport]: Math.max(0, cur[sport] + delta) } }
+    })
   }
 
   async function loadPicks() {
@@ -66,17 +100,19 @@ export default function EntryTab() {
   async function setPick(game, side) {
     setError('')
     setSaving(game.id)
+    const existing = picks[game.id]
     try {
       // Tapping the current pick clears it.
-      if (picks[game.id]?.picked_team === side) {
+      if (existing?.picked_team === side) {
         const { error: err } = await supabase
           .from('picks').delete().eq('game_id', game.id).eq('user_id', userId).select('id')
         if (err) throw err
         setPicks(p => { const n = { ...p }; delete n[game.id]; return n })
+        bumpCount(userId, game.sport, -1)
         return
       }
 
-      if (!picks[game.id] && remaining[game.sport] === 0) {
+      if (!existing && remaining[game.sport] === 0) {
         throw new Error(
           `${limits[game.sport]} ${game.sport === 'nfl' ? 'NFL' : 'college'} pick(s) already entered. ` +
           `Clear one first.`
@@ -97,6 +133,8 @@ export default function EntryTab() {
         .select()
       if (err) throw err
       if (data?.[0]) setPicks(p => ({ ...p, [game.id]: data[0] }))
+      // Switching sides on a game already picked is not a new pick.
+      if (!existing) bumpCount(userId, game.sport, 1)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -108,6 +146,28 @@ export default function EntryTab() {
   if (weeks.length === 0) return <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No weeks yet.</p>
 
   const player = players.find(p => p.id === userId)
+
+  // ── Week roster ──
+  // Every player with their count for this week, short ones first so the
+  // commissioner sees who still owes picks without reading the whole list.
+  const slate = limits.nfl + limits.college
+  const roster = players
+    .map(p => {
+      const c = counts?.[p.id] ?? { nfl: 0, college: 0 }
+      return {
+        ...p,
+        ...c,
+        total:    c.nfl + c.college,
+        complete: c.nfl === limits.nfl && c.college === limits.college,
+      }
+    })
+    .sort((a, b) =>
+      a.complete !== b.complete ? (a.complete ? 1 : -1)
+      : a.total   !== b.total   ? a.total - b.total
+      : a.display_name.localeCompare(b.display_name)
+    )
+  const short = roster.filter(r => !r.complete)
+  const done  = roster.filter(r => r.complete)
 
   return (
     <div className="space-y-4">
@@ -139,6 +199,75 @@ export default function EntryTab() {
             ))}
           </select>
         </label>
+      </div>
+
+      {/* ── Who still owes picks ── */}
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>
+            Week {week?.week_number} roster
+          </h2>
+          {counts && (
+            <span
+              className="text-xs font-semibold"
+              style={{ color: short.length ? '#f5b301' : '#10b981' }}
+            >
+              {roster.length === 0
+                ? 'No players yet'
+                : short.length === 0
+                ? `All ${roster.length} in`
+                : `${short.length} of ${roster.length} still short`}
+            </span>
+          )}
+        </div>
+
+        {!counts ? (
+          <p className="text-xs" style={{ color: '#94afd4' }}>Counting picks…</p>
+        ) : (
+          <>
+            {short.length > 0 && (
+              <div className="space-y-1.5">
+                {short.map(p => (
+                  <RosterRow
+                    key={p.id}
+                    player={p}
+                    slate={slate}
+                    limits={limits}
+                    selected={p.id === userId}
+                    onSelect={() => setUserId(p.id)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {done.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowDone(v => !v)}
+                  className="text-[11px] underline"
+                  style={{ color: '#94afd4' }}
+                >
+                  {showDone ? 'Hide' : 'Show'} {done.length} with a full slate
+                </button>
+                {showDone && (
+                  <div className="space-y-1.5">
+                    {done.map(p => (
+                      <RosterRow
+                        key={p.id}
+                        player={p}
+                        slate={slate}
+                        limits={limits}
+                        selected={p.id === userId}
+                        onSelect={() => setUserId(p.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
       </div>
 
       {error && (
@@ -241,5 +370,47 @@ export default function EntryTab() {
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * One line of the week roster. Tapping it loads that player into the form
+ * below, which is the whole point of the list — the short names are the ones
+ * the commissioner is about to chase.
+ */
+function RosterRow({ player, slate, limits, selected, onSelect }) {
+  const isShort = !player.complete
+  // Only a mixed week needs the split spelled out; in a single-sport week the
+  // total already says everything.
+  const split = limits.nfl > 0 && limits.college > 0
+    ? `NFL ${player.nfl}/${limits.nfl} · CFB ${player.college}/${limits.college}`
+    : ''
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left"
+      style={{
+        background:  isShort ? 'rgba(245,179,1,0.08)' : '#0f172a',
+        borderColor: selected ? '#60a5fa' : isShort ? 'rgba(245,179,1,0.35)' : '#374e6b',
+      }}
+    >
+      <span
+        className="text-xs font-semibold truncate"
+        style={{ color: isShort ? '#f0f6ff' : '#94afd4' }}
+      >
+        {player.display_name}
+      </span>
+      <span className="flex items-center gap-2 shrink-0">
+        {split && <span className="text-[10px]" style={{ color: '#94afd4' }}>{split}</span>}
+        <span
+          className="text-xs font-bold"
+          style={{ color: isShort ? '#f5b301' : '#10b981' }}
+        >
+          {isShort ? `${player.total}/${slate}` : '✓'}
+        </span>
+      </span>
+    </button>
   )
 }
