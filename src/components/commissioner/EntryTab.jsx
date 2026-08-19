@@ -77,6 +77,15 @@ export default function EntryTab() {
     setCounts(map)
   }
 
+  /**
+   * Open a player's picks from the summary, or close them by tapping the same
+   * name again — the row is the drill-down control, not just a shortcut to the
+   * dropdown.
+   */
+  function togglePlayer(playerId) {
+    setUserId(cur => (cur === playerId ? '' : playerId))
+  }
+
   /** Keep the summary in step with a pick the commissioner just entered. */
   function bumpCount(playerId, sport, delta) {
     setCounts(prev => {
@@ -147,7 +156,7 @@ export default function EntryTab() {
 
   const player = players.find(p => p.id === userId)
 
-  // ── Week roster ──
+  // ── Player summary ──
   // Every player with their count for this week, short ones first so the
   // commissioner sees who still owes picks without reading the whole list.
   const slate = limits.nfl + limits.college
@@ -201,11 +210,11 @@ export default function EntryTab() {
         </label>
       </div>
 
-      {/* ── Who still owes picks ── */}
+      {/* ── Player summary: who still owes picks ── */}
       <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>
-            Week {week?.week_number} roster
+            Week {week?.week_number} Player Summary
           </h2>
           {counts && (
             <span
@@ -228,13 +237,13 @@ export default function EntryTab() {
             {short.length > 0 && (
               <div className="space-y-1.5">
                 {short.map(p => (
-                  <RosterRow
+                  <PlayerSummaryRow
                     key={p.id}
                     player={p}
                     slate={slate}
                     limits={limits}
                     selected={p.id === userId}
-                    onSelect={() => setUserId(p.id)}
+                    onSelect={() => togglePlayer(p.id)}
                   />
                 ))}
               </div>
@@ -253,13 +262,13 @@ export default function EntryTab() {
                 {showDone && (
                   <div className="space-y-1.5">
                     {done.map(p => (
-                      <RosterRow
+                      <PlayerSummaryRow
                         key={p.id}
                         player={p}
                         slate={slate}
                         limits={limits}
                         selected={p.id === userId}
-                        onSelect={() => setUserId(p.id)}
+                        onSelect={() => togglePlayer(p.id)}
                       />
                     ))}
                   </div>
@@ -374,11 +383,11 @@ export default function EntryTab() {
 }
 
 /**
- * One line of the week roster. Tapping it loads that player into the form
- * below, which is the whole point of the list — the short names are the ones
- * the commissioner is about to chase.
+ * One line of the player summary. Tapping it drills into that player's picks
+ * in the form below; tapping it again closes them. The short names are the
+ * ones the commissioner is about to chase, so they lead the list.
  */
-function RosterRow({ player, slate, limits, selected, onSelect }) {
+function PlayerSummaryRow({ player, slate, limits, selected, onSelect }) {
   const isShort = !player.complete
   // Only a mixed week needs the split spelled out; in a single-sport week the
   // total already says everything.
@@ -390,6 +399,7 @@ function RosterRow({ player, slate, limits, selected, onSelect }) {
     <button
       type="button"
       onClick={onSelect}
+      aria-expanded={selected}
       className="w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left"
       style={{
         background:  isShort ? 'rgba(245,179,1,0.08)' : '#0f172a',
