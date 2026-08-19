@@ -63,9 +63,13 @@ export default function Profile() {
     if (newPass.length < 6)   { setPassErr('Password must be at least 6 characters.'); return }
     setPassSaving(true)
     try {
-      // Re-authenticate then update
+      // Re-authenticate then update. The auth user's email is the fallback:
+      // the form is usable before the profile row has loaded (or when that
+      // fetch failed), and profile.email alone crashed here in that state.
+      const email = profile?.email ?? user?.email
+      if (!email) throw new Error('Still loading your account — try again in a moment.')
       const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: profile.email,
+        email,
         password: currPass,
       })
       if (signInErr) throw new Error('Current password is incorrect.')
