@@ -52,7 +52,10 @@ export function sectionBanner(doc, text, y, color = PRIMARY) {
   doc.setFillColor(...color)
   doc.roundedRect(COL_L, y, COL_R - COL_L, 9, 1.5, 1.5, 'F')
   doc.setFontSize(9)
-  doc.setTextColor(...TEXT)
+  // The banner sits on either the saturated primary field or a light fill.
+  // TEXT on the blue measures ~2.5:1 — the reversed-out white is the value
+  // every other on-poster label moved to in the light-ground inversion.
+  doc.setTextColor(...(color === PRIMARY ? ON_POSTER_TEXT : TEXT))
   doc.setFont('helvetica', 'bold')
   doc.text(text.toUpperCase(), COL_L + 4, y + 6.2)
   return y + 14
