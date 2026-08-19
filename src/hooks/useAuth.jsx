@@ -12,15 +12,20 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)       // the raw Supabase auth user
   const [profile, setProfile] = useState(null) // our custom users table row
   const [loading, setLoading] = useState(true)  // true while we check if logged in
+  // True while the session came from an emailed password-reset link. The app
+  // gates on this: such a session exists to set a new password, nothing else.
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   // Listen for auth state changes — only update user, never call DB here
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
+        if (_event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
         if (!session?.user) {
           setProfile(null)
           setLoading(false)
+          setPasswordRecovery(false)
         }
       }
     )
@@ -120,17 +125,37 @@ export function AuthProvider({ children }) {
     if (error) throw error
   }
 
+  /**
+   * Email a password-reset link. Opening it signs the user in with a
+   * recovery session, which App routes into the set-new-password screen.
+   * The redirect URL must be on the Supabase project's allowed list.
+   */
+  async function resetPassword(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    })
+    if (error) throw error
+  }
+
+  /** Called once a recovery session has finished setting its new password. */
+  function finishPasswordRecovery() {
+    setPasswordRecovery(false)
+  }
+
   return (
     <AuthContext.Provider
       value={{
         user,
         profile,
         loading,
+        passwordRecovery,
         signIn,
         signUp,
         signOut,
         updateDisplayName,
         updatePassword,
+        resetPassword,
+        finishPasswordRecovery,
       }}
     >
       {children}

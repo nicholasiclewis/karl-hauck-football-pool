@@ -10,10 +10,10 @@ const MODES = {
 }
 
 export default function Login() {
-  const [mode, setMode] = useState('signIn')
+  const [mode, setMode] = useState('signIn')   // 'signIn' | 'createAccount' | 'resetPassword'
   const [serverError, setServerError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, resetPassword } = useAuth()
   const navigate = useNavigate()
 
   const {
@@ -38,11 +38,19 @@ export default function Login() {
       if (mode === 'signIn') {
         await signIn(data.email, data.password)
         navigate('/')
-      } else {
-        // createAccount and joinByCode both create a new account
-        await signUp(data.email, data.password, data.displayName, data.joinCode)
+      } else if (mode === 'resetPassword') {
+        await resetPassword(data.email)
         // Switch first: switchMode clears the messages, so setting the success
         // text before it would wipe the only instruction the user gets.
+        // Phrased "if" — Supabase deliberately answers the same for unknown
+        // emails, so we cannot (and should not) promise the mail exists.
+        switchMode('signIn')
+        setSuccessMsg(
+          'If that email has an account, a reset link is on its way. ' +
+          'Open it and choose a new password.'
+        )
+      } else {
+        await signUp(data.email, data.password, data.displayName, data.joinCode)
         switchMode('signIn')
         setSuccessMsg(
           'Account created! Check your email for a confirmation link, then sign in.'
@@ -53,7 +61,8 @@ export default function Login() {
     }
   }
 
-  const isNewUser = mode !== 'signIn'
+  const isNewUser = mode === 'createAccount'
+  const isReset   = mode === 'resetPassword'
 
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4 py-10">
@@ -98,6 +107,14 @@ export default function Login() {
           {/* Each field wraps its control in the <label> so the name is
               associated implicitly — the same pattern the commissioner forms
               use. The old sibling labels pointed at nothing. */}
+
+          {/* What the reset mode does — the tab strip has no tab for it */}
+          {isReset && (
+            <p className="text-xs text-muted leading-snug">
+              Enter your account email and we'll send a link to reset your
+              password.
+            </p>
+          )}
 
           {/* Display Name — new users only */}
           {isNewUser && (
@@ -145,7 +162,8 @@ export default function Login() {
             )}
           </div>
 
-          {/* Password */}
+          {/* Password — not part of requesting a reset link */}
+          {!isReset && (
           <div>
             <label className="block">
               <span className="block text-xs font-medium text-accent-text mb-1.5">
@@ -169,6 +187,7 @@ export default function Login() {
               <p className="text-red text-xs mt-1">{errors.password.message}</p>
             )}
           </div>
+          )}
 
           {/* Join / Invite Code — new users only */}
           {isNewUser && (
@@ -223,19 +242,42 @@ export default function Login() {
               ? 'Sign In'
               : mode === 'createAccount'
               ? 'Create Account'
-              : 'Join Pool'}
+              : 'Send Reset Link'}
           </button>
 
-          {/* Helper link */}
+          {/* Helper links */}
           {mode === 'signIn' && (
+            <>
+              <p className="text-center text-xs text-muted pt-1">
+                New to the pool?{' '}
+                <button
+                  type="button"
+                  onClick={() => switchMode('createAccount')}
+                  className="text-accent-text hover:text-primary-light underline"
+                >
+                  Create an account
+                </button>
+              </p>
+              <p className="text-center text-xs text-muted">
+                <button
+                  type="button"
+                  onClick={() => switchMode('resetPassword')}
+                  className="text-accent-text hover:text-primary-light underline"
+                >
+                  Forgot your password?
+                </button>
+              </p>
+            </>
+          )}
+          {isReset && (
             <p className="text-center text-xs text-muted pt-1">
-              New to the pool?{' '}
+              Remembered it?{' '}
               <button
                 type="button"
-                onClick={() => switchMode('createAccount')}
+                onClick={() => switchMode('signIn')}
                 className="text-accent-text hover:text-primary-light underline"
               >
-                Create an account
+                Back to sign in
               </button>
             </p>
           )}
