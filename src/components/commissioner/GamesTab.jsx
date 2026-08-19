@@ -513,7 +513,7 @@ export default function GamesTab() {
           {/* ── Divider ── */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px" style={{ background: '#253347' }} />
-            <span className="text-xs" style={{ color: '#1e3a5f' }}>or add manually</span>
+            <span className="text-xs" style={{ color: '#94afd4' }}>or add manually</span>
             <div className="flex-1 h-px" style={{ background: '#253347' }} />
           </div>
 

@@ -230,7 +230,7 @@ export default function ResultsTab() {
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>
                 Final Scores — Week {selectedWeek?.week_number}
               </span>
-              <span className="text-[10px]" style={{ color: '#1e3a5f' }}>Away – Home</span>
+              <span className="text-[10px]" style={{ color: '#94afd4' }}>Away – Home</span>
             </div>
             {games.map((game) => (
               <div
@@ -295,7 +295,7 @@ export default function ResultsTab() {
             </button>
           </div>
 
-          <p className="text-[10px] text-center" style={{ color: '#1e3a5f' }}>
+          <p className="text-[10px] text-center" style={{ color: '#94afd4' }}>
             Fetch pulls scores automatically · Save stores manual edits · Resolve updates standings
           </p>
         </>

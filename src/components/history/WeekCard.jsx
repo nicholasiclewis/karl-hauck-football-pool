@@ -18,7 +18,7 @@ export default function WeekCard({ week, score, userId }) {
 
   // Score circle color
   const pts = score?.total_points ?? null
-  let circleColor = '#1e3a5f'   // default muted
+  let circleColor = '#94afd4'   // default muted — the old #1e3a5f dash was near-invisible
   let circleBorder = '#374e6b'
   if (pts !== null) {
     if (pts >= 7)      { circleColor = '#10b981'; circleBorder = '#10b981' }

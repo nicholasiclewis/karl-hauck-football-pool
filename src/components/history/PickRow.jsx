@@ -41,7 +41,7 @@ export default function PickRow({ game, pick }) {
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium" style={{ color: '#94afd4' }}>
           {awayAbbr} @ {homeAbbr}
-          <span className="ml-2" style={{ color: '#1e3a5f' }}>
+          <span className="ml-2" style={{ color: '#94afd4' }}>
             {formatSpread(game.spread)}
           </span>
         </div>
@@ -50,7 +50,7 @@ export default function PickRow({ game, pick }) {
             {pickedTeamName} {pickedSpread}
           </div>
         ) : (
-          <div className="text-sm mt-0.5" style={{ color: '#1e3a5f' }}>No pick</div>
+          <div className="text-sm mt-0.5" style={{ color: '#94afd4' }}>No pick</div>
         )}
       </div>
 
@@ -58,7 +58,7 @@ export default function PickRow({ game, pick }) {
       {game.home_score !== null && (
         <div className="text-xs text-center flex-shrink-0" style={{ color: '#94afd4' }}>
           <span>{game.away_score}</span>
-          <span style={{ color: '#1e3a5f' }}> – </span>
+          <span style={{ color: '#94afd4' }}> – </span>
           <span>{game.home_score}</span>
         </div>
       )}

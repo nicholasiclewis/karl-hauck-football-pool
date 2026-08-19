@@ -46,7 +46,7 @@ export default function PlayersTab() {
         <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>
           Players ({players.length})
         </span>
-        <span className="text-[10px]" style={{ color: '#1e3a5f' }}>Tap badge to toggle role</span>
+        <span className="text-[10px]" style={{ color: '#94afd4' }}>Tap badge to toggle role</span>
       </div>
 
       {players.map((player) => {
