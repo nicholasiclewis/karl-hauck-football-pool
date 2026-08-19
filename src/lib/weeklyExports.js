@@ -45,19 +45,21 @@ export async function loadResultsData(weekId) {
   const names = new Map((users ?? []).map((u) => [u.id, u.display_name]))
 
   // This week, best first, with a real W-L-P from the player's own picks
-  // rather than assuming everyone submitted a full slate.
+  // rather than assuming everyone submitted a full slate. Only resolved picks
+  // count toward losses: a midweek resolve leaves weekend picks pending, and
+  // pending is not a loss.
   const weekTable = rows
     .filter((s) => s.week_id === weekId)
     .map((s) => {
-      const made    = (picks ?? []).filter((p) => p.user_id === s.user_id).length
-      const correct = s.correct_picks ?? 0
-      const pushes  = s.push_count ?? 0
+      const resolved = (picks ?? []).filter((p) => p.user_id === s.user_id && p.outcome).length
+      const correct  = s.correct_picks ?? 0
+      const pushes   = s.push_count ?? 0
       return {
         userId:  s.user_id,
         name:    names.get(s.user_id) ?? 'Unknown',
         correct,
         pushes,
-        losses:  Math.max(0, made - correct - pushes),
+        losses:  Math.max(0, resolved - correct - pushes),
         bonus:   Number(s.bonus_points ?? 0),
         points:  Number(s.total_points ?? 0),
       }

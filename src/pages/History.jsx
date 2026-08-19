@@ -41,18 +41,21 @@ export default function History() {
 
       // User's weekly scores, plus how many picks they actually made each week.
       // weekly_scores records correct and pushed picks but not the total, so
-      // losses have to be derived against the real pick count.
+      // losses have to be derived against the real pick count. Only resolved
+      // picks count: when a week is resolved midweek, the still-pending
+      // weekend picks are not losses yet.
       const weekIds = (weeksData ?? []).map((w) => w.id)
       if (weekIds.length > 0) {
         const [{ data: scoresData }, { data: picksData }] = await Promise.all([
           supabase.from('weekly_scores').select('*')
             .eq('user_id', user.id).in('week_id', weekIds),
-          supabase.from('picks').select('week_id')
+          supabase.from('picks').select('week_id, outcome')
             .eq('user_id', user.id).in('week_id', weekIds),
         ])
 
         const madeByWeek = {}
         picksData?.forEach((p) => {
+          if (!p.outcome) return
           madeByWeek[p.week_id] = (madeByWeek[p.week_id] ?? 0) + 1
         })
 
