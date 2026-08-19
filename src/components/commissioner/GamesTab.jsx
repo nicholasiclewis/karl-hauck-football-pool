@@ -139,7 +139,11 @@ export default function GamesTab() {
 
   async function deleteGame(id) {
     if (!confirm('Delete this game? All picks for it will also be deleted.')) return
-    await supabase.from('games').delete().eq('id', id)
+    // Check the write before dropping the row locally — a failed delete
+    // otherwise looks done until the next reload. Same handling as
+    // toggleFeatured above.
+    const { error: err } = await supabase.from('games').delete().eq('id', id)
+    if (err) { setError(err.message); return }
     setGames(gs => gs.filter(g => g.id !== id))
   }
 

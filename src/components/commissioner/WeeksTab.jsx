@@ -93,21 +93,26 @@ export default function WeeksTab() {
     }
   }
 
+  // Each of these checks the write before updating local state — otherwise a
+  // failed request still shows success in the list until the next reload.
   async function toggleOpen(week) {
     const newVal = !week.picks_open
-    await supabase.from('weeks').update({ picks_open: newVal }).eq('id', week.id)
+    const { error: err } = await supabase.from('weeks').update({ picks_open: newVal }).eq('id', week.id)
+    if (err) { alert(err.message); return }
     setWeeks(ws => ws.map(w => w.id === week.id ? { ...w, picks_open: newVal } : w))
   }
 
   async function markComplete(week) {
     if (!confirm(`Mark Week ${week.week_number} complete? This closes picks.`)) return
-    await supabase.from('weeks').update({ is_complete: true, picks_open: false }).eq('id', week.id)
+    const { error: err } = await supabase.from('weeks').update({ is_complete: true, picks_open: false }).eq('id', week.id)
+    if (err) { alert(err.message); return }
     setWeeks(ws => ws.map(w => w.id === week.id ? { ...w, is_complete: true, picks_open: false } : w))
   }
 
   async function deleteWeek(week) {
     if (!confirm(`Delete Week ${week.week_number}? All games and picks will be permanently deleted.`)) return
-    await supabase.from('weeks').delete().eq('id', week.id)
+    const { error: err } = await supabase.from('weeks').delete().eq('id', week.id)
+    if (err) { alert(err.message); return }
     setWeeks(ws => ws.filter(w => w.id !== week.id))
   }
 
