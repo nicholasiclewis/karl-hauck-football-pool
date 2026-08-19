@@ -268,7 +268,7 @@ export default function GamesTab() {
         </div>
 
         {pickerError && (
-          <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+          <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
             {pickerError}
           </p>
         )}
@@ -349,9 +349,9 @@ export default function GamesTab() {
                             disabled={filtered.length === 0}
                             className="text-xs px-3 py-1 rounded-lg font-semibold border"
                             style={{
-                              background: 'rgba(96,150,232,0.15)',
-                              borderColor: '#6096e8',
-                              color: '#6096e8',
+                              background: 'rgba(74,127,212,0.15)',
+                              borderColor: '#60a5fa',
+                              color: '#60a5fa',
                               opacity: filtered.length === 0 ? 0.4 : 1,
                             }}
                           >
@@ -579,8 +579,8 @@ export default function GamesTab() {
                   <div
                     className="rounded-xl border px-4 py-2.5"
                     style={{
-                      background:  ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
-                      borderColor: ok ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)',
+                      background:  ok ? 'rgba(16,185,129,0.08)' : 'rgba(248,113,113,0.08)',
+                      borderColor: ok ? 'rgba(16,185,129,0.35)' : 'rgba(248,113,113,0.35)',
                     }}
                   >
                     <div className="flex items-center justify-between">

@@ -76,7 +76,7 @@ export default function ReportsTab() {
   return (
     <div className="space-y-4 mt-2">
       {/* ── Week picker ── */}
-      <div className="rounded-xl border p-4" style={{ borderColor: '#374e6b', background: '#121d35' }}>
+      <div className="rounded-xl border p-4" style={{ borderColor: '#374e6b', background: '#1e293b' }}>
         <label className="block">
           <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</span>
           <select value={weekId} onChange={e => { setWeekId(e.target.value); setPreview(null) }}
@@ -92,7 +92,7 @@ export default function ReportsTab() {
       </div>
 
       {error && (
-        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
           {error}
         </p>
       )}
@@ -121,7 +121,7 @@ export default function ReportsTab() {
 
       {/* ── Text preview ── */}
       {preview && (
-        <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#374e6b', background: '#121d35' }}>
+        <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#374e6b', background: '#1e293b' }}>
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{preview.kind} email</h3>
             <div className="flex gap-2">
@@ -150,7 +150,7 @@ export default function ReportsTab() {
               onFocus={e => e.target.select()}
               rows={16}
               className="w-full text-[11px] px-3 py-2 rounded-lg"
-              style={{ background: '#0f172a', color: '#ddeeff', border: '1px solid #374e6b',
+              style={{ background: '#0f172a', color: '#f0f6ff', border: '1px solid #374e6b',
                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre' }}
             />
           </div>
@@ -169,7 +169,7 @@ export default function ReportsTab() {
 
 function Panel({ title, blurb, children }) {
   return (
-    <div className="rounded-xl border p-5" style={{ borderColor: '#374e6b', background: '#121d35' }}>
+    <div className="rounded-xl border p-5" style={{ borderColor: '#374e6b', background: '#1e293b' }}>
       <h3 className="text-sm font-bold mb-1" style={{ color: '#f0f6ff' }}>{title}</h3>
       <p className="text-xs mb-4" style={{ color: '#94afd4' }}>{blurb}</p>
       {children}

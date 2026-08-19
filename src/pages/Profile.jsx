@@ -138,7 +138,7 @@ export default function Profile() {
                 className="text-sm font-bold px-3 py-1.5 rounded-full border"
                 style={dues?.is_paid
                   ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
-                  : { background: 'rgba(239,68,68,0.1)',   color: '#f87171', borderColor: 'rgba(239,68,68,0.3)' }
+                  : { background: 'rgba(248,113,113,0.1)',   color: '#f87171', borderColor: 'rgba(248,113,113,0.3)' }
                 }
               >
                 {dues?.is_paid ? '✓ Paid' : 'Unpaid'}
@@ -228,7 +228,7 @@ export default function Profile() {
         <button
           onClick={signOut}
           className="w-full py-2.5 rounded-lg text-sm font-bold"
-          style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
+          style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
         >
           Sign Out
         </button>

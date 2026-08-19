@@ -74,11 +74,11 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
                 Wk {weekNum}
               </span>
 
-              {/* Bonus indicator */}
+              {/* Bonus indicator — same chip WeekCard draws for its bonuses */}
               {bonus > 0 && (
                 <span
-                  className="text-[10px] px-1.5 py-0.5 rounded"
-                  style={{ background: '#10b98122', color: '#10b981' }}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                  style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}
                 >
                   +{bonus} bonus
                 </span>

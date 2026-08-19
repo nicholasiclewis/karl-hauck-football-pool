@@ -200,7 +200,7 @@ export default function WeeksTab() {
                   type="button"
                   onClick={randomizeFocus}
                   className="text-xs px-3 py-1 rounded-lg font-semibold border"
-                  style={{ background: 'rgba(96,150,232,0.15)', borderColor: '#6096e8', color: '#6096e8' }}
+                  style={{ background: 'rgba(74,127,212,0.15)', borderColor: '#60a5fa', color: '#60a5fa' }}
                 >
                   🎲 Randomize
                 </button>
@@ -291,7 +291,7 @@ export default function WeeksTab() {
                     onClick={() => toggleOpen(week)}
                     className="flex-1 py-2 rounded-lg text-xs font-semibold"
                     style={week.picks_open
-                      ? { background: 'rgba(239,68,68,0.15)', color: '#f87171' }
+                      ? { background: 'rgba(248,113,113,0.15)', color: '#f87171' }
                       : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
                     }
                   >
@@ -311,7 +311,7 @@ export default function WeeksTab() {
                   onClick={() => deleteWeek(week)}
                   aria-label={`Delete week ${week.week_number}`}
                   className="px-3 py-2 rounded-lg text-xs"
-                  style={{ background: 'rgba(239,68,68,0.08)', color: '#94afd4' }}
+                  style={{ background: 'rgba(248,113,113,0.08)', color: '#94afd4' }}
                 >
                   <span aria-hidden="true">🗑</span>
                 </button>
