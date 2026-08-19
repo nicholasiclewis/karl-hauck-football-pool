@@ -11,7 +11,8 @@ import WeekBreakdown from './WeekBreakdown'
  *   isExpanded  — whether the breakdown is open
  *   onToggle    — callback to toggle expansion
  *   weeks       — array of week rows for the WeekBreakdown label lookup
- *   duesIcon    — emoji string: ✅ | 🔴 | 🎓
+ *   duesIcon    — emoji string (✅ | 🔴 | 🤡), or null when payment status is
+ *                 unknown — no badge is shown rather than a wrong one
  */
 export default function PlayerRow({
   entry,
@@ -20,7 +21,7 @@ export default function PlayerRow({
   isExpanded,
   onToggle,
   weeks = [],
-  duesIcon = '🔴',
+  duesIcon = null,
   payout = null,
 }) {
   const initials = (entry.display_name || '?')
@@ -86,15 +87,17 @@ export default function PlayerRow({
           >
             {initials}
           </div>
-          {/* Dues overlay badge */}
-          <span
-            role="img"
-            aria-label={duesIcon === '✅' ? 'Dues paid' : 'Dues not paid'}
-            className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-            title={duesIcon === '✅' ? 'Dues paid' : duesIcon === '🤡' ? 'Dues not paid 🤡' : 'Dues not paid'}
-          >
-            {duesIcon}
-          </span>
+          {/* Dues overlay badge — omitted while status is unknown */}
+          {duesIcon && (
+            <span
+              role="img"
+              aria-label={duesIcon === '✅' ? 'Dues paid' : 'Dues not paid'}
+              className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
+              title={duesIcon === '✅' ? 'Dues paid' : duesIcon === '🤡' ? 'Dues not paid 🤡' : 'Dues not paid'}
+            >
+              {duesIcon}
+            </span>
+          )}
         </div>
 
         {/* Name + weeks played */}

@@ -51,7 +51,9 @@ export default function Standings() {
 
   // Paid/unpaid per player for the dues badge. Comes from an RPC because RLS
   // on dues is own-row-or-treasurer, so a plain select returns only your own.
-  const [paidByUser, setPaidByUser] = useState({})
+  // null = status unknown (not loaded, or the RPC failed) — no badges shown,
+  // rather than defaulting everyone to unpaid.
+  const [paidByUser, setPaidByUser] = useState(null)
 
   // ── Fetch active season ────────────────────────────────────────────────────
   useEffect(() => {
@@ -116,8 +118,8 @@ export default function Standings() {
     async function fetchDues() {
       const { data, error } = await supabase.rpc('get_dues_status')
       if (error) {
-        // A missing badge is better than a wrong one — leave everyone blank
-        // rather than branding paid players as unpaid.
+        // A missing badge is better than a wrong one — paidByUser stays null
+        // so no badges render, rather than branding paid players as unpaid.
         console.error('get_dues_status error:', error)
         return
       }
@@ -151,6 +153,11 @@ export default function Standings() {
   function toggleExpand(userId) {
     setExpandedUserId((prev) => (prev === userId ? null : userId))
   }
+
+  // Badge for a player, or null while payment status is unknown so the rows
+  // and podium show nothing instead of a wrong "unpaid".
+  const badgeFor = (userId) =>
+    paidByUser ? duesIcon(paidByUser[userId], currentWeekNumber) : null
 
   // ── Subtitle ───────────────────────────────────────────────────────────────
   const subtitle = season
@@ -221,7 +228,7 @@ export default function Standings() {
               entry={standings[1] ?? null}
               place={2}
               blockHeight={52}
-              duesIcon={duesIcon(paidByUser[standings[1]?.user_id], currentWeekNumber)}
+              duesIcon={badgeFor(standings[1]?.user_id)}
               payout={season?.payout_2nd ?? null}
             />
             {/* 1st place — center, tallest */}
@@ -229,7 +236,7 @@ export default function Standings() {
               entry={standings[0] ?? null}
               place={1}
               blockHeight={70}
-              duesIcon={duesIcon(paidByUser[standings[0]?.user_id], currentWeekNumber)}
+              duesIcon={badgeFor(standings[0]?.user_id)}
               payout={season?.payout_1st ?? null}
             />
             {/* 3rd place — right, shortest */}
@@ -237,7 +244,7 @@ export default function Standings() {
               entry={standings[2] ?? null}
               place={3}
               blockHeight={38}
-              duesIcon={duesIcon(paidByUser[standings[2]?.user_id], currentWeekNumber)}
+              duesIcon={badgeFor(standings[2]?.user_id)}
               payout={season?.payout_3rd ?? null}
             />
           </div>
@@ -290,7 +297,7 @@ export default function Standings() {
                     isExpanded={expandedUserId === entry.user_id}
                     onToggle={() => toggleExpand(entry.user_id)}
                     weeks={weeks}
-                    duesIcon={duesIcon(paidByUser[entry.user_id], currentWeekNumber)}
+                    duesIcon={badgeFor(entry.user_id)}
                     payout={payoutMap[index + 1] ?? null}
                   />
                 )
