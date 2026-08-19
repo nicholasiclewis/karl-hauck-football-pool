@@ -195,6 +195,7 @@ export default function ResultsTab() {
               <button
                 key={w.id}
                 onClick={() => setSelectedWeekId(w.id)}
+                aria-pressed={selectedWeekId === w.id}
                 className="px-3 py-1.5 rounded-full text-xs font-medium border"
                 style={{
                   background:  selectedWeekId === w.id ? '#2563eb' : '#1e293b',
@@ -245,6 +246,7 @@ export default function ResultsTab() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <input
                     type="number" min="0" placeholder="–"
+                    aria-label={`${game.away_team} score`}
                     value={scores[game.id]?.away_score ?? ''}
                     onChange={e => setScores(s => ({ ...s, [game.id]: { ...s[game.id], away_score: e.target.value } }))}
                     className="w-14 text-center rounded-lg border px-2 py-1.5 text-sm"
@@ -253,6 +255,7 @@ export default function ResultsTab() {
                   <span style={{ color: '#94afd4' }}>–</span>
                   <input
                     type="number" min="0" placeholder="–"
+                    aria-label={`${game.home_team} score`}
                     value={scores[game.id]?.home_score ?? ''}
                     onChange={e => setScores(s => ({ ...s, [game.id]: { ...s[game.id], home_score: e.target.value } }))}
                     className="w-14 text-center rounded-lg border px-2 py-1.5 text-sm"

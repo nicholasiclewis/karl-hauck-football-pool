@@ -378,6 +378,7 @@ export default function GamesTab() {
                   <button
                     key={game.odds_api_id}
                     onClick={() => toggleSelect(game.odds_api_id)}
+                    aria-pressed={isSelected}
                     className="w-full flex items-center gap-3 px-4 py-3 border-b text-left transition-colors"
                     style={{
                       borderColor: '#253347',
@@ -446,6 +447,7 @@ export default function GamesTab() {
               <button
                 key={w.id}
                 onClick={() => setSelectedWeekId(w.id)}
+                aria-pressed={selectedWeekId === w.id}
                 className="px-3 py-1.5 rounded-full text-xs font-medium border"
                 style={{
                   background:   selectedWeekId === w.id ? '#2563eb' : '#1e293b',
@@ -685,6 +687,7 @@ function Chip({ active, onClick, disabled = false, title, children }) {
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-pressed={active}
       className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
       style={{
         background:  active ? '#2563eb' : '#1e293b',

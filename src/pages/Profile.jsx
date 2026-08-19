@@ -161,6 +161,7 @@ export default function Profile() {
               onChange={e => setNameVal(e.target.value)}
               className="input-field w-full"
               placeholder="Your name"
+              aria-label="Display name"
             />
             {nameMsg && (
               <p className="text-xs" style={{ color: nameMsg === 'Saved!' ? '#10b981' : '#f87171' }}>
@@ -181,9 +182,12 @@ export default function Profile() {
         {/* ── Password change ── */}
         <Section title="Change Password">
           <form onSubmit={savePassword} className="space-y-3">
+            {/* Placeholders vanish once typed in, so each field also carries
+                its name for assistive tech. */}
             <input
               type="password"
               placeholder="Current password"
+              aria-label="Current password"
               value={currPass}
               onChange={e => setCurrPass(e.target.value)}
               className="input-field w-full"
@@ -192,6 +196,7 @@ export default function Profile() {
             <input
               type="password"
               placeholder="New password"
+              aria-label="New password"
               value={newPass}
               onChange={e => setNewPass(e.target.value)}
               className="input-field w-full"
@@ -200,6 +205,7 @@ export default function Profile() {
             <input
               type="password"
               placeholder="Confirm new password"
+              aria-label="Confirm new password"
               value={confPass}
               onChange={e => setConfPass(e.target.value)}
               className="input-field w-full"

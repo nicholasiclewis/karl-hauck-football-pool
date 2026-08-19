@@ -45,6 +45,7 @@ export default function Commissioner() {
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
+                aria-pressed={activeTab === key}
                 className="flex items-center gap-1.5 px-5 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
                 style={{
                   borderColor: activeTab === key ? '#60a5fa' : 'transparent',

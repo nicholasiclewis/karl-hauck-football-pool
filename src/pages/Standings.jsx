@@ -264,6 +264,7 @@ export default function Standings() {
             <button
               key={key}
               onClick={() => setActiveTab(key)}
+              aria-pressed={activeTab === key}
               className="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors"
               style={{
                 background: activeTab === key ? '#253347' : 'transparent',
@@ -321,6 +322,7 @@ export default function Standings() {
                     <button
                       key={w.id}
                       onClick={() => setSelectedWeekId(w.id)}
+                      aria-pressed={isSelected}
                       className="flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors"
                       style={{
                         background: isSelected ? '#2563eb' : '#1e293b',

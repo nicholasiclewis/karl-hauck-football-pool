@@ -80,6 +80,7 @@ export default function Login() {
               key={key}
               type="button"
               onClick={() => switchMode(key)}
+              aria-pressed={mode === key}
               className={`flex-1 py-3 text-xs font-semibold transition-all ${
                 mode === key
                   ? 'text-text bg-card2 border-b-2 border-primary-light'
@@ -94,19 +95,25 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4" noValidate>
 
+          {/* Each field wraps its control in the <label> so the name is
+              associated implicitly — the same pattern the commissioner forms
+              use. The old sibling labels pointed at nothing. */}
+
           {/* Display Name — new users only */}
           {isNewUser && (
             <div>
-              <label className="block text-xs font-medium text-accent-text mb-1.5">
-                Your Name
+              <label className="block">
+                <span className="block text-xs font-medium text-accent-text mb-1.5">
+                  Your Name
+                </span>
+                <input
+                  {...register('displayName', { required: 'Name is required' })}
+                  type="text"
+                  placeholder="First Last"
+                  autoComplete="name"
+                  className="input-field"
+                />
               </label>
-              <input
-                {...register('displayName', { required: 'Name is required' })}
-                type="text"
-                placeholder="First Last"
-                autoComplete="name"
-                className="input-field"
-              />
               {errors.displayName && (
                 <p className="text-red text-xs mt-1">{errors.displayName.message}</p>
               )}
@@ -115,22 +122,24 @@ export default function Login() {
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-medium text-accent-text mb-1.5">
-              Email Address
+            <label className="block">
+              <span className="block text-xs font-medium text-accent-text mb-1.5">
+                Email Address
+              </span>
+              <input
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: 'Enter a valid email address',
+                  },
+                })}
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                className="input-field"
+              />
             </label>
-            <input
-              {...register('email', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: 'Enter a valid email address',
-                },
-              })}
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              className="input-field"
-            />
             {errors.email && (
               <p className="text-red text-xs mt-1">{errors.email.message}</p>
             )}
@@ -138,22 +147,24 @@ export default function Login() {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-medium text-accent-text mb-1.5">
-              Password
+            <label className="block">
+              <span className="block text-xs font-medium text-accent-text mb-1.5">
+                Password
+              </span>
+              <input
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: {
+                    value: 6,
+                    message: 'Password must be at least 6 characters',
+                  },
+                })}
+                type="password"
+                placeholder={isNewUser ? 'Min. 6 characters' : '••••••••'}
+                autoComplete={isNewUser ? 'new-password' : 'current-password'}
+                className="input-field"
+              />
             </label>
-            <input
-              {...register('password', {
-                required: 'Password is required',
-                minLength: {
-                  value: 6,
-                  message: 'Password must be at least 6 characters',
-                },
-              })}
-              type="password"
-              placeholder={isNewUser ? 'Min. 6 characters' : '••••••••'}
-              autoComplete={isNewUser ? 'new-password' : 'current-password'}
-              className="input-field"
-            />
             {errors.password && (
               <p className="text-red text-xs mt-1">{errors.password.message}</p>
             )}
@@ -162,19 +173,21 @@ export default function Login() {
           {/* Join / Invite Code — new users only */}
           {isNewUser && (
             <div>
-              <label className="block text-xs font-medium text-accent-text mb-1.5">
-                Pool Invite Code
+              <label className="block">
+                <span className="block text-xs font-medium text-accent-text mb-1.5">
+                  Pool Invite Code
+                </span>
+                <input
+                  {...register('joinCode', {
+                    required: 'Invite code is required',
+                    setValueAs: (v) => v?.trim().toUpperCase(),
+                  })}
+                  type="text"
+                  placeholder="Get this from your commissioner"
+                  autoComplete="off"
+                  className="input-field uppercase tracking-widest"
+                />
               </label>
-              <input
-                {...register('joinCode', {
-                  required: 'Invite code is required',
-                  setValueAs: (v) => v?.trim().toUpperCase(),
-                })}
-                type="text"
-                placeholder="Get this from your commissioner"
-                autoComplete="off"
-                className="input-field uppercase tracking-widest"
-              />
               {errors.joinCode && (
                 <p className="text-red text-xs mt-1">{errors.joinCode.message}</p>
               )}
