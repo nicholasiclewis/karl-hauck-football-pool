@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { calculatePickOutcome, calculateWeeklyScore, pointsForOutcome } from '../../lib/scoring'
+import { calculatePickOutcome, calculateWeeklyScore, pointsForOutcome, resolveGameResult } from '../../lib/scoring'
 import { fetchScores } from '../../lib/oddsApi'
 
 export default function ResultsTab() {
@@ -97,6 +97,21 @@ export default function ResultsTab() {
 
       // Reload freshest game data
       const { data: freshGames } = await supabase.from('games').select('*').eq('week_id', selectedWeekId).eq('is_featured', true)
+
+      // Persist each scored game's result. The resolve-picks edge function
+      // writes this column and the rest of the app reads it — Final badges,
+      // the points tracker, the email storylines — but this client path had
+      // drifted and left it null, so nothing downstream ever saw a settled game.
+      for (const g of freshGames ?? []) {
+        if (g.home_score === null || g.away_score === null) continue
+        const result = resolveGameResult(g)
+        if (result && result !== g.result) {
+          const { error: resErr } = await supabase.from('games').update({ result }).eq('id', g.id)
+          if (resErr) throw resErr
+          g.result = result
+        }
+      }
+
       const gameMap = Object.fromEntries((freshGames ?? []).map(g => [g.id, g]))
 
       // Fetch all picks for this week
