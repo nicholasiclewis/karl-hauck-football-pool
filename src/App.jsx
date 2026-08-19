@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import ProtectedRoute from './components/layout/ProtectedRoute'
+import GuestRoute from './components/layout/GuestRoute'
 import CommissionerRoute from './components/layout/CommissionerRoute'
 import Login from './pages/Login'
 import Picks from './pages/Picks'
@@ -20,8 +21,11 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Public route — anyone can visit /login */}
-      <Route path="/login" element={<Login />} />
+      {/* Sign-in — bounces to the app if there is already a session, since
+          that is where every iPhone home-screen icon points. */}
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<Login />} />
+      </Route>
 
       {/* Protected routes — must be logged in */}
       <Route element={<ProtectedRoute />}>

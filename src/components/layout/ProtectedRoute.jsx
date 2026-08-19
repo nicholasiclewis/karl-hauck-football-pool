@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import LoadingScreen from './LoadingScreen'
 
 /**
  * Wraps routes that require a logged-in user.
@@ -9,16 +10,7 @@ import { useAuth } from '../../hooks/useAuth'
 export default function ProtectedRoute() {
   const { user, loading } = useAuth()
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-4xl animate-bounce">🏈</span>
-          <p className="text-muted text-sm">Loading...</p>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <LoadingScreen />
 
   return user ? <Outlet /> : <Navigate to="/login" replace />
 }
