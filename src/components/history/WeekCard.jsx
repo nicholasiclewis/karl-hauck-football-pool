@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PickRow from './PickRow'
 import { supabase } from '../../lib/supabase'
+import { collegeFirst } from '../../lib/gameUtils'
 
 /**
  * Collapsible week card in Pick History.
@@ -168,10 +169,15 @@ export default function WeekCard({ week, score, userId }) {
               No picks made this week
             </div>
           ) : (
-            games.map((game) => {
-              const pick = picks.find((p) => p.game_id === game.id)
-              return <PickRow key={game.id} game={game} pick={pick ?? null} />
-            })
+            // Only the games this player actually picked — the rest of the
+            // week's slate is noise here. College first, then NFL.
+            games
+              .filter((game) => picks.some((p) => p.game_id === game.id))
+              .sort(collegeFirst)
+              .map((game) => {
+                const pick = picks.find((p) => p.game_id === game.id)
+                return <PickRow key={game.id} game={game} pick={pick} />
+              })
           )}
         </div>
       )}

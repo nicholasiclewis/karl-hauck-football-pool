@@ -1,17 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import TopNav from '../components/layout/TopNav'
 import BottomNav from '../components/layout/BottomNav'
 import GameCard from '../components/picks/GameCard'
+import PickSummary from '../components/picks/PickSummary'
 import PointsPreview from '../components/picks/PointsPreview'
+import { useAuth } from '../hooks/useAuth'
 import { useWeek } from '../hooks/useWeek'
 import { usePicks } from '../hooks/usePicks'
 import { calcProjectedPoints, countdownToKickoff, formatKickoff } from '../lib/gameUtils'
 import { remainingPicks } from '../lib/gameSelection'
 
 export default function Picks() {
+  const { user } = useAuth()
   const { week, games, loading: weekLoading, error: weekError } = useWeek()
   const { picks, loading: picksLoading, error: picksError, makePick, removePick, clearPicks } = usePicks(week?.id)
   const [pickError, setPickError] = useState('')
+
+  // Player lock — the player's own "don't let me fat-finger this" freeze,
+  // distinct from the hard per-game lock at kickoff. It only guards taps, so
+  // it lives on the device rather than in the database.
+  const lockKey = user && week ? `pick-lock:${user.id}:${week.id}` : null
+  const [lockedIn, setLockedIn] = useState(false)
+
+  useEffect(() => {
+    setLockedIn(lockKey ? localStorage.getItem(lockKey) === '1' : false)
+  }, [lockKey])
 
   const loading = weekLoading
 
@@ -37,6 +50,7 @@ export default function Picks() {
     : null
 
   async function handlePick(gameId, side) {
+    if (lockedIn) return   // buttons are disabled too; belt and braces
     setPickError('')
     try {
       // Tapping the side you already picked retracts it — that's how you free
@@ -95,6 +109,23 @@ export default function Picks() {
     }
   }
 
+  function handleToggleLock() {
+    if (!lockKey) return
+    if (lockedIn) {
+      localStorage.removeItem(lockKey)
+      setLockedIn(false)
+      return
+    }
+    // Locking an unfinished slate is allowed, but flag it — it's more often a
+    // player who forgot a pick than one guarding a deliberate short slate.
+    if (!complete && !confirm(
+      `You've made ${picksCount} of ${limits.nfl + limits.college} picks. Lock in anyway?\n\n` +
+      'You can come back, unlock, and finish your slate before kickoff.'
+    )) return
+    localStorage.setItem(lockKey, '1')
+    setLockedIn(true)
+  }
+
   // ── Loading ─────────────────────────────────────────────────
   if (loading) {
     return (
@@ -127,9 +158,10 @@ export default function Picks() {
   // The chip states the week's format, so it comes from the pick limits, not
   // from counting games: players now choose from every eligible game, so
   // counting produced "12 NFL · 8 CFB" instead of "4 NFL · 2 CFB".
+  // College leads, matching how the slate is listed.
   const weekChip = [
-    limits.nfl ? `${limits.nfl} NFL` : null,
     limits.college ? `${limits.college} CFB` : null,
+    limits.nfl ? `${limits.nfl} NFL` : null,
   ].filter(Boolean).join(' · ')
 
   return (
@@ -169,15 +201,15 @@ export default function Picks() {
             gold={complete}
           />
           <Divider />
-          {limits.nfl > 0 && (
-            <>
-              <ScoreItem value={`${used.nfl}/${limits.nfl}`} label="NFL" />
-              <Divider />
-            </>
-          )}
           {limits.college > 0 && (
             <>
               <ScoreItem value={`${used.college}/${limits.college}`} label="College" />
+              <Divider />
+            </>
+          )}
+          {limits.nfl > 0 && (
+            <>
+              <ScoreItem value={`${used.nfl}/${limits.nfl}`} label="NFL" />
               <Divider />
             </>
           )}
@@ -185,18 +217,21 @@ export default function Picks() {
         </div>
 
         {/* How many are still to make, or confirmation they're all in */}
-        <p className="text-[11px] text-center mt-2 px-4" style={{ color: complete ? '#10b981' : '#94afd4' }}>
-          {complete
-            ? '✓ All picks in — tap a pick to change it before kickoff'
+        <p className="text-[11px] text-center mt-2 px-4" style={{ color: lockedIn || complete ? '#10b981' : '#94afd4' }}>
+          {lockedIn
+            ? '🔒 Picks locked in — unlock in the summary below to make changes'
+            : complete
+            ? '✓ All picks in — lock them in below so a stray tap can\'t change them'
             : `Choose ${[
-                remaining.nfl > 0 ? `${remaining.nfl} more NFL` : null,
                 remaining.college > 0 ? `${remaining.college} more college` : null,
+                remaining.nfl > 0 ? `${remaining.nfl} more NFL` : null,
               ].filter(Boolean).join(' and ')} from ${games.length} games`}
         </p>
 
         {/* Start over. Hidden once every picked game has kicked off, since
-            nothing could be retracted at that point. */}
-        {clearableCount > 0 && (
+            nothing could be retracted at that point, and while the slate is
+            locked in, since the lock exists to prevent exactly this. */}
+        {clearableCount > 0 && !lockedIn && (
           <div className="text-center mt-2">
             <button
               onClick={handleClearAll}
@@ -209,33 +244,21 @@ export default function Picks() {
         )}
       </div>
 
+      {/* ── Pick summary + player lock ───────────────────────── */}
+      <PickSummary
+        games={games}
+        picks={picks}
+        total={limits.nfl + limits.college}
+        lockedIn={lockedIn}
+        canLock={week.picks_open && clearableCount > 0}
+        onToggleLock={handleToggleLock}
+      />
+
       {/* ── Pick error ───────────────────────────────────────── */}
       {pickError && (
         <div className="mx-4 mt-3 px-3 py-2 bg-red/10 border border-red/30 rounded-lg">
           <p className="text-red text-sm">{pickError}</p>
         </div>
-      )}
-
-      {/* ── NFL Games ────────────────────────────────────────── */}
-      {nflGames.length > 0 && (
-        <>
-          <SectionHeader
-            icon="🏈"
-            title="NFL Games"
-            count={nflGames.length}
-            progress={limits.nfl > 0 ? `${used.nfl}/${limits.nfl} picked` : null}
-          />
-          {nflGames.map((game) => (
-            <GameCard
-              key={game.id}
-              game={game}
-              pick={picks[game.id] ?? null}
-              onPick={handlePick}
-              disabled={!week.picks_open || atCap(game)}
-              capReached={atCap(game)}
-            />
-          ))}
-        </>
       )}
 
       {/* ── College Games ────────────────────────────────────── */}
@@ -253,8 +276,32 @@ export default function Picks() {
               game={game}
               pick={picks[game.id] ?? null}
               onPick={handlePick}
-              disabled={!week.picks_open || atCap(game)}
+              disabled={!week.picks_open || lockedIn || atCap(game)}
               capReached={atCap(game)}
+              playerLocked={lockedIn}
+            />
+          ))}
+        </>
+      )}
+
+      {/* ── NFL Games ────────────────────────────────────────── */}
+      {nflGames.length > 0 && (
+        <>
+          <SectionHeader
+            icon="🏈"
+            title="NFL Games"
+            count={nflGames.length}
+            progress={limits.nfl > 0 ? `${used.nfl}/${limits.nfl} picked` : null}
+          />
+          {nflGames.map((game) => (
+            <GameCard
+              key={game.id}
+              game={game}
+              pick={picks[game.id] ?? null}
+              onPick={handlePick}
+              disabled={!week.picks_open || lockedIn || atCap(game)}
+              capReached={atCap(game)}
+              playerLocked={lockedIn}
             />
           ))}
         </>

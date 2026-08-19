@@ -5,13 +5,14 @@ import TeamLogo from '../ui/TeamLogo'
  * Single game card — handles open, locked, and completed states.
  *
  * Props:
- *   game       — game row from DB
- *   pick       — current user's pick for this game (or null)
- *   onPick     — fn(gameId, 'home'|'away'); tapping the picked side retracts it
- *   disabled   — week is not open, or this game is out of reach
- *   capReached — unpicked and this sport's limit is already used up
+ *   game         — game row from DB
+ *   pick         — current user's pick for this game (or null)
+ *   onPick       — fn(gameId, 'home'|'away'); tapping the picked side retracts it
+ *   disabled     — week is not open, or this game is out of reach
+ *   capReached   — unpicked and this sport's limit is already used up
+ *   playerLocked — the player locked their slate; buttons freeze until they unlock
  */
-export default function GameCard({ game, pick, onPick, disabled = false, capReached = false }) {
+export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false }) {
   const kickedOff  = new Date(game.kickoff_time) <= new Date()
   const isLocked   = kickedOff || pick?.is_locked
   const isComplete = game.result !== null
@@ -39,7 +40,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
       className={`mx-4 mb-3 bg-card rounded-2xl border overflow-hidden transition-colors ${
         hasPick && !isLocked ? 'border-primary-light' : 'border-border'
       } ${isLocked && !isComplete ? 'opacity-60' : ''} ${
-        capReached && !isLocked ? 'opacity-50' : ''
+        (capReached || (playerLocked && !hasPick)) && !isLocked ? 'opacity-50' : ''
       }`}
     >
       <div className="p-4">
@@ -132,7 +133,13 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
                 onClick={() => onPick(game.id, 'away')}
               />
             </div>
-            {capReached ? (
+            {playerLocked ? (
+              hasPick ? (
+                <p className="text-[11px] text-muted text-center mt-2">
+                  🔒 Locked in — unlock in the summary up top to make changes
+                </p>
+              ) : null
+            ) : capReached ? (
               <p className="text-[11px] text-muted text-center mt-2">
                 Limit reached — retract another pick to choose this one
               </p>

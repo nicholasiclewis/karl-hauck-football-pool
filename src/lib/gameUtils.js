@@ -38,6 +38,15 @@ export function countdownToKickoff(dateStr) {
   return 'Locking soon'
 }
 
+/**
+ * Sort comparator for mixed slates: college games first, then NFL, each
+ * ordered by kickoff. The pool reads its slates college-first.
+ */
+export function collegeFirst(a, b) {
+  if (a.sport !== b.sport) return a.sport === 'college' ? -1 : 1
+  return new Date(a.kickoff_time) - new Date(b.kickoff_time)
+}
+
 /** Format a spread number → "+6.5", "-3.5", "PK" */
 export function formatSpread(spread) {
   if (spread === 0) return 'PK'
