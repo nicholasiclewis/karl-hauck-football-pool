@@ -138,6 +138,23 @@ export default function Picks() {
     )
   }
 
+  // ── Week failed to load ──────────────────────────────────────
+  // Distinct from "no active week": that screen tells players to check back
+  // later, which is the wrong message when the fetch itself failed.
+  if (weekError) {
+    return (
+      <div className="min-h-screen bg-bg pt-header pb-24">
+        <TopNav />
+        <div className="flex flex-col items-center justify-center mt-20 px-4 text-center">
+          <span className="text-5xl mb-4">🏈</span>
+          <h2 className="text-text font-bold text-lg mb-2">Couldn't Load This Week</h2>
+          <p className="text-muted text-sm">{weekError}</p>
+        </div>
+        <BottomNav />
+      </div>
+    )
+  }
+
   // ── No active week ───────────────────────────────────────────
   if (!week) {
     return (
@@ -254,10 +271,12 @@ export default function Picks() {
         onToggleLock={handleToggleLock}
       />
 
-      {/* ── Pick error ───────────────────────────────────────── */}
-      {pickError && (
+      {/* ── Pick error ───────────────────────────────────────────
+          picksError is the picks fetch failing — without it an errored load
+          renders as an empty slate with no explanation. */}
+      {(pickError || picksError) && (
         <div className="mx-4 mt-3 px-3 py-2 bg-red/10 border border-red/30 rounded-lg">
-          <p className="text-red text-sm">{pickError}</p>
+          <p className="text-red text-sm">{pickError || picksError}</p>
         </div>
       )}
 

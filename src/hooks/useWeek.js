@@ -20,12 +20,16 @@ export function useWeek() {
       setLoading(true)
       setError(null)
 
-      // First, find the active season
-      const { data: season } = await supabase
+      // First, find the active season. Capture the error rather than just the
+      // data: a failed query otherwise looks identical to "no active season"
+      // and renders the No Active Week screen as if it were intentional.
+      const { data: season, error: seasonErr } = await supabase
         .from('seasons')
         .select('id')
         .eq('is_active', true)
         .maybeSingle()
+
+      if (seasonErr) throw seasonErr
 
       if (!season) {
         setLoading(false)
