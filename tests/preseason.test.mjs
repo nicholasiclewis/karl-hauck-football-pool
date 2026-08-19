@@ -200,15 +200,26 @@ describe('display helpers with real NFL team names', () => {
     assert.equal(weekChipLabel(six), '6 NFL')
   })
 
-  test('teamAbbr on multi-word franchise names', () => {
-    assert.equal(teamAbbr('Green Bay Packers'), 'GBP')
+  test('teamAbbr uses ESPN abbreviations for NFL clubs', () => {
+    assert.equal(teamAbbr('Green Bay Packers'), 'GB')
     assert.equal(teamAbbr('New York Jets'), 'NYJ')
-    assert.equal(teamAbbr('Tampa Bay Buccaneers'), 'TBB')
+    assert.equal(teamAbbr('Tampa Bay Buccaneers'), 'TB')
+    assert.equal(teamAbbr('Washington Commanders'), 'WSH')
   })
 
-  test('teamAbbr on single-word names', () => {
-    // No NFL club is single-word, but the helper is shared with college.
+  test('teamAbbr uses ESPN abbreviations for college teams', () => {
+    assert.equal(teamAbbr('Ohio State Buckeyes'), 'OSU')
+    assert.equal(teamAbbr('Ole Miss Rebels'), 'MISS')
+    // Alternate spellings resolve through conferences.js first.
+    assert.equal(teamAbbr('Mississippi Rebels'), 'MISS')
+    assert.equal(teamAbbr('Texas A&M Aggies'), 'TA&M')
+    assert.equal(teamAbbr('Miami (OH) Redhawks'), 'M-OH')
+  })
+
+  test('teamAbbr falls back to derived initials for unknown teams', () => {
+    // FCS opponents and typos still show something rather than nothing.
     assert.equal(teamAbbr('Commanders'), 'COM')
+    assert.equal(teamAbbr('Tarleton State Texans'), 'TST')
   })
 })
 

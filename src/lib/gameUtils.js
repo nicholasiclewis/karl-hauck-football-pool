@@ -2,6 +2,7 @@
  * Shared utility functions for displaying game data.
  */
 import { POOL_TZ } from './weekWindow.js'
+import { espnAbbr } from './teamAbbrs.js'
 
 // Kickoffs are quoted in Eastern because that is how the schedule is published
 // and how the pool's weeks are defined. This has to be forced: the previous
@@ -55,8 +56,17 @@ export function formatSpread(spread) {
   return spread > 0 ? `+${val}` : `-${val}`
 }
 
-/** 2–3 letter abbreviation from a full team name */
+/**
+ * Team abbreviation, ESPN's where the team is known.
+ *
+ * The derived initials this used to return ("Green Bay Packers" → GBP,
+ * "Ohio State Buckeyes" → OSB) matched no scoreboard anyone reads. Known
+ * teams now come from the ESPN table in teamAbbrs.js — GB, OSU — and the
+ * initials survive only as the fallback for names we cannot place.
+ */
 export function teamAbbr(name = '') {
+  const espn = espnAbbr(name)
+  if (espn) return espn
   const words = name.trim().split(/\s+/)
   if (words.length === 1) return name.slice(0, 3).toUpperCase()
   return words.map((w) => w[0]).join('').toUpperCase().slice(0, 3)
