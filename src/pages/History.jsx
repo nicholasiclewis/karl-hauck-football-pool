@@ -4,6 +4,7 @@ import BottomNav from '../components/layout/BottomNav'
 import WeekCard from '../components/history/WeekCard'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { poolToday } from '../lib/weekWindow'
 
 export default function History() {
   const { user, profile } = useAuth()
@@ -37,14 +38,22 @@ export default function History() {
         .eq('season_id', seasonData.id)
         .order('week_number', { ascending: false })
 
-      setWeeks(weeksData ?? [])
+      // Only weeks a player can have history in: open now, finished, or
+      // already begun by the pool calendar. Weeks planned ahead are noise
+      // here — nobody has picks in them yet. week_start is YYYY-MM-DD, so
+      // string comparison against today's pool date is a date comparison.
+      const today = poolToday()
+      const playedWeeks = (weeksData ?? []).filter(
+        (w) => w.picks_open || w.is_complete || w.week_start <= today
+      )
+      setWeeks(playedWeeks)
 
       // User's weekly scores, plus how many picks they actually made each week.
       // weekly_scores records correct and pushed picks but not the total, so
       // losses have to be derived against the real pick count. Only resolved
       // picks count: when a week is resolved midweek, the still-pending
       // weekend picks are not losses yet.
-      const weekIds = (weeksData ?? []).map((w) => w.id)
+      const weekIds = playedWeeks.map((w) => w.id)
       if (weekIds.length > 0) {
         const [{ data: scoresData }, { data: picksData }] = await Promise.all([
           supabase.from('weekly_scores').select('*')
