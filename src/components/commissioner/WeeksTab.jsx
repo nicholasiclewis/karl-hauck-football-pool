@@ -199,7 +199,7 @@ export default function WeeksTab() {
                 <button
                   type="button"
                   onClick={randomizeFocus}
-                  className="text-xs px-3 py-1 rounded-lg font-semibold border"
+                  className="text-xs px-3 py-1.5 rounded-lg font-semibold border"
                   style={{ background: 'rgba(74,127,212,0.15)', borderColor: '#60a5fa', color: '#60a5fa' }}
                 >
                   🎲 Randomize
@@ -230,7 +230,7 @@ export default function WeeksTab() {
           )}
           <button
             type="submit" disabled={saving}
-            className="w-full py-3 rounded-lg text-sm font-bold"
+            className="w-full py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: '#2563eb', color: '#ffffff' }}
           >
             {saving ? 'Creating...' : '+ Create Week'}

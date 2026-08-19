@@ -171,8 +171,8 @@ export default function Profile() {
             <button
               type="submit"
               disabled={nameSaving || nameVal.trim() === profile?.display_name}
-              className="w-full py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#2563eb', color: '#ffffff', opacity: nameSaving ? 0.6 : 1 }}
+              className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: '#2563eb', color: '#ffffff' }}
             >
               {nameSaving ? 'Saving...' : 'Save Name'}
             </button>
@@ -216,8 +216,8 @@ export default function Profile() {
             <button
               type="submit"
               disabled={passSaving || !currPass || !newPass || !confPass}
-              className="w-full py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#2563eb', color: '#ffffff', opacity: passSaving ? 0.6 : 1 }}
+              className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: '#2563eb', color: '#ffffff' }}
             >
               {passSaving ? 'Updating...' : 'Update Password'}
             </button>

@@ -347,7 +347,7 @@ export default function GamesTab() {
                           <button
                             onClick={() => setAllFiltered(filtered, !allOn)}
                             disabled={filtered.length === 0}
-                            className="text-xs px-3 py-1 rounded-lg font-semibold border"
+                            className="text-xs px-3 py-1.5 rounded-lg font-semibold border"
                             style={{
                               background: 'rgba(74,127,212,0.15)',
                               borderColor: '#60a5fa',
@@ -362,7 +362,7 @@ export default function GamesTab() {
                       {selectedIds.size > 0 && (
                         <button
                           onClick={() => setSelectedIds(new Set())}
-                          className="text-xs px-3 py-1 rounded-lg"
+                          className="text-xs px-3 py-1.5 rounded-lg"
                           style={{ background: '#1e293b', color: '#94afd4' }}
                         >
                           Clear
@@ -419,7 +419,7 @@ export default function GamesTab() {
             <button
               onClick={addSelectedGames}
               disabled={selectedIds.size === 0 || addingPicked}
-              className="w-full py-2.5 rounded-lg text-sm font-bold"
+              className="w-full py-2.5 rounded-lg text-sm font-bold disabled:cursor-not-allowed"
               style={{
                 background: selectedIds.size > 0 ? '#2563eb' : '#253347',
                 color:      selectedIds.size > 0 ? '#ffffff'  : '#94afd4',
@@ -554,7 +554,7 @@ export default function GamesTab() {
                   <input type="datetime-local" required value={form.kickoff_time} onChange={e => setForm(f => ({ ...f, kickoff_time: e.target.value }))} className="input-field w-full" />
                 </Field>
               </div>
-              <button type="submit" disabled={saving} className="w-full py-2.5 rounded-lg text-sm font-bold" style={{ background: '#2563eb', color: '#ffffff' }}>
+              <button type="submit" disabled={saving} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: '#2563eb', color: '#ffffff' }}>
                 {saving ? 'Adding...' : '+ Add Game'}
               </button>
             </form>
@@ -615,7 +615,7 @@ export default function GamesTab() {
                       title={game.is_featured ? 'In play — tap to make a candidate' : 'Candidate — tap to put in play'}
                       aria-pressed={game.is_featured}
                       aria-label={`${game.away_team} at ${game.home_team} — in play`}
-                      className="text-lg flex-shrink-0 px-1"
+                      className="text-lg flex-shrink-0 px-2 py-1.5"
                       style={{ color: game.is_featured ? '#f5b301' : '#4a6585' }}
                     >
                       <span aria-hidden="true">{game.is_featured ? '★' : '☆'}</span>
@@ -642,7 +642,7 @@ export default function GamesTab() {
                     <button
                       onClick={() => deleteGame(game.id)}
                       aria-label={`Delete ${game.away_team} at ${game.home_team}`}
-                      className="text-lg flex-shrink-0 px-2 py-1 rounded"
+                      className="text-lg flex-shrink-0 px-2 py-1.5 rounded"
                       style={{ color: '#94afd4' }}
                     >
                       <span aria-hidden="true">🗑</span>
@@ -688,7 +688,7 @@ function Chip({ active, onClick, disabled = false, title, children }) {
       disabled={disabled}
       title={title}
       aria-pressed={active}
-      className="px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0"
+      className="px-3 py-1.5 rounded-full text-xs font-medium border flex-shrink-0"
       style={{
         background:  active ? '#2563eb' : '#1e293b',
         borderColor: active ? '#60a5fa' : '#374e6b',

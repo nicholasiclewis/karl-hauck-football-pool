@@ -160,9 +160,11 @@ export default function Standings() {
     paidByUser ? duesIcon(paidByUser[userId], currentWeekNumber) : null
 
   // ── Subtitle ───────────────────────────────────────────────────────────────
+  // Never "Loading..." here — this only renders after loading finished, so a
+  // missing season is a fact to state, not a wait to promise.
   const subtitle = season
     ? `${season.year} Season · Week ${currentWeekNumber}`
-    : 'Loading...'
+    : 'No active season'
 
   // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {

@@ -270,7 +270,7 @@ export default function ResultsTab() {
           <button
             onClick={fetchFromApi}
             disabled={fetching}
-            className="w-full py-2.5 rounded-lg text-sm font-bold"
+            className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
           >
             {fetching ? 'Fetching...' : '⬇ Fetch Scores from Odds API'}
@@ -280,7 +280,7 @@ export default function ResultsTab() {
             <button
               onClick={saveScores}
               disabled={saving}
-              className="flex-1 py-2.5 rounded-lg text-sm font-bold"
+              className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#374e6b', color: '#93c5fd' }}
             >
               {saving ? 'Saving...' : 'Save Scores'}
@@ -288,7 +288,7 @@ export default function ResultsTab() {
             <button
               onClick={resolvePicks}
               disabled={resolving}
-              className="flex-1 py-2.5 rounded-lg text-sm font-bold"
+              className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#2563eb', color: '#ffffff' }}
             >
               {resolving ? 'Resolving...' : 'Resolve Picks'}
