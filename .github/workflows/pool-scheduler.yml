@@ -1,0 +1,98 @@
+# Everything the pool runs on a clock.
+#
+# This replaced the Vercel crons: Hobby allows two of them and only once a day
+# each, and the score sync needs several ticks a day. One scheduler in one file
+# also means the odds release and the score sync cannot drift apart.
+#
+# The endpoints decide for themselves whether a tick has work — a tick with
+# nothing due writes nothing and calls no paid API — so these schedules are
+# deliberately blunt.
+#
+# Repository secrets required (Settings → Secrets and variables → Actions):
+#   POOL_URL      https://your-app.vercel.app   (no trailing slash)
+#   CRON_SECRET   the same value set in the Vercel project env
+#
+# Note: GitHub disables scheduled workflows in a repo with no pushes for 60
+# days. In the off-season that is fine; a push (or the Run workflow button)
+# turns them back on.
+name: Pool scheduler
+
+on:
+  schedule:
+    # Odds release, 9:00 am ET. Tuesday covers MAC college and any Tuesday NFL
+    # game; Wednesday covers everything else and repairs a missed Tuesday.
+    # 13:00 UTC is 9am EDT — an hour later in EST, still well before kickoff.
+    - cron: '0 13 * * 2,3'
+    # Week state (open/close picks). No API calls, safe to run daily.
+    - cron: '0 11 * * *'
+    # Score sync: every 15 minutes across the hours football is played, so a
+    # final lands within a quarter hour of the whistle. A tick with no game in
+    # progress reads one database table and stops — the cost of running this
+    # often is GitHub minutes, not API calls.
+    #
+    # 16:00-07:00 UTC is noon ET through 3am ET, which covers a London kickoff
+    # at one end and a west-coast game finishing at the other. Restricted to
+    # August-February so the workflow is idle in the off-season.
+    - cron: '*/15 16-23,0-7 * 8,9,10,11,12,1,2 *'
+
+  # Manual runs: pick a job below, or use it to re-enable the schedules.
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which task to run now
+        required: true
+        default: scores
+        type: choice
+        options: [scores, odds, state]
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Choose endpoint
+        id: pick
+        env:
+          CRON: ${{ github.event.schedule }}
+          MANUAL: ${{ inputs.job }}
+        run: |
+          case "${MANUAL:-}" in
+            odds)   echo "path=/api/sync-week-odds"          >> "$GITHUB_OUTPUT" ;;
+            state)  echo "path=/api/sync-week-odds?state=1"  >> "$GITHUB_OUTPUT" ;;
+            scores) echo "path=/api/sync-scores"             >> "$GITHUB_OUTPUT" ;;
+            *)
+              case "$CRON" in
+                '0 13 * * 2,3') echo "path=/api/sync-week-odds"         >> "$GITHUB_OUTPUT" ;;
+                '0 11 * * *')   echo "path=/api/sync-week-odds?state=1" >> "$GITHUB_OUTPUT" ;;
+                *)              echo "path=/api/sync-scores"            >> "$GITHUB_OUTPUT" ;;
+              esac
+              ;;
+          esac
+
+      - name: Run it
+        env:
+          POOL_URL: ${{ secrets.POOL_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PATH_SUFFIX: ${{ steps.pick.outputs.path }}
+        run: |
+          if [ -z "$POOL_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::POOL_URL and CRON_SECRET repository secrets must both be set"
+            exit 1
+          fi
+
+          # --fail-with-body so a 4xx/5xx still prints what the endpoint said.
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$POOL_URL$PATH_SUFFIX" | tee response.json
+          echo
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### `'"$PATH_SUFFIX"'`'
+            echo '```json'
+            cat response.json 2>/dev/null || echo 'no response'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          PATH_SUFFIX: ${{ steps.pick.outputs.path }}

@@ -1,14 +1,19 @@
 /**
- * Vercel Cron: Tuesday odds import.
+ * Scheduled odds import.
  *
- * Weeks are planned out ahead of time. Each Tuesday this finds the planned
- * week starting that day in the active season, pulls every game whose kickoff
- * falls in that week's Tuesday→Monday-night window, and imports them as
- * candidates. It then suggests a featured six (closest spreads) so the week is
- * usable immediately — the commissioner confirms or swaps them in the Games
- * tab.
+ * Weeks are planned out ahead of time. This finds the current week in the
+ * active season, pulls every game whose kickoff falls in that week's
+ * Tuesday→Monday-night window, and imports them as playable games.
  *
- * Schedule lives in vercel.json.
+ * The week still starts Tuesday, but odds post Wednesday morning — a day of
+ * line movement settles the numbers and the slate arrives as one piece. The
+ * exception is a game that kicks off before that: MAC weeks post college on
+ * Tuesday (MACtion plays Tuesday night) and NFL posts Tuesday in any week
+ * carrying a Tuesday NFL game. src/lib/oddsRelease.js holds those rules; the
+ * scheduler runs this both mornings and each run imports only what has
+ * reached its release day.
+ *
+ * Schedule lives in .github/workflows/pool-scheduler.yml.
  *
  * Env:
  *   SUPABASE_URL / VITE_SUPABASE_URL   Supabase project URL
@@ -28,17 +33,23 @@ import {
 } from '../src/lib/weekWindow.js'
 import { selectEligible, sportsFor } from '../src/lib/gameSelection.js'
 import { fetchTop25, buildRankMap, resolveWeekForDate } from '../src/lib/rankings.js'
+import { releaseDateFor, sportsReleasedBy } from '../src/lib/oddsRelease.js'
+import { COLLEGE_KEY, nflKeysForKickoff } from '../src/lib/scoreSync.js'
 import { authorize } from './_shared.js'
 
 /** Public project URL, used when no env var is configured. Not a secret. */
 const SUPABASE_URL_DEFAULT = 'https://jpeaijrdvbvbpcmuqhgt.supabase.co'
 
-// Preseason lives under its own Odds API key, so August weeks come back empty
-// if only the regular-season key is queried. fetch-scores merges both for the
-// same reason. Keys that are out of season 404 and are skipped.
-const SPORT_KEYS = {
-  nfl:     ['americanfootball_nfl', 'americanfootball_nfl_preseason'],
-  college: ['americanfootball_ncaaf'],
+/**
+ * Odds API keys covering a sport for a given week.
+ *
+ * Preseason lives under its own key, so August weeks come back empty without
+ * it — but every call costs a credit, and that key returns nothing from
+ * September on. The week's own month picks the list. Keys that are out of
+ * season 404 and are skipped.
+ */
+function sportKeysFor(sport, window) {
+  return sport === 'college' ? [COLLEGE_KEY] : nflKeysForKickoff(window.start)
 }
 
 // The auth check (scheduler secret or signed-in commissioner) lives in
@@ -75,6 +86,11 @@ export default async function handler(req, res) {
   // state mode only opens/closes weeks; it never calls the Odds API, so it is
   // safe to run daily without spending credits.
   const stateOnly = req.query?.state === '1' || req.query?.state === 'true'
+  // A run aimed at one specific week is the commissioner working in the Games
+  // tab. Those are never held back for a release day — only the scheduled
+  // sweep waits.
+  const targeted = Boolean(req.query?.week_id || req.query?.week_start)
+  const now = new Date()
 
   const db = (path, init = {}) =>
     fetch(`${url}/rest/v1/${path}`, {
@@ -101,7 +117,10 @@ export default async function handler(req, res) {
     const season = seasons[0]
     if (!season) return res.status(200).json({ ok: true, skipped: 'No active season' })
 
-    const weekStart = req.query?.week_start ?? poolToday()
+    // Scheduled runs land on Tuesday and again on Wednesday, and both belong
+    // to the week that began this Tuesday — no week is ever planned to start
+    // on a Wednesday, so today's date alone would find nothing.
+    const weekStart = req.query?.week_start ?? poolWeekStartFor()
     const filter = req.query?.week_id
       ? `id=eq.${req.query.week_id}`
       : `season_id=eq.${season.id}&week_start=eq.${weekStart}`
@@ -134,8 +153,35 @@ export default async function handler(req, res) {
 
     const window = weekWindow(week.week_start)
 
-    // ── Fetch odds for the sports this week needs ─────────────────────────
-    const sports = sportsFor(week.container_type)
+    // ── Which sports release today ────────────────────────────────────────
+    // Wednesday morning for everything, pulled forward to Tuesday for a sport
+    // that kicks off before then. Wednesday's run also covers anything that
+    // should have posted Tuesday and did not, so a missed release repairs
+    // itself instead of leaving the week half open.
+    const allSports = sportsFor(week.container_type)
+    let sports = allSports
+    let release = null
+
+    if (!targeted && !listOnly) {
+      const kickoffs = await fetchKickoffs({ sports: allSports, window, oddsKey })
+      const today = poolToday(now)
+      release = Object.fromEntries(
+        allSports.map((s) => [s, releaseDateFor(s, week, kickoffs[s] ?? [])])
+      )
+      sports = sportsReleasedBy(today, allSports, week, kickoffs)
+
+      if (!sports.length) {
+        return res.status(200).json({
+          ok: true,
+          season:  season.year,
+          week:    week.week_number,
+          skipped: `Nothing releases on ${today}`,
+          release,
+        })
+      }
+    }
+
+    // ── Fetch odds for the sports releasing today ─────────────────────────
     const candidates = []
     const apiCalls = []
 
@@ -144,7 +190,7 @@ export default async function handler(req, res) {
     for (const sport of sports) {
       let sportOk = false
 
-      for (const sportKey of SPORT_KEYS[sport]) {
+      for (const sportKey of sportKeysFor(sport, window)) {
         const endpoint =
           `https://api.the-odds-api.com/v4/sports/${sportKey}/odds` +
           `?apiKey=${oddsKey}&regions=us&markets=spreads&oddsFormat=american&dateFormat=iso`
@@ -187,7 +233,7 @@ export default async function handler(req, res) {
       }
 
       if (!sportOk) {
-        throw new Error(`Odds API: every key failed for ${sport} (${SPORT_KEYS[sport].join(', ')})`)
+        throw new Error(`Odds API: every key failed for ${sport} (${sportKeysFor(sport, window).join(' | ')})`)
       }
     }
 
@@ -219,8 +265,16 @@ export default async function handler(req, res) {
     )
     const byEventId = new Map(existing.filter((g) => g.odds_api_id).map((g) => [g.odds_api_id, g]))
 
-    const fresh = eligible.filter((c) => !byEventId.has(c.odds_api_id))
-    const stale = eligible.filter((c) => byEventId.has(c.odds_api_id))
+    // Two runs a week means a game can already have been played by the time a
+    // later run sees it. A line is only a line until kickoff: after that it is
+    // the number the week is graded against, so a played game is neither
+    // refreshed nor newly added by a scheduled run.
+    const started = (c) => new Date(c.kickoff_time) <= now
+
+    const fresh = eligible.filter(
+      (c) => !byEventId.has(c.odds_api_id) && !(started(c) && !targeted)
+    )
+    const stale = eligible.filter((c) => byEventId.has(c.odds_api_id) && !started(c))
 
     const summary = {
       ok: true,
@@ -232,6 +286,9 @@ export default async function handler(req, res) {
       container:   week.container_type,
       focus:       week.college_focus ?? null,
       conference:  week.conference ?? null,
+      // Which sports this run covered, and the day each was due to post.
+      released:    sports,
+      release,
       pickLimits:  limits,
       inWindow:    candidates.length,
       eligible:    eligible.length,
@@ -365,6 +422,43 @@ async function manageWeekState({ db, readJson, season, week, gameCount = null })
   }
 
   return { opened, closed }
+}
+
+/**
+ * Kickoff times per sport inside a week's window.
+ *
+ * The Odds API's events endpoint returns the schedule without any odds, and it
+ * does not count against the usage quota — asking "does this week have a
+ * Tuesday game?" is free. That is what lets the release day come from the real
+ * schedule rather than a guess about which weeks the league moves games in.
+ *
+ * A failed lookup returns no kickoffs, which leaves the sport on its Wednesday
+ * release. The MAC rule needs no schedule at all, so a MACtion week still
+ * posts Tuesday even if this comes back empty.
+ */
+async function fetchKickoffs({ sports, window, oddsKey }) {
+  const out = {}
+
+  for (const sport of sports) {
+    const times = []
+    for (const sportKey of sportKeysFor(sport, window)) {
+      try {
+        const r = await fetch(
+          `https://api.the-odds-api.com/v4/sports/${sportKey}/events` +
+          `?apiKey=${oddsKey}&dateFormat=iso`
+        )
+        if (!r.ok) continue
+        for (const event of await r.json()) {
+          if (isInWeekWindow(event.commence_time, window)) times.push(event.commence_time)
+        }
+      } catch {
+        // Never let a schedule lookup take the import down with it.
+      }
+    }
+    out[sport] = times
+  }
+
+  return out
 }
 
 /** Top 25 covering the Saturday of a week that starts on `weekStart`. */

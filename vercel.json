@@ -1,9 +1,5 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ],
-  "crons": [
-    { "path": "/api/sync-week-odds", "schedule": "0 13 * * 2" },
-    { "path": "/api/sync-week-odds?state=1", "schedule": "0 11 * * *" }
   ]
 }

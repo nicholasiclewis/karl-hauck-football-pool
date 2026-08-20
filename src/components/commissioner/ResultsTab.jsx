@@ -79,7 +79,19 @@ export default function ResultsTab() {
       const result = await fetchScores(selectedWeekId)
       if (result.error) throw new Error(result.error)
       await loadGames()
-      setMessage(`✓ Fetched scores: ${result.updated} of ${result.total_games} games updated.`)
+
+      // The sync writes whatever has finished and resolves the week as it
+      // goes, so say what landed and what is still being played rather than
+      // reporting a count against the whole slate.
+      if (result.skipped) {
+        setMessage(result.skipped)
+      } else {
+        const waiting = result.stillOpen?.length ?? 0
+        setMessage(
+          `✓ ${result.updated} game${result.updated === 1 ? '' : 's'} scored and points updated` +
+          (waiting ? ` · ${waiting} still in progress` : '') + '.'
+        )
+      }
     } catch (err) {
       setError(err.message)
     } finally {

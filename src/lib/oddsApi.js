@@ -24,13 +24,25 @@ export async function fetchCollegeOdds(weekId, conference) {
   return data
 }
 
-/** Fetch final scores from The Odds API and write them to the games table. */
+/**
+ * Pull finals for a week now, instead of waiting for the next scheduled tick.
+ *
+ * Same endpoint the scheduler uses, so a manual pull behaves identically to an
+ * automatic one: it reads ESPN's free scoreboard, writes whatever games have
+ * finished — not all-or-nothing — and re-resolves the week's points on the way
+ * out. The old fetch-scores edge function is left in place but no longer used
+ * here; it spent Odds API credits for the same answer.
+ */
 export async function fetchScores(weekId) {
-  const { data, error } = await supabase.functions.invoke('fetch-scores', {
-    body: { week_id: weekId },
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not signed in')
+
+  const res = await fetch(`/api/sync-scores?week_id=${weekId}`, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
   })
-  if (error) throw new Error(error.message)
-  return data
+  const out = await res.json()
+  if (!res.ok || out.ok === false) throw new Error(out.error ?? `HTTP ${res.status}`)
+  return out
 }
 
 /** Resolve pick outcomes for all completed games in a week. */
