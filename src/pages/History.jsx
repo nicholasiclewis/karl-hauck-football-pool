@@ -3,6 +3,7 @@ import TopNav from '../components/layout/TopNav'
 import BottomNav from '../components/layout/BottomNav'
 import WeekCard from '../components/history/WeekCard'
 import { useAuth } from '../hooks/useAuth'
+import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus'
 import { supabase } from '../lib/supabase'
 import { poolToday } from '../lib/weekWindow'
 
@@ -14,12 +15,16 @@ export default function History() {
   const [scores, setScores]       = useState({})  // { week_id: score_row }
   const [loading, setLoading]     = useState(true)
 
+  // Weekly scores are rewritten as games settle, so a page left open catches
+  // up when the app is looked at again.
+  useRefreshOnFocus(() => fetchHistory({ quiet: true }), { enabled: Boolean(user) })
+
   useEffect(() => {
     if (user) fetchHistory()
   }, [user])
 
-  async function fetchHistory() {
-    setLoading(true)
+  async function fetchHistory({ quiet = false } = {}) {
+    if (!quiet) setLoading(true)
     try {
       // Active season
       const { data: seasonData } = await supabase

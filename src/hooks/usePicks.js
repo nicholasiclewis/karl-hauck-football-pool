@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+import { useRefreshOnFocus } from './useRefreshOnFocus'
 
 /**
  * Fetches and manages the current user's picks for a given week.
@@ -12,9 +13,9 @@ export function usePicks(weekId) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const fetchPicks = useCallback(async () => {
+  const fetchPicks = useCallback(async ({ quiet = false } = {}) => {
     if (!weekId || !user) return
-    setLoading(true)
+    if (!quiet) setLoading(true)
     const { data, error: err } = await supabase
       .from('picks')
       .select('*')
@@ -34,6 +35,9 @@ export function usePicks(weekId) {
   useEffect(() => {
     fetchPicks()
   }, [fetchPicks])
+
+  // Outcomes and points are written to these rows as games settle.
+  useRefreshOnFocus(() => fetchPicks({ quiet: true }), { enabled: Boolean(weekId && user) })
 
   /**
    * Submit or change a pick.

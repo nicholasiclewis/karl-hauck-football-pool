@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useRefreshOnFocus } from './useRefreshOnFocus'
 
 /**
  * Fetches season standings by aggregating weekly_scores for all players.
+ *
+ * Scores are written as games finish, so this re-reads whenever the app comes
+ * back to the foreground — otherwise a page left open on Sunday shows the
+ * numbers from whenever it was opened.
  */
 export function useStandings(seasonId) {
   const [standings, setStandings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Quiet: a refresh behind an already-populated table must not blank it out.
+  useRefreshOnFocus(() => fetchStandings({ quiet: true }), { enabled: Boolean(seasonId) })
 
   useEffect(() => {
     if (seasonId) {
@@ -21,9 +29,9 @@ export function useStandings(seasonId) {
     setLoading(false)
   }, [seasonId])
 
-  async function fetchStandings() {
+  async function fetchStandings({ quiet = false } = {}) {
     try {
-      setLoading(true)
+      if (!quiet) setLoading(true)
 
       // Get all week IDs for this season
       const { data: weekRows, error: weekErr } = await supabase

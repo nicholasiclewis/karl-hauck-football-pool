@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { useRefreshOnFocus } from './useRefreshOnFocus'
 
 /**
  * Fetches the currently active week and its games.
@@ -11,13 +12,17 @@ export function useWeek() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Games gain scores and results while a week is running, so coming back
+  // to the app re-reads them rather than showing whatever was there at open.
+  useRefreshOnFocus(() => fetchActiveWeek({ quiet: true }))
+
   useEffect(() => {
     fetchActiveWeek()
   }, [])
 
-  async function fetchActiveWeek() {
+  async function fetchActiveWeek({ quiet = false } = {}) {
     try {
-      setLoading(true)
+      if (!quiet) setLoading(true)
       setError(null)
 
       // First, find the active season. Capture the error rather than just the
