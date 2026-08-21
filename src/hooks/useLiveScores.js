@@ -66,8 +66,14 @@ export function useLiveScores(games = []) {
     let cancelled = false
     let timer = null
     let failures = 0
+    // Guards against a second polling chain: if the tab regains visibility
+    // while a fetch is mid-flight, onVisible's poll() must not start a
+    // parallel loop next to the one about to reschedule itself.
+    let inFlight = false
 
     async function poll() {
+      if (inFlight) return
+      inFlight = true
       const found = []
       let answered = false
 
@@ -98,6 +104,7 @@ export function useLiveScores(games = []) {
         ? POLL_MS
         : Math.min(POLL_MS * 2 ** failures, MAX_BACKOFF_MS)
 
+      inFlight = false
       timer = setTimeout(poll, delay)
     }
 

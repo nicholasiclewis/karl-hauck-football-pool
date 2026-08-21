@@ -22,9 +22,15 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
   // a team ahead at halftime never shows as a win.
   const isLive = !isComplete && live?.state === 'in'
 
+  // Over on the scoreboard, not yet written by the sync. Without this the
+  // score a player just watched for three hours vanishes at the final whistle
+  // and reappears minutes later — the card keeps showing it, labeled Final,
+  // while the W/L badge still waits for the real grading.
+  const justEnded = !isComplete && live?.state === 'post'
+
   // Scores come from the database once the game is settled; before that, from
   // the live feed if it has them.
-  const showScore = isComplete || isLive
+  const showScore = isComplete || isLive || justEnded
   const homeScore = isComplete ? game.home_score : live?.home_score
   const awayScore = isComplete ? game.away_score : live?.away_score
 
@@ -50,7 +56,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
     <div
       className={`mx-4 mb-3 bg-card rounded-2xl border overflow-hidden transition-colors ${
         hasPick && !isLocked ? 'border-primary-light' : 'border-border'
-      } ${isLocked && !isComplete && !isLive ? 'opacity-60' : ''} ${
+      } ${isLocked && !showScore ? 'opacity-60' : ''} ${
         (capReached || (playerLocked && !hasPick)) && !isLocked ? 'opacity-50' : ''
       }`}
     >
@@ -62,7 +68,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
             {formatKickoff(game.kickoff_time)}
           </span>
 
-          {isComplete ? (
+          {isComplete || justEnded ? (
             <span className="text-[11px] text-muted">Final</span>
           ) : isLive ? (
             <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red/10 text-red border border-red/40 text-[11px] font-semibold">
