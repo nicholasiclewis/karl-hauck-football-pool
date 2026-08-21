@@ -6,7 +6,7 @@
  * commissioner sends these by hand, so the output has to read well pasted
  * straight into a mail client with no formatting applied.
  */
-import { formatKickoff, formatSpread, teamAbbr } from './gameUtils.js'
+import { formatKickoff, formatSpread } from './gameUtils.js'
 import { weekWindow, formatWeekWindow } from './weekWindow.js'
 
 export const MAX_WEEK_POINTS = 8
@@ -28,25 +28,23 @@ export function formatLabel(week) {
 }
 
 /**
- * One pick as a line of the recap: outcome, what it paid, and the bet itself.
+ * One pick as a line of the recap: what it paid, then the bet.
  *
- * Fixed columns, because these are read down a page — an eye scanning the
- * points column should not have to find it again on every row. Everything is
- * stated from the picker's side, so "vs" and "@" describe where *their* team
- * played, and the score reads their points first.
+ * The recap goes out once the week is over, so there is no state left to
+ * report — every pick has landed and the number says which way. Outcome
+ * letters, final scores and the sport were all restating that, so the line is
+ * down to the three things being asked about: points, team, spread.
+ *
+ * Points lead and are right-aligned, so the column reads down the page and
+ * visibly sums to the total on the player's heading. The spread is the number
+ * the player took, which for an away pick is the opposite sign to the one
+ * stored on the game.
  */
 export function pickLine(p) {
-  const mark = { win: 'W', loss: 'L', push: 'P' }[p.outcome] ?? '·'
-  // Right-aligned, the way a column of numbers is read. A pick still waiting
-  // on its game shows a dash rather than the zero it has not earned.
+  // A dash rather than a zero if a game somehow never graded — rare in a
+  // finished week, but a zero it might still escape would be a lie.
   const paid = (p.points == null ? '—' : String(p.points)).padStart(3)
-  const side = `${teamAbbr(p.team)} ${formatSpread(p.spread)} ${p.atHome ? 'vs' : '@'} ${teamAbbr(p.opponent)}`
-  const score = p.scoreFor == null || p.scoreAgainst == null
-    ? 'not played'
-    : `${p.scoreFor}-${p.scoreAgainst}`
-
-  return `${mark}  ${paid}  ${(p.sport === 'nfl' ? 'NFL' : 'CFB').padEnd(5)}` +
-         `${side.padEnd(24)}${score}`
+  return `${paid}  ${p.team} ${formatSpread(p.spread)}`
 }
 
 /** How many picks a week asks for, as words. */

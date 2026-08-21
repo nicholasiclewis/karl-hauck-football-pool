@@ -187,20 +187,26 @@ describe('every pick, in the recap', () => {
     ...over,
   }).body
 
-  test('the section lists each player and their picks', () => {
+  test('the section lists each player and the team they took', () => {
     const body = build()
     assert.match(body, /EVERY PICK/)
     assert.match(body, /Dana — 1\.5 pts/)
-    assert.match(body, /KC -3\.5 vs DEN/)
-    assert.match(body, /BUF \+6\.5 @ MIA/)
-    assert.match(body, /TOL -3\.5 vs OHIO/)
+    assert.match(body, /Kansas City Chiefs -3\.5/)
+    assert.match(body, /Toledo Rockets -3\.5/)
   })
 
-  test('every pick shows what it paid', () => {
-    const lines = build().split('\n').filter((l) => /KC|BUF|TOL/.test(l))
-    assert.match(lines[0], /W\s+1\s+NFL/)
-    assert.match(lines[1], /L\s+0\s+NFL/)
-    assert.match(lines[2], /P\s+0\.5\s+CFB/)
+  test('the spread keeps the sign the player took it at', () => {
+    // Cards arrive already stated from the picker's side — pickCards does the
+    // flip, covered in weeklyInsights. What matters here is that the sign
+    // survives formatting: a dog printed as a favourite reads as a different bet.
+    assert.match(build(), /Buffalo Bills \+6\.5/)
+  })
+
+  test('points lead each line', () => {
+    const lines = build().split('\n').filter((l) => /Chiefs|Bills|Rockets/.test(l))
+    assert.match(lines[0], /^\s+1\s+Kansas City Chiefs/)
+    assert.match(lines[1], /^\s+0\s+Buffalo Bills/)
+    assert.match(lines[2], /^\s+0\.5\s+Toledo Rockets/)
   })
 
   test('the pick points add up to the total reported above them', () => {
@@ -209,13 +215,12 @@ describe('every pick, in the recap', () => {
     assert.equal(paid, cards[0].points)
   })
 
-  test('a game still to be graded shows a dash, not a zero', () => {
+  test('a game that never graded shows a dash, not a zero', () => {
     const body = build({
       cards: [{ ...cards[0], picks: [pick({ outcome: null, points: null, scoreFor: null, scoreAgainst: null })] }],
     })
-    const line = body.split('\n').find((l) => l.includes('KC -3.5'))
-    assert.match(line, /·\s+—/)
-    assert.match(line, /not played/)
+    const line = body.split('\n').find((l) => l.includes('Kansas City Chiefs'))
+    assert.match(line, /—\s+Kansas City Chiefs/)
     assert.doesNotMatch(line, /\s0\s/)
   })
 
@@ -229,15 +234,13 @@ describe('every pick, in the recap', () => {
     assert.doesNotMatch(build({ cards: [] }), /EVERY PICK/)
   })
 
-  test('scores read the picker\'s points first', () => {
-    // The away pick lost 14-30; printing 30-14 would read as a win.
-    const line = pickLine(cards[0].picks[1])
-    assert.match(line, /14-30/)
+  test('the team column lines up down the page', () => {
+    // Points are right-aligned so 0.5 and 1 do not shunt the names sideways.
+    const starts = cards[0].picks.map((p) => pickLine(p).search(/[A-Z]/))
+    assert.equal(new Set(starts).size, 1, `team column drifts: ${starts}`)
   })
 
-  test('columns line up down the page', () => {
-    const lines = cards[0].picks.map(pickLine)
-    const sportAt = lines.map((l) => l.indexOf(l.includes('NFL') ? 'NFL' : 'CFB'))
-    assert.equal(new Set(sportAt).size, 1, `sport column drifts: ${sportAt}`)
+  test('nothing but points, team and spread', () => {
+    assert.equal(pickLine(cards[0].picks[0]).trim(), '1  Kansas City Chiefs -3.5')
   })
 })

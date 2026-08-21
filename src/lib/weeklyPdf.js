@@ -401,31 +401,17 @@ export function buildResultsPdf(data) {
         doc.rect(L, y, W, rowH, 'F')
         const base = y + 4.1
 
-        // Outcome letter, coloured — the column you scan down.
+        // Points lead, coloured by how the pick went — which is why the row
+        // needs no outcome letter of its own.
         doc.setFont('helvetica', 'bold')
-        doc.setFontSize(7.5)
+        doc.setFontSize(8)
         rgb(doc, p.outcome === 'win' ? GREEN : p.outcome === 'loss' ? RED : MUTED)
-        doc.text({ win: 'W', loss: 'L', push: 'P' }[p.outcome] ?? '·', L + 2, base)
+        doc.text(p.points == null ? '—' : String(p.points), L + 8, base, { align: 'right' })
 
         doc.setFont('helvetica', 'normal')
-        doc.setFontSize(6.5)
-        rgb(doc, MUTED)
-        doc.text(p.sport === 'nfl' ? 'NFL' : 'CFB', L + 7, base)
-
-        doc.setFontSize(7.5)
+        doc.setFontSize(8)
         rgb(doc, TEXT)
-        const side = `${p.team} ${formatSpread(p.spread)} ${p.atHome ? 'vs' : '@'} ${p.opponent}`
-        doc.text(clip(doc, side, W - 46), L + 16, base)
-
-        rgb(doc, MUTED)
-        doc.text(
-          p.scoreFor == null || p.scoreAgainst == null ? '—' : `${p.scoreFor}-${p.scoreAgainst}`,
-          R - 14, base, { align: 'right' }
-        )
-
-        doc.setFont('helvetica', 'bold')
-        rgb(doc, p.points ? TEXT : MUTED)
-        doc.text(p.points == null ? '—' : String(p.points), R, base, { align: 'right' })
+        doc.text(clip(doc, `${p.team} ${formatSpread(p.spread)}`, W - 16), L + 13, base)
 
         y += rowH
       })
