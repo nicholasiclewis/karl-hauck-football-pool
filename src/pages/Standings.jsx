@@ -6,6 +6,7 @@ import PlayerRow from '../components/standings/PlayerRow'
 import { useStandings } from '../hooks/useStandings'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
+import { poolToday } from '../lib/weekWindow'
 
 // ── Dues helper ─────────────────────────────────────────────────────────────
 function duesIcon(isPaid, currentWeekNumber) {
@@ -88,11 +89,19 @@ export default function Standings() {
       try {
         const { data } = await supabase
           .from('weeks')
-          .select('id, week_number, picks_open, container_type, conference')
+          .select('id, week_number, picks_open, is_complete, week_start, container_type, conference')
           .eq('season_id', season.id)
           .order('week_number', { ascending: true })
 
-        const rows = data ?? []
+        // Only weeks that have actually begun — open now, finished, or already
+        // started by the pool calendar. The season's remaining weeks are
+        // planned in advance, and a chip for a week nobody could have played
+        // yet is just noise. Same rule History uses. week_start is
+        // YYYY-MM-DD, so string comparison is a date comparison.
+        const today = poolToday()
+        const rows = (data ?? []).filter(
+          (w) => w.picks_open || w.is_complete || w.week_start <= today
+        )
         setWeeks(rows)
 
         // Determine "current" week number (the open week or last week)
