@@ -9,7 +9,8 @@ import { useWeek } from '../hooks/useWeek'
 import { useLiveScores } from '../hooks/useLiveScores'
 import { findFinal } from '../lib/espnScores'
 import { usePicks } from '../hooks/usePicks'
-import { calcProjectedPoints, countdownToKickoff, formatKickoff } from '../lib/gameUtils'
+import { countdownToKickoff, formatKickoff } from '../lib/gameUtils'
+import { weekPoints } from '../lib/scoring'
 import { remainingPicks } from '../lib/gameSelection'
 
 export default function Picks() {
@@ -46,7 +47,10 @@ export default function Picks() {
 
   // Score bar calculations
   const picksCount     = Object.keys(picks).length
-  const projectedPts   = calcProjectedPoints(picks, games, week?.container_type)
+  // What is actually banked from settled games, and the ceiling still
+  // reachable. The old header showed neither: it counted picks made and
+  // assumed every one of them won, so a full slate always read 8.
+  const pts            = weekPoints(picks, games, week?.container_type)
 
   // Next lock = soonest kickoff among unplayed games
   const upcomingGames  = games.filter((g) => new Date(g.kickoff_time) > new Date())
@@ -237,7 +241,10 @@ export default function Picks() {
               <Divider />
             </>
           )}
-          <ScoreItem value={projectedPts} label="Proj. Pts" gold />
+          <ScoreItem value={pts.earned} label="Points" gold />
+          <Divider />
+          {/* The ceiling, not a forecast: it drops as picks go wrong. */}
+          <ScoreItem value={pts.max} label="Max" />
         </div>
 
         {/* How many are still to make, or confirmation they're all in */}

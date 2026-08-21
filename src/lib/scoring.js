@@ -90,6 +90,85 @@ export function calculateWeeklyScore(containerType, { totalCorrect = 0, nflCorre
 }
 
 /**
+ * A player's week so far: what they have actually banked, and the most they
+ * can still finish on.
+ *
+ * `earned` counts settled games only — it is the score that goes on the
+ * standings if every remaining pick loses. Bonuses count toward it as soon as
+ * their condition is met, because correct picks only ever accumulate: a bonus
+ * earned cannot be taken back.
+ *
+ * `max` assumes every unsettled pick wins. It falls as games go against the
+ * player, which is the point — a number that always reads 8 tells nobody
+ * anything.
+ *
+ * Both go through calculateWeeklyScore, the same function the sync grades
+ * with, so what the app shows can never disagree with the standings.
+ *
+ * @param {object|Array} picks  { game_id → pick } or an array of picks
+ * @param {Array} games         the week's games
+ * @param {string} containerType
+ */
+export function weekPoints(picks, games, containerType) {
+  const picksArray = Array.isArray(picks) ? picks : Object.values(picks ?? {})
+  const byId = Object.fromEntries((games ?? []).map((g) => [g.id, g]))
+
+  let correct = 0
+  let nflCorrect = 0
+  let pushes = 0
+  let settled = 0
+  let pending = 0
+  let pendingNfl = 0
+
+  for (const pick of picksArray) {
+    const game = byId[pick.game_id]
+    if (!game) continue
+
+    // A game with no result is still to come, however far along it looks on
+    // the scoreboard — only the sync's final settles anything.
+    if (!game.result) {
+      pending++
+      if (game.sport === 'nfl') pendingNfl++
+      continue
+    }
+
+    settled++
+    if (game.result === 'push') {
+      pushes++
+    } else if ((game.result === 'home_covers') === (pick.picked_team === 'home')) {
+      correct++
+      if (game.sport === 'nfl') nflCorrect++
+    }
+  }
+
+  const banked = calculateWeeklyScore(containerType, {
+    totalCorrect: correct,
+    nflCorrect,
+    pushCount: pushes,
+  })
+
+  const best = calculateWeeklyScore(containerType, {
+    totalCorrect: correct + pending,
+    nflCorrect:   nflCorrect + pendingNfl,
+    pushCount:    pushes,
+  })
+
+  return {
+    earned:      banked.totalPoints,
+    max:         best.totalPoints,
+    bonusEarned: banked.bonusPoints,
+    bonusMax:    best.bonusPoints,
+    correct,
+    nflCorrect,
+    pushes,
+    settled,
+    pending,
+    pendingNfl,
+    picks: picksArray.length,
+  }
+}
+
+/**
  * Calculate the points earned for a single pick outcome.
  */
 export function pointsForOutcome(outcome) {

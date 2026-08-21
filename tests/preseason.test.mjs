@@ -18,14 +18,13 @@ import {
   resolveGameResult,
   calculateWeeklyScore,
   pointsForOutcome,
+  weekPoints,
 } from '../src/lib/scoring.js'
 
 import {
   formatSpread,
   teamAbbr,
   weekChipLabel,
-  calcProjectedPoints,
-  bonusStatus,
 } from '../src/lib/gameUtils.js'
 
 /** Build a game row the way fetch-nfl-odds writes it. */
@@ -162,35 +161,131 @@ describe('weekly scoring — nfl_only (August has no college football)', () => {
   })
 })
 
-describe('projected points + bonus status for an nfl_only preseason week', () => {
+describe('what the week is worth, for an nfl_only preseason week', () => {
+  // The header used to count picks *made* and assume every one of them won,
+  // so a full slate always read 8 points before a ball was thrown. These
+  // cover the distinction that replaced it: banked versus still reachable.
   const games = [
     { id: 'g1', sport: 'nfl' }, { id: 'g2', sport: 'nfl' }, { id: 'g3', sport: 'nfl' },
     { id: 'g4', sport: 'nfl' }, { id: 'g5', sport: 'nfl' }, { id: 'g6', sport: 'nfl' },
   ]
-  const picksFor = (n) =>
-    Object.fromEntries(games.slice(0, n).map((g, i) => [g.id, { game_id: g.id, picked: 'home', i }]))
 
-  test('no picks → 0 projected', () => {
-    assert.equal(calcProjectedPoints({}, games, 'nfl_only'), 0)
+  /** n picks on home, with results applied from `results` by index. */
+  const slate = (n, results = []) => {
+    const withResults = games.map((g, i) => ({ ...g, result: results[i] ?? null }))
+    const picks = Object.fromEntries(
+      withResults.slice(0, n).map((g) => [g.id, { game_id: g.id, picked_team: 'home' }])
+    )
+    return { games: withResults, picks }
+  }
+
+  const W = 'home_covers'   // picked home, so home covering is a win
+  const L = 'away_covers'
+  const P = 'push'
+
+  test('a full slate with nothing played is worth nothing yet', () => {
+    const { games: g, picks } = slate(6)
+    const pts = weekPoints(picks, g, 'nfl_only')
+    assert.equal(pts.earned, 0, 'banked nothing')
+    assert.equal(pts.max, 8, 'but everything is still on the table')
   })
 
-  test('4 picks → 4 + any-four bonus = 5', () => {
-    assert.equal(calcProjectedPoints(picksFor(4), games, 'nfl_only'), 5)
+  test('no picks at all is zero either way', () => {
+    const pts = weekPoints({}, games, 'nfl_only')
+    assert.equal(pts.earned, 0)
+    assert.equal(pts.max, 0)
   })
 
-  test('6 picks → 6 + both bonuses = 8 (the cap)', () => {
-    assert.equal(calcProjectedPoints(picksFor(6), games, 'nfl_only'), 8)
+  test('a settled win banks a point and does not move the ceiling', () => {
+    const { games: g, picks } = slate(6, [W])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    assert.equal(pts.earned, 1)
+    assert.equal(pts.max, 8)
   })
 
-  test('bonus status counts down remaining picks', () => {
-    const s2 = bonusStatus(picksFor(2), games, 'nfl_only')
-    assert.equal(s2.nflBonus, null)
-    assert.equal(s2.anyFourBonus, '2 picks to go')
-    assert.equal(s2.allSixBonus, '4 picks to go')
+  test('a loss lowers the ceiling — this is the number that has to move', () => {
+    const { games: g, picks } = slate(6, [L])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    assert.equal(pts.earned, 0)
+    // Five correct at best: no all-six bonus, so 5 + the any-four bonus.
+    assert.equal(pts.max, 6)
+  })
 
-    const s5 = bonusStatus(picksFor(5), games, 'nfl_only')
-    assert.equal(s5.anyFourBonus, 'achieved')
-    assert.equal(s5.allSixBonus, '1 pick to go') // singular
+  test('a push is worth half, banked immediately', () => {
+    const { games: g, picks } = slate(6, [P])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    assert.equal(pts.earned, 0.5)
+    assert.equal(pts.pushes, 1)
+  })
+
+  test('a bonus counts as soon as it is won, since it cannot be lost', () => {
+    const { games: g, picks } = slate(6, [W, W, W, W])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    // Four correct plus the any-four bonus, with two games still to play.
+    assert.equal(pts.earned, 5)
+    assert.equal(pts.bonusEarned, 1)
+    assert.equal(pts.pending, 2)
+  })
+
+  test('a perfect week caps at 8 and earned meets max', () => {
+    const { games: g, picks } = slate(6, [W, W, W, W, W, W])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    assert.equal(pts.earned, 8)
+    assert.equal(pts.max, 8)
+    assert.equal(pts.pending, 0)
+  })
+
+  test('earned never exceeds max, whatever the mix', () => {
+    const { games: g, picks } = slate(6, [W, L, P, W])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    assert.ok(pts.earned <= pts.max, `${pts.earned} <= ${pts.max}`)
+    assert.equal(pts.settled, 4)
+    assert.equal(pts.pending, 2)
+  })
+
+  test('the app and the sync cannot disagree about a finished week', () => {
+    // Once nothing is pending, weekPoints must equal what the grader wrote.
+    const { games: g, picks } = slate(6, [W, W, L, P, W, W])
+    const pts = weekPoints(picks, g, 'nfl_only')
+    const graded = calculateWeeklyScore('nfl_only', {
+      totalCorrect: pts.correct, nflCorrect: pts.nflCorrect, pushCount: pts.pushes,
+    })
+    assert.equal(pts.earned, graded.totalPoints)
+    assert.equal(pts.earned, pts.max)
+  })
+})
+
+describe('the NFL bonus in a mixed week tracks correct picks, not picks made', () => {
+  const games = [
+    { id: 'n1', sport: 'nfl' }, { id: 'n2', sport: 'nfl' },
+    { id: 'n3', sport: 'nfl' }, { id: 'n4', sport: 'nfl' },
+    { id: 'c1', sport: 'college' }, { id: 'c2', sport: 'college' },
+  ]
+  const build = (results) => {
+    const g = games.map((x, i) => ({ ...x, result: results[i] ?? null }))
+    return { games: g, picks: Object.fromEntries(g.map((x) => [x.id, { game_id: x.id, picked_team: 'home' }])) }
+  }
+
+  test('four NFL picks selected but unplayed earn no bonus', () => {
+    const { games: g, picks } = build([])
+    const pts = weekPoints(picks, g, 'nfl_college')
+    assert.equal(pts.bonusEarned, 0, 'selecting is not winning')
+    assert.equal(pts.bonusMax, 2)
+  })
+
+  test('four NFL picks won earn the bonus', () => {
+    const { games: g, picks } = build(['home_covers', 'home_covers', 'home_covers', 'home_covers'])
+    const pts = weekPoints(picks, g, 'nfl_college')
+    assert.equal(pts.nflCorrect, 4)
+    assert.equal(pts.bonusEarned, 1)
+    assert.equal(pts.earned, 5)
+  })
+
+  test('one lost NFL pick puts that bonus permanently out of reach', () => {
+    const { games: g, picks } = build(['away_covers'])
+    const pts = weekPoints(picks, g, 'nfl_college')
+    assert.equal(pts.nflCorrect + pts.pendingNfl, 3, 'four NFL correct is no longer possible')
+    assert.equal(pts.bonusMax, 0, 'and neither bonus can be reached')
   })
 })
 

@@ -1,118 +1,99 @@
-import { bonusStatus } from '../../lib/gameUtils'
+import { weekPoints } from '../../lib/scoring'
 
 /**
- * Live points tracker shown below the game cards.
- * Shows base points earned/projected + bonus status.
+ * What the week is worth right now, and what it could still be worth.
+ *
+ * Everything here counts settled games only. The previous version marked a
+ * bonus "achieved ✓" as soon as the player had *selected* four NFL games,
+ * which read as points banked for making picks rather than for winning them.
+ *
+ * A bonus that can no longer be reached says so. Once a fifth pick is lost,
+ * "All 6 correct" is gone, and pretending it is still pending is the same
+ * flattery in a quieter form.
  */
 export default function PointsPreview({ week, games, picks }) {
-  const picksArray = Object.values(picks)
-  const gameMap    = Object.fromEntries(games.map((g) => [g.id, g]))
-
-  // Points already earned from resolved games
-  let earnedPoints  = 0
-  let correctCount  = 0
-  let nflCorrect    = 0
-  let pushCount     = 0
-
-  for (const pick of picksArray) {
-    const game = gameMap[pick.game_id]
-    if (!game?.result) continue
-
-    if (game.result === 'push') {
-      earnedPoints += 0.5
-      pushCount++
-    } else if (
-      (game.result === 'home_covers' && pick.picked_team === 'home') ||
-      (game.result === 'away_covers' && pick.picked_team === 'away')
-    ) {
-      earnedPoints += 1
-      correctCount++
-      if (game.sport === 'nfl') nflCorrect++
-    }
-  }
-
-  // Unresolved picks — each is a potential +1
-  const unresolvedCount = picksArray.filter((p) => !gameMap[p.game_id]?.result).length
-  const basePoints      = earnedPoints
-  const projectedBase   = earnedPoints + unresolvedCount
-
   const ct = week?.container_type
-  const bonus = bonusStatus(picks, games, ct)
+  const pts = weekPoints(picks, games, ct)
 
-  // Calculate projected bonus
-  const projectedCorrect = correctCount + unresolvedCount
-  const projectedNfl     = nflCorrect   + picksArray.filter((p) => {
-    const g = gameMap[p.game_id]
-    return g && !g.result && g.sport === 'nfl'
-  }).length
+  const maxCorrect = pts.correct + pts.pending
+  const maxNfl     = pts.nflCorrect + pts.pendingNfl
 
-  let projectedBonus = 0
-  if (ct === 'nfl_college') {
-    if (projectedNfl     >= 4) projectedBonus += 1
-    if (projectedCorrect >= 6) projectedBonus += 1
-  } else {
-    if (projectedCorrect >= 4) projectedBonus += 1
-    if (projectedCorrect >= 6) projectedBonus += 1
-  }
+  const bonuses = ct === 'nfl_college'
+    ? [
+        bonusRow('All 4 NFL correct', pts.nflCorrect, maxNfl, 4),
+        bonusRow('All 6 correct', pts.correct, maxCorrect, 6),
+      ]
+    : [
+        bonusRow('Any 4 correct', pts.correct, maxCorrect, 4),
+        bonusRow('All 6 correct', pts.correct, maxCorrect, 6),
+      ]
 
-  const projectedTotal = Math.min(projectedBase + projectedBonus, 8)
+  const basePoints = pts.correct + pts.pushes * 0.5
 
   return (
     <div className="mx-4 mb-6 bg-bg border border-border rounded-xl p-4">
       <p className="text-[10px] tracking-widest uppercase text-muted mb-3">
-        Live Points Tracker
+        Points This Week
       </p>
 
-      {/* Base picks row */}
+      {/* Base points — what the settled games have paid so far */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm text-muted">Base picks</span>
+        <span className="text-sm text-muted">
+          Correct picks
+          {pts.pushes > 0 && <span className="text-[11px]"> (+{pts.pushes} push)</span>}
+        </span>
         <span className="text-sm text-accent-text font-bold">
-          {basePoints > 0 ? `${basePoints} pts` : `${unresolvedCount} projected`}
+          {pts.settled > 0 ? `${round1(basePoints)} pts` : 'nothing settled yet'}
         </span>
       </div>
 
-      {/* NFL bonus row — only for nfl_college weeks */}
-      {ct === 'nfl_college' && (
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted">All 4 NFL bonus</span>
-          <span className={`text-sm font-bold ${bonus.nflBonus === 'achieved' ? 'text-green' : 'text-muted'}`}>
-            {bonus.nflBonus === 'achieved' ? '+1 pt ✓' : `+1 · ${bonus.nflBonus}`}
-          </span>
+      {bonuses.map((b) => (
+        <div key={b.label} className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted">{b.label}</span>
+          <span className={`text-sm font-bold ${b.tone}`}>{b.text}</span>
         </div>
-      )}
+      ))}
 
-      {/* Any-4 bonus row — only for college_only / nfl_only weeks */}
-      {ct !== 'nfl_college' && bonus.anyFourBonus !== undefined && (
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted">Any 4 correct bonus</span>
-          <span className={`text-sm font-bold ${bonus.anyFourBonus === 'achieved' ? 'text-green' : 'text-muted'}`}>
-            {bonus.anyFourBonus === 'achieved' ? '+1 pt ✓' : `+1 · ${bonus.anyFourBonus}`}
-          </span>
-        </div>
-      )}
+      <div className="h-px bg-border my-3" />
 
-      {/* All-6 bonus row */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-muted">All 6 correct bonus</span>
-        <span className={`text-sm font-bold ${bonus.allSixBonus === 'achieved' ? 'text-green' : 'text-muted'}`}>
-          {bonus.allSixBonus === 'achieved' ? '+1 pt ✓' : `+1 · ${bonus.allSixBonus}`}
-        </span>
-      </div>
-
-      <div className="h-px bg-border mb-3" />
-
-      {/* Total row */}
+      {/* Banked, then the ceiling. Two numbers, because either alone misleads:
+          the first ignores a week still in play, the second flatters it. */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-white">Projected Total</span>
-        <span className="text-xl font-bold text-primary-light">{projectedTotal} pts</span>
+        <span className="text-sm font-bold text-white">Points so far</span>
+        <span className="text-xl font-bold text-primary-light">{round1(pts.earned)} pts</span>
       </div>
 
-      {/* Max pts note */}
-      {projectedTotal >= 8 && (
+      {pts.pending > 0 && (
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[11px] text-muted">
+            Most you can finish on · {pts.pending} still to play
+          </span>
+          <span className="text-sm font-semibold text-muted">{round1(pts.max)} pts</span>
+        </div>
+      )}
+
+      {pts.earned >= 8 && (
         <div className="mt-3 px-3 py-2 bg-primary/8 border border-primary/20 rounded-lg">
-          <p className="text-xs text-primary-light">🏆 On pace for max points this week!</p>
+          <p className="text-xs text-primary-light">🏆 Maximum points — perfect week!</p>
         </div>
       )}
     </div>
   )
+}
+
+/** Scores land on half points, so summing drifts; one decimal is exact. */
+const round1 = (n) => Math.round(n * 10) / 10
+
+/**
+ * Where one bonus stands: won, still live, or mathematically gone.
+ * `have` is correct picks so far, `ceiling` is that plus everything unplayed.
+ */
+function bonusRow(label, have, ceiling, need) {
+  if (have >= need) {
+    return { label, text: '+1 pt ✓', tone: 'text-green' }
+  }
+  if (ceiling < need) {
+    return { label, text: 'out of reach', tone: 'text-muted line-through' }
+  }
+  return { label, text: `+1 · ${need - have} more correct`, tone: 'text-muted' }
 }
