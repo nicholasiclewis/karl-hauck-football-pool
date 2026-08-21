@@ -11,8 +11,8 @@ import WeekBreakdown from './WeekBreakdown'
  *   isExpanded  — whether the breakdown is open
  *   onToggle    — callback to toggle expansion
  *   weeks       — array of week rows for the WeekBreakdown label lookup
- *   duesIcon    — emoji string (🔴 | 🤡), or null when dues are paid or the
- *                 status is unknown — either way no badge is shown
+ *   duesIcon    — 🤡 when dues are late, otherwise null: paid, early in the
+ *                 season, or status unknown all show no badge
  */
 export default function PlayerRow({
   entry,
@@ -93,7 +93,7 @@ export default function PlayerRow({
               role="img"
               aria-label="Dues not paid"
               className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-              title={duesIcon === '🤡' ? 'Dues not paid — and it is getting late' : 'Dues not paid'}
+              title="Dues not paid — and it is getting late"
             >
               {duesIcon}
             </span>
