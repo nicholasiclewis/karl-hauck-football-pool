@@ -11,8 +11,9 @@ import WeekBreakdown from './WeekBreakdown'
  *   isExpanded  — whether the breakdown is open
  *   onToggle    — callback to toggle expansion
  *   weeks       — array of week rows for the WeekBreakdown label lookup
- *   duesIcon    — 🤡 when dues are late, otherwise null: paid, early in the
- *                 season, or status unknown all show no badge
+ *   duesIcon    — 🤡 when dues are late, in which case it replaces the
+ *                 player's initials entirely; null otherwise (paid, early in
+ *                 the season, or status unknown) and the avatar is normal
  */
 export default function PlayerRow({
   entry,
@@ -69,10 +70,11 @@ export default function PlayerRow({
           {rank}
         </span>
 
-        {/* Avatar */}
+        {/* Avatar — the clown takes the whole circle when dues are late */}
         <div className="relative flex-shrink-0">
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs"
+            title={duesIcon ? 'Dues not paid — and it is getting late' : undefined}
             style={{
               background:
                 rank === 1
@@ -85,19 +87,12 @@ export default function PlayerRow({
               color: '#ffffff',
             }}
           >
-            {initials}
+            {duesIcon ? (
+              <span role="img" aria-label="Dues not paid" className="text-lg leading-none">
+                {duesIcon}
+              </span>
+            ) : initials}
           </div>
-          {/* Dues overlay badge — omitted while status is unknown */}
-          {duesIcon && (
-            <span
-              role="img"
-              aria-label="Dues not paid"
-              className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-              title="Dues not paid — and it is getting late"
-            >
-              {duesIcon}
-            </span>
-          )}
         </div>
 
         {/* Name + weeks played */}

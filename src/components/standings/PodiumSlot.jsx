@@ -5,8 +5,9 @@
  *   entry       — standings entry (or null if fewer than 3 players)
  *   place       — 1 | 2 | 3
  *   blockHeight — height in px for the coloured podium block (70 | 52 | 38)
- *   duesIcon    — 🤡 when dues are late, otherwise null: paid, early in the
- *                 season, or status unknown all show no badge
+ *   duesIcon    — 🤡 when dues are late, in which case it replaces the
+ *                 player's initials entirely; null otherwise (paid, early in
+ *                 the season, or status unknown) and the avatar is normal
  */
 export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null, payout = null }) {
   if (!entry) return <div className="flex-1" />
@@ -55,25 +56,19 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
         {s.placeLabel}
       </span>
 
-      {/* Avatar with dues badge */}
+      {/* Avatar — the clown takes the whole circle when dues are late */}
       <div className="relative mb-1">
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm text-white shadow-lg"
+          title={duesIcon ? 'Dues not paid — and it is getting late' : undefined}
           style={{ background: s.avatarGrad }}
         >
-          {initials}
+          {duesIcon ? (
+            <span role="img" aria-label="Dues not paid" className="text-2xl leading-none">
+              {duesIcon}
+            </span>
+          ) : initials}
         </div>
-        {/* Dues overlay — omitted while status is unknown */}
-        {duesIcon && (
-          <span
-            role="img"
-            aria-label="Dues not paid"
-            className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-            title="Dues not paid — and it is getting late"
-          >
-            {duesIcon}
-          </span>
-        )}
       </div>
 
       {/* Name */}
