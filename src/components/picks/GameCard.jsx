@@ -12,10 +12,21 @@ import TeamLogo from '../ui/TeamLogo'
  *   capReached   — unpicked and this sport's limit is already used up
  *   playerLocked — the player locked their slate; buttons freeze until they unlock
  */
-export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false }) {
+export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false, live = null }) {
   const kickedOff  = new Date(game.kickoff_time) <= new Date()
   const isLocked   = kickedOff || pick?.is_locked
   const isComplete = game.result !== null
+
+  // A game on the field right now, per ESPN. Only used to display a score and
+  // a clock — the pick stays ungraded until the sync writes a real final, so
+  // a team ahead at halftime never shows as a win.
+  const isLive = !isComplete && live?.state === 'in'
+
+  // Scores come from the database once the game is settled; before that, from
+  // the live feed if it has them.
+  const showScore = isComplete || isLive
+  const homeScore = isComplete ? game.home_score : live?.home_score
+  const awayScore = isComplete ? game.away_score : live?.away_score
 
   const countdown = kickedOff ? null : countdownToKickoff(game.kickoff_time)
 
@@ -39,7 +50,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
     <div
       className={`mx-4 mb-3 bg-card rounded-2xl border overflow-hidden transition-colors ${
         hasPick && !isLocked ? 'border-primary-light' : 'border-border'
-      } ${isLocked && !isComplete ? 'opacity-60' : ''} ${
+      } ${isLocked && !isComplete && !isLive ? 'opacity-60' : ''} ${
         (capReached || (playerLocked && !hasPick)) && !isLocked ? 'opacity-50' : ''
       }`}
     >
@@ -53,6 +64,11 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
 
           {isComplete ? (
             <span className="text-[11px] text-muted">Final</span>
+          ) : isLive ? (
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red/10 text-red border border-red/40 text-[11px] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-red animate-pulse" />
+              {live.detail}
+            </span>
           ) : isLocked ? (
             <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-border text-muted border border-border2 text-[11px]">
               🔒 Locked
@@ -69,8 +85,8 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
             <TeamLogo team={game.home_team} sport={game.sport} abbr={homeAbbr} />
             <span className="text-sm font-bold text-white leading-tight">{game.home_team}</span>
-            {isComplete && (
-              <span className="text-lg font-bold text-white">{game.home_score ?? '—'}</span>
+            {showScore && (
+              <span className="text-lg font-bold text-white">{homeScore ?? '—'}</span>
             )}
           </div>
 
@@ -89,8 +105,8 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
             <TeamLogo team={game.away_team} sport={game.sport} abbr={awayAbbr} />
             <span className="text-sm font-bold text-white leading-tight">{game.away_team}</span>
-            {isComplete && (
-              <span className="text-lg font-bold text-white">{game.away_score ?? '—'}</span>
+            {showScore && (
+              <span className="text-lg font-bold text-white">{awayScore ?? '—'}</span>
             )}
           </div>
         </div>

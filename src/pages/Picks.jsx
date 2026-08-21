@@ -6,6 +6,8 @@ import PickSummary from '../components/picks/PickSummary'
 import PointsPreview from '../components/picks/PointsPreview'
 import { useAuth } from '../hooks/useAuth'
 import { useWeek } from '../hooks/useWeek'
+import { useLiveScores } from '../hooks/useLiveScores'
+import { findFinal } from '../lib/espnScores'
 import { usePicks } from '../hooks/usePicks'
 import { calcProjectedPoints, countdownToKickoff, formatKickoff } from '../lib/gameUtils'
 import { remainingPicks } from '../lib/gameSelection'
@@ -27,6 +29,11 @@ export default function Picks() {
   }, [lockKey])
 
   const loading = weekLoading
+
+  // Running scores for games being played right now, read straight from
+  // ESPN. Display only — the scheduled sync owns what lands in the database.
+  const liveScores = useLiveScores(games)
+  const liveFor = (game) => findFinal(game, liveScores)
 
   // Split games into NFL and college sections
   const nflGames     = games.filter((g) => g.sport === 'nfl')
@@ -298,6 +305,7 @@ export default function Picks() {
               disabled={!week.picks_open || lockedIn || atCap(game)}
               capReached={atCap(game)}
               playerLocked={lockedIn}
+              live={liveFor(game)}
             />
           ))}
         </>
@@ -321,6 +329,7 @@ export default function Picks() {
               disabled={!week.picks_open || lockedIn || atCap(game)}
               capReached={atCap(game)}
               playerLocked={lockedIn}
+              live={liveFor(game)}
             />
           ))}
         </>

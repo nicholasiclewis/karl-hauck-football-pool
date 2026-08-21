@@ -101,6 +101,53 @@ export function parseScoreboard(payload, sport) {
   return finals
 }
 
+/**
+ * Pull the games currently on the field — and the just-finished — with their
+ * running score and clock.
+ *
+ * This exists for display only. parseScoreboard above stays finals-only
+ * because its output is graded; these entries never touch the database, so a
+ * halftime score is safe here and is the whole point. Finished games are
+ * included too: ESPN knows a final for up to fifteen minutes before the
+ * scheduled sync writes it, and the card may as well show it during the gap.
+ *
+ * `detail` is ESPN's clock line as people read it on the ticker: "Q3 4:12",
+ * "Halftime", "Final".
+ */
+export function parseLiveScores(payload, sport) {
+  const live = []
+
+  for (const event of payload?.events ?? []) {
+    const competition = event.competitions?.[0]
+    const status = competition?.status ?? event.status
+    const state = status?.type?.state
+    // 'pre' games have no score worth showing.
+    if (state !== 'in' && state !== 'post') continue
+
+    const home = competition.competitors?.find((c) => c.homeAway === 'home')
+    const away = competition.competitors?.find((c) => c.homeAway === 'away')
+    if (!home || !away) continue
+
+    const home_score = parseInt(home.score, 10)
+    const away_score = parseInt(away.score, 10)
+    if (!Number.isFinite(home_score) || !Number.isFinite(away_score)) continue
+
+    live.push({
+      sport,
+      state,                                   // 'in' = playing, 'post' = done
+      detail: status?.type?.shortDetail ?? (state === 'post' ? 'Final' : 'Live'),
+      home_team: home.team?.displayName ?? home.team?.location ?? '',
+      away_team: away.team?.displayName ?? away.team?.location ?? '',
+      home_location: home.team?.location ?? null,
+      away_location: away.team?.location ?? null,
+      home_score,
+      away_score,
+    })
+  }
+
+  return live
+}
+
 /** Index finals for lookup by matchup. */
 export function indexFinals(finals) {
   const byMatchup = new Map()
