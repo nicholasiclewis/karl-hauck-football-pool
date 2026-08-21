@@ -88,7 +88,11 @@ export default function PlayerRow({
             }}
           >
             {duesIcon ? (
-              <span role="img" aria-label="Dues not paid" className="text-lg leading-none">
+              <span
+                role="img"
+                aria-label="Dues not paid"
+                className="flex h-full w-full items-center justify-center text-lg leading-none"
+              >
                 {duesIcon}
               </span>
             ) : initials}

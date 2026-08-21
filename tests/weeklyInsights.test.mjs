@@ -17,6 +17,7 @@ import {
   winStreaks,
   gameBreakdown,
   notables,
+  pickCards,
   ordinal,
   movementGlyph,
 } from '../src/lib/weeklyInsights.js'
@@ -235,5 +236,82 @@ describe('formatting', () => {
     assert.equal(movementGlyph({ delta: -2, isNew: false }).arrow, '▼')
     assert.equal(movementGlyph({ delta: 0, isNew: false }).arrow, '–')
     assert.equal(movementGlyph({ isNew: true }).text, 'NEW')
+  })
+})
+
+describe('everyone\'s picks for the recap', () => {
+  const games = [
+    { id: 'late',  sport: 'nfl',     home_team: 'Kansas City Chiefs', away_team: 'Denver Broncos',
+      spread: -3.5, home_score: 27, away_score: 20, result: 'home_covers',
+      kickoff_time: '2026-10-11T20:25:00Z' },
+    { id: 'early', sport: 'college', home_team: 'Toledo Rockets', away_team: 'Ohio Bobcats',
+      spread: -3.5, home_score: 24, away_score: 21, result: 'push',
+      kickoff_time: '2026-10-10T16:00:00Z' },
+    { id: 'unplayed', sport: 'nfl', home_team: 'Miami Dolphins', away_team: 'Buffalo Bills',
+      spread: 6.5, home_score: null, away_score: null, result: null,
+      kickoff_time: '2026-10-12T00:15:00Z' },
+  ]
+  const table = [{ userId: 'u1', name: 'Dana', points: 1.5 }]
+
+  test('a pick reads from the picker\'s side, not the home team\'s', () => {
+    const picks = [{ user_id: 'u1', game_id: 'late', picked_team: 'away', outcome: 'loss' }]
+    const [card] = pickCards(table, games, picks)
+    const p = card.picks[0]
+
+    assert.equal(p.team, 'Denver Broncos')
+    assert.equal(p.opponent, 'Kansas City Chiefs')
+    assert.equal(p.atHome, false)
+    // Home was -3.5, so taking the away side is +3.5.
+    assert.equal(p.spread, 3.5)
+    // Their 20 first, not the home team's 27.
+    assert.equal(p.scoreFor, 20)
+    assert.equal(p.scoreAgainst, 27)
+  })
+
+  test('each pick carries what it paid', () => {
+    const picks = [
+      { user_id: 'u1', game_id: 'late',  picked_team: 'home', outcome: 'win' },
+      { user_id: 'u1', game_id: 'early', picked_team: 'home', outcome: 'push' },
+    ]
+    const [card] = pickCards(table, games, picks)
+    const paid = Object.fromEntries(card.picks.map((p) => [p.outcome, p.points]))
+    assert.deepEqual(paid, { win: 1, push: 0.5 })
+  })
+
+  test('a loss is zero, but a game not yet graded is not', () => {
+    const picks = [
+      { user_id: 'u1', game_id: 'late',     picked_team: 'away', outcome: 'loss' },
+      { user_id: 'u1', game_id: 'unplayed', picked_team: 'home', outcome: null },
+    ]
+    const [card] = pickCards(table, games, picks)
+    const byGame = Object.fromEntries(card.picks.map((p) => [p.team, p.points]))
+
+    assert.equal(byGame['Denver Broncos'], 0, 'a loss really is zero')
+    assert.equal(byGame['Miami Dolphins'], null, 'pending is not a zero')
+  })
+
+  test('picks are listed in the order the games kicked off', () => {
+    const picks = [
+      { user_id: 'u1', game_id: 'late',  picked_team: 'home', outcome: 'win' },
+      { user_id: 'u1', game_id: 'early', picked_team: 'home', outcome: 'push' },
+    ]
+    const [card] = pickCards(table, games, picks)
+    assert.deepEqual(card.picks.map((p) => p.sport), ['college', 'nfl'])
+  })
+
+  test('only the player\'s own picks, and only on real games', () => {
+    const picks = [
+      { user_id: 'u1', game_id: 'late',    picked_team: 'home', outcome: 'win' },
+      { user_id: 'u2', game_id: 'late',    picked_team: 'away', outcome: 'loss' },
+      { user_id: 'u1', game_id: 'deleted', picked_team: 'home', outcome: 'win' },
+    ]
+    const [card] = pickCards(table, games, picks)
+    assert.equal(card.picks.length, 1)
+  })
+
+  test('a player who never submitted still gets a card', () => {
+    const [card] = pickCards(table, games, [])
+    assert.equal(card.name, 'Dana')
+    assert.deepEqual(card.picks, [])
   })
 })

@@ -15,6 +15,7 @@ import {
   buildGamesEmail,
   formatLabel,
   picksNeeded,
+  pickLine,
 } from '../src/lib/weeklyEmail.js'
 
 const season = { year: 2026 }
@@ -145,5 +146,98 @@ describe('shared labels', () => {
     assert.equal(picksNeeded({ nfl: 4, college: 2 }), '4 NFL and 2 college')
     assert.equal(picksNeeded({ nfl: 6, college: 0 }), '6 NFL')
     assert.equal(picksNeeded({ nfl: 0, college: 6 }), '6 college')
+  })
+})
+
+describe('every pick, in the recap', () => {
+  const pick = (over = {}) => ({
+    sport: 'nfl',
+    team: 'Kansas City Chiefs',
+    opponent: 'Denver Broncos',
+    atHome: true,
+    spread: -3.5,
+    scoreFor: 27,
+    scoreAgainst: 20,
+    outcome: 'win',
+    points: 1,
+    ...over,
+  })
+
+  const cards = [
+    {
+      userId: 'u1', name: 'Dana', points: 1.5, bonus: 0, correct: 1, losses: 1, pushes: 1,
+      picks: [
+        pick(),
+        pick({ outcome: 'loss', points: 0, team: 'Buffalo Bills', opponent: 'Miami Dolphins',
+               atHome: false, spread: 6.5, scoreFor: 14, scoreAgainst: 30 }),
+        pick({ sport: 'college', outcome: 'push', points: 0.5, team: 'Toledo Rockets',
+               opponent: 'Ohio Bobcats', spread: -3.5, scoreFor: 24, scoreAgainst: 21 }),
+      ],
+    },
+  ]
+
+  const build = (over = {}) => buildResultsEmail({
+    week: { week_number: 5, container_type: 'nfl_college' },
+    season,
+    weekTable: [{ userId: 'u1', name: 'Dana', correct: 1, losses: 1, pushes: 1, bonus: 0, points: 1.5 }],
+    winners: [{ name: 'Dana', points: 1.5 }],
+    perfect: [],
+    season_table: [{ rank: 1, userId: 'u1', name: 'Dana', points: 1.5, weeksWon: 1, gap: 0 }],
+    cards,
+    ...over,
+  }).body
+
+  test('the section lists each player and their picks', () => {
+    const body = build()
+    assert.match(body, /EVERY PICK/)
+    assert.match(body, /Dana — 1\.5 pts/)
+    assert.match(body, /KC -3\.5 vs DEN/)
+    assert.match(body, /BUF \+6\.5 @ MIA/)
+    assert.match(body, /TOL -3\.5 vs OHIO/)
+  })
+
+  test('every pick shows what it paid', () => {
+    const lines = build().split('\n').filter((l) => /KC|BUF|TOL/.test(l))
+    assert.match(lines[0], /W\s+1\s+NFL/)
+    assert.match(lines[1], /L\s+0\s+NFL/)
+    assert.match(lines[2], /P\s+0\.5\s+CFB/)
+  })
+
+  test('the pick points add up to the total reported above them', () => {
+    // If these ever disagree the email is arguing with itself in public.
+    const paid = cards[0].picks.reduce((sum, p) => sum + (p.points ?? 0), 0)
+    assert.equal(paid, cards[0].points)
+  })
+
+  test('a game still to be graded shows a dash, not a zero', () => {
+    const body = build({
+      cards: [{ ...cards[0], picks: [pick({ outcome: null, points: null, scoreFor: null, scoreAgainst: null })] }],
+    })
+    const line = body.split('\n').find((l) => l.includes('KC -3.5'))
+    assert.match(line, /·\s+—/)
+    assert.match(line, /not played/)
+    assert.doesNotMatch(line, /\s0\s/)
+  })
+
+  test('a player who submitted nothing is named rather than dropped', () => {
+    const body = build({ cards: [{ ...cards[0], picks: [] }] })
+    assert.match(body, /Dana/)
+    assert.match(body, /no picks submitted/)
+  })
+
+  test('the section disappears when there are no cards', () => {
+    assert.doesNotMatch(build({ cards: [] }), /EVERY PICK/)
+  })
+
+  test('scores read the picker\'s points first', () => {
+    // The away pick lost 14-30; printing 30-14 would read as a win.
+    const line = pickLine(cards[0].picks[1])
+    assert.match(line, /14-30/)
+  })
+
+  test('columns line up down the page', () => {
+    const lines = cards[0].picks.map(pickLine)
+    const sportAt = lines.map((l) => l.indexOf(l.includes('NFL') ? 'NFL' : 'CFB'))
+    assert.equal(new Set(sportAt).size, 1, `sport column drifts: ${sportAt}`)
   })
 })

@@ -236,7 +236,10 @@ const medal = (rank) => (rank === 1 ? GOLD : rank === 2 ? SILVER : rank === 3 ? 
 // ── Results PDF ──────────────────────────────────────────────────────────────
 
 export function buildResultsPdf(data) {
-  const { week, season, weekTable, winners, perfect, standings, movement, stories } = data
+  const {
+    week, season, weekTable, winners, perfect, standings, movement, stories,
+    cards = [],
+  } = data
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
 
   folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'Results' })
@@ -351,6 +354,83 @@ export function buildResultsPdf(data) {
     doc.line(L, y + h, R, y + h)
     y += h
   })
+
+  // ── Every pick ──
+  // The tables above settle who won; this is the part that gets argued over,
+  // so it runs to a second page rather than being trimmed to fit the first.
+  if (cards.length) {
+    const nextPage = () => {
+      doc.addPage()
+      folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'Results' })
+      return 18
+    }
+
+    if (y > 200) y = nextPage()
+    y = sectionHead(doc, y + 4, 'Every Pick', [{ label: 'PTS', w: 14 }])
+
+    for (const card of cards) {
+      // Keep a player's name with at least their first pick: a heading alone
+      // at the foot of a page reads as a card with no picks in it.
+      if (y + 12 > PAGE_H - 14) y = nextPage()
+
+      y += 4
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      rgb(doc, TEXT)
+      doc.text(clip(doc, card.name, W - 30), L, y)
+
+      doc.setFontSize(8.5)
+      rgb(doc, GOLD)
+      doc.text(`${Number(card.points).toFixed(1)}`, R, y, { align: 'right' })
+      y += 1.5
+
+      if (!card.picks.length) {
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(7.5)
+        rgb(doc, MUTED)
+        doc.text('no picks submitted', L + 3, y + 4)
+        y += 6
+        continue
+      }
+
+      card.picks.forEach((p, i) => {
+        const rowH = 6
+        if (y + rowH > PAGE_H - 14) y = nextPage()
+
+        fill(doc, i % 2 === 0 ? CARD : CARD2)
+        doc.rect(L, y, W, rowH, 'F')
+        const base = y + 4.1
+
+        // Outcome letter, coloured — the column you scan down.
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7.5)
+        rgb(doc, p.outcome === 'win' ? GREEN : p.outcome === 'loss' ? RED : MUTED)
+        doc.text({ win: 'W', loss: 'L', push: 'P' }[p.outcome] ?? '·', L + 2, base)
+
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(6.5)
+        rgb(doc, MUTED)
+        doc.text(p.sport === 'nfl' ? 'NFL' : 'CFB', L + 7, base)
+
+        doc.setFontSize(7.5)
+        rgb(doc, TEXT)
+        const side = `${p.team} ${formatSpread(p.spread)} ${p.atHome ? 'vs' : '@'} ${p.opponent}`
+        doc.text(clip(doc, side, W - 46), L + 16, base)
+
+        rgb(doc, MUTED)
+        doc.text(
+          p.scoreFor == null || p.scoreAgainst == null ? '—' : `${p.scoreFor}-${p.scoreAgainst}`,
+          R - 14, base, { align: 'right' }
+        )
+
+        doc.setFont('helvetica', 'bold')
+        rgb(doc, p.points ? TEXT : MUTED)
+        doc.text(p.points == null ? '—' : String(p.points), R, base, { align: 'right' })
+
+        y += rowH
+      })
+    }
+  }
 
   return doc
 }

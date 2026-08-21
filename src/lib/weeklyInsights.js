@@ -149,6 +149,60 @@ export function gameBreakdown(games, picks) {
 }
 
 /**
+ * Every player's card for the week: what they took, and what each pick paid.
+ *
+ * The recap reported totals only, so the one thing everybody actually argues
+ * about — who was on which side — was the one thing it left out.
+ *
+ * Picks come back in the order the games kicked off, so two cards read against
+ * each other line by line. A pick whose game never resolved is returned with
+ * null points rather than zero: a game still to be graded is not a loss, and
+ * printing it as one would be wrong in the direction people notice.
+ *
+ * @param {Array} weekTable rows from loadResultsData, each { userId, name, ... }
+ * @param {Array} games     the week's featured games
+ * @param {Array} picks     every pick in the week
+ */
+export function pickCards(weekTable, games, picks) {
+  const byGame = new Map(games.map((g) => [g.id, g]))
+
+  const kickoffOrder = new Map(
+    [...games]
+      .sort((a, b) => new Date(a.kickoff_time) - new Date(b.kickoff_time))
+      .map((g, i) => [g.id, i])
+  )
+
+  return weekTable.map((row) => ({
+    ...row,
+    picks: picks
+      .filter((p) => p.user_id === row.userId)
+      .sort((a, b) => (kickoffOrder.get(a.game_id) ?? 0) - (kickoffOrder.get(b.game_id) ?? 0))
+      .map((p) => {
+        const game = byGame.get(p.game_id)
+        if (!game) return null
+
+        // Everything is stated from the picker's side, so a card reads as the
+        // bet they made rather than as the game's own home/away framing.
+        const tookHome = p.picked_team === 'home'
+        const points = p.outcome === 'win' ? 1 : p.outcome === 'push' ? 0.5 : p.outcome ? 0 : null
+
+        return {
+          sport:        game.sport,
+          team:         tookHome ? game.home_team : game.away_team,
+          opponent:     tookHome ? game.away_team : game.home_team,
+          atHome:       tookHome,
+          spread:       tookHome ? Number(game.spread) : -Number(game.spread),
+          scoreFor:     tookHome ? game.home_score : game.away_score,
+          scoreAgainst: tookHome ? game.away_score : game.home_score,
+          outcome:      p.outcome ?? null,
+          points,
+        }
+      })
+      .filter(Boolean),
+  }))
+}
+
+/**
  * Headline storylines for a week.
  *
  * @param {object} o

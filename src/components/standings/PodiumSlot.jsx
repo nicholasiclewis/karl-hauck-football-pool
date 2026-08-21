@@ -64,7 +64,11 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
           style={{ background: s.avatarGrad }}
         >
           {duesIcon ? (
-            <span role="img" aria-label="Dues not paid" className="text-2xl leading-none">
+            <span
+                role="img"
+                aria-label="Dues not paid"
+                className="flex h-full w-full items-center justify-center text-2xl leading-none"
+              >
               {duesIcon}
             </span>
           ) : initials}

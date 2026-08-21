@@ -6,7 +6,7 @@
  * commissioner sends these by hand, so the output has to read well pasted
  * straight into a mail client with no formatting applied.
  */
-import { formatKickoff, formatSpread } from './gameUtils.js'
+import { formatKickoff, formatSpread, teamAbbr } from './gameUtils.js'
 import { weekWindow, formatWeekWindow } from './weekWindow.js'
 
 export const MAX_WEEK_POINTS = 8
@@ -27,6 +27,28 @@ export function formatLabel(week) {
   return `${base} · ${week.conference ? `${focus} (${week.conference})` : focus}`
 }
 
+/**
+ * One pick as a line of the recap: outcome, what it paid, and the bet itself.
+ *
+ * Fixed columns, because these are read down a page — an eye scanning the
+ * points column should not have to find it again on every row. Everything is
+ * stated from the picker's side, so "vs" and "@" describe where *their* team
+ * played, and the score reads their points first.
+ */
+export function pickLine(p) {
+  const mark = { win: 'W', loss: 'L', push: 'P' }[p.outcome] ?? '·'
+  // Right-aligned, the way a column of numbers is read. A pick still waiting
+  // on its game shows a dash rather than the zero it has not earned.
+  const paid = (p.points == null ? '—' : String(p.points)).padStart(3)
+  const side = `${teamAbbr(p.team)} ${formatSpread(p.spread)} ${p.atHome ? 'vs' : '@'} ${teamAbbr(p.opponent)}`
+  const score = p.scoreFor == null || p.scoreAgainst == null
+    ? 'not played'
+    : `${p.scoreFor}-${p.scoreAgainst}`
+
+  return `${mark}  ${paid}  ${(p.sport === 'nfl' ? 'NFL' : 'CFB').padEnd(5)}` +
+         `${side.padEnd(24)}${score}`
+}
+
 /** How many picks a week asks for, as words. */
 export function picksNeeded(limits, joiner = 'and') {
   return [
@@ -41,7 +63,7 @@ export function picksNeeded(limits, joiner = 'and') {
  */
 export function buildResultsEmail({
   week, season, weekTable, winners, perfect, season_table,
-  stories = [], movement = null,
+  stories = [], movement = null, cards = [],
 }) {
   const L = []
   const winnerNames = winners.map((w) => w.name).join(' & ')
@@ -89,6 +111,32 @@ export function buildResultsEmail({
     )
   })
   L.push('')
+
+  // Everyone's card, in the order they finished. This is the part that gets
+  // read out loud, so each pick shows what it paid rather than only whether it
+  // won — the totals above are the sum of exactly these numbers.
+  if (cards.length) {
+    L.push('EVERY PICK')
+    L.push(THIN)
+    cards.forEach((card, i) => {
+      const record = card.losses == null
+        ? `${card.correct} correct`
+        : `${card.correct}-${card.losses}-${card.pushes}`
+      L.push(
+        `${String(i + 1).padStart(2)}. ${card.name} — ${card.points} pts` +
+        ` (${record}${card.bonus ? `, +${card.bonus} bonus` : ''})`
+      )
+
+      if (!card.picks.length) {
+        L.push('      no picks submitted')
+      }
+      for (const p of card.picks) {
+        L.push(`      ${pickLine(p)}`)
+      }
+      if (i < cards.length - 1) L.push('')
+    })
+    L.push('')
+  }
 
   L.push('SEASON STANDINGS')
   L.push(THIN)

@@ -9,7 +9,7 @@ import { supabase } from './supabase'
 import { pickLimits } from './gameSelection'
 import { MAX_WEEK_POINTS, buildResultsEmail, buildGamesEmail } from './weeklyEmail'
 import {
-  standingsAfter, rankMovement, winStreaks, gameBreakdown, notables,
+  standingsAfter, rankMovement, winStreaks, gameBreakdown, notables, pickCards,
 } from './weeklyInsights'
 import { buildResultsPdf, buildGamesPdf } from './weeklyPdf'
 
@@ -75,11 +75,12 @@ export async function loadResultsData(weekId) {
   const movement  = rankMovement(standings, previous)
   const streaks   = winStreaks(rows, upTo)
   const breakdown = gameBreakdown(games ?? [], picks ?? [])
+  const cards     = pickCards(weekTable, games ?? [], picks ?? [])
   const stories   = notables({ weekTable, standings, movement, streaks, breakdown })
 
   return {
     week, season, weekTable, winners, perfect,
-    standings, movement, streaks, breakdown, stories,
+    standings, movement, streaks, breakdown, stories, cards,
     // The email builder still takes the simpler shape.
     season_table: standings.map((r) => ({ ...r })),
   }
