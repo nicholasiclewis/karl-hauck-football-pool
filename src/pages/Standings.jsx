@@ -9,9 +9,15 @@ import { supabase } from '../lib/supabase'
 import { poolToday } from '../lib/weekWindow'
 
 // ── Dues helper ─────────────────────────────────────────────────────────────
+/** From this week on, an unpaid player gets the clown instead of the red dot. */
+const LATE_DUES_WEEK = 9
+
 function duesIcon(isPaid, currentWeekNumber) {
-  if (isPaid) return '✅'
-  if (currentWeekNumber >= 9) return '🤡'
+  // Paying is the expected state and needs no decoration — a paid player just
+  // shows their avatar. The badge exists to mark what is outstanding, and a
+  // checkmark on most of the pool only made the two that matter harder to spot.
+  if (isPaid) return null
+  if (currentWeekNumber >= LATE_DUES_WEEK) return '🤡'
   return '🔴'
 }
 

@@ -5,8 +5,8 @@
  *   entry       — standings entry (or null if fewer than 3 players)
  *   place       — 1 | 2 | 3
  *   blockHeight — height in px for the coloured podium block (70 | 52 | 38)
- *   duesIcon    — emoji string (✅ | 🔴 | 🤡), or null when payment status is
- *                 unknown — no badge is shown rather than a wrong one
+ *   duesIcon    — emoji string (🔴 | 🤡), or null when dues are paid or the
+ *                 status is unknown — either way no badge is shown
  */
 export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null, payout = null }) {
   if (!entry) return <div className="flex-1" />
@@ -67,9 +67,9 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
         {duesIcon && (
           <span
             role="img"
-            aria-label={duesIcon === '✅' ? 'Dues paid' : 'Dues not paid'}
+            aria-label="Dues not paid"
             className="absolute -bottom-1 -right-1 text-base leading-none bg-white rounded-full w-5 h-5 flex items-center justify-center shadow"
-            title={duesIcon === '✅' ? 'Dues paid' : duesIcon === '🤡' ? 'Dues not paid 🤡' : 'Dues not paid'}
+            title={duesIcon === '🤡' ? 'Dues not paid — and it is getting late' : 'Dues not paid'}
           >
             {duesIcon}
           </span>
