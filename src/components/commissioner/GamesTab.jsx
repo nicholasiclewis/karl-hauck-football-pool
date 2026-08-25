@@ -5,6 +5,7 @@ import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
 import { fetchTop25ForDate, buildRankMap, rankOf } from '../../lib/rankings'
 import { weekWindow, formatWeekWindow } from '../../lib/weekWindow'
 import { pickLimits } from '../../lib/gameSelection'
+import TrashIcon from '../ui/TrashIcon'
 
 const BLANK = {
   sport: 'nfl',
@@ -642,10 +643,12 @@ export default function GamesTab() {
                     <button
                       onClick={() => deleteGame(game.id)}
                       aria-label={`Delete ${game.away_team} at ${game.home_team}`}
-                      className="text-lg flex-shrink-0 px-2 py-1.5 rounded"
+                      title={`Delete ${game.away_team} at ${game.home_team}`}
+                      className="flex-shrink-0 px-2 py-1.5 rounded flex items-center justify-center
+                                 transition-colors hover:bg-red/15 hover:text-red"
                       style={{ color: '#94afd4' }}
                     >
-                      <span aria-hidden="true">🗑</span>
+                      <TrashIcon />
                     </button>
                   </div>
                 ))}

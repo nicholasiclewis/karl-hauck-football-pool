@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { POWER4, GROUP5 } from '../../lib/conferences'
 import { isValidWeekStart, weekWindow, formatWeekWindow, poolWeekStartFor, addDays, toDateString } from '../../lib/weekWindow'
+import TrashIcon from '../ui/TrashIcon'
 
 const CONTAINER_TYPES = [
   { value: 'nfl_college',   label: '4 NFL + 2 College' },
@@ -310,10 +311,12 @@ export default function WeeksTab() {
                 <button
                   onClick={() => deleteWeek(week)}
                   aria-label={`Delete week ${week.week_number}`}
-                  className="px-3 py-2 rounded-lg text-xs"
-                  style={{ background: 'rgba(248,113,113,0.08)', color: '#94afd4' }}
+                  title={`Delete week ${week.week_number}`}
+                  className="px-3 py-2 rounded-lg flex items-center justify-center
+                             transition-colors hover:bg-red/20"
+                  style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171' }}
                 >
-                  <span aria-hidden="true">🗑</span>
+                  <TrashIcon />
                 </button>
               </div>
             </div>
