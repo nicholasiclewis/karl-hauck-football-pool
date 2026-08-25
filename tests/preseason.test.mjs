@@ -19,6 +19,7 @@ import {
   calculateWeeklyScore,
   pointsForOutcome,
   weekPoints,
+  weeklyScoreRows,
 } from '../src/lib/scoring.js'
 
 import {
@@ -520,5 +521,63 @@ describe('fetch-scores: merging NFL regular season + preseason keys', () => {
       attemptedKeys: ['americanfootball_nfl', 'americanfootball_nfl_preseason'],
       failedKeys: ['americanfootball_nfl', 'americanfootball_nfl_preseason'],
     }), /Odds API scores failed/)
+  })
+})
+
+describe('a player shows up as soon as they have picks', () => {
+  // The failure this covers: picks were entered, nothing in the week had
+  // finished yet, and the player was missing from the standings entirely
+  // rather than sitting at zero — which reads as the picks not having saved.
+  const games = [
+    { id: 'g1', sport: 'nfl', result: null },
+    { id: 'g2', sport: 'nfl', result: null },
+    { id: 'g3', sport: 'college', result: null },
+  ]
+  const picks = [
+    { user_id: 'u1', game_id: 'g1', picked_team: 'home' },
+    { user_id: 'u1', game_id: 'g2', picked_team: 'away' },
+    { user_id: 'u2', game_id: 'g3', picked_team: 'home' },
+  ]
+
+  test('nothing settled yet still produces a row per player, at zero', () => {
+    const rows = weeklyScoreRows(picks, games, 'w1', 'nfl_college')
+    assert.equal(rows.length, 2)
+    assert.deepEqual(rows.map((r) => r.total_points), [0, 0])
+    assert.deepEqual(rows.map((r) => r.user_id), ['u1', 'u2'])
+  })
+
+  test('a pick added late lands in the same row set as everyone else', () => {
+    // Most of the week has been graded; one pick arrives afterwards.
+    const graded = games.map((g) => ({ ...g, result: 'home_covers' }))
+    const late = [...picks, { user_id: 'u3', game_id: 'g1', picked_team: 'home' }]
+
+    const rows = weeklyScoreRows(late, graded, 'w1', 'nfl_college')
+    const byUser = Object.fromEntries(rows.map((r) => [r.user_id, r]))
+
+    assert.ok(byUser.u3, 'the late player has a row')
+    assert.equal(byUser.u3.total_points, 1, 'and it is graded, not left at zero')
+    assert.equal(byUser.u1.total_points, 1, 'existing players are unaffected')
+  })
+
+  test('an ungraded game is not counted as a loss', () => {
+    // Half the slate is in. The unfinished half must not drag the row down.
+    const half = games.map((g, i) => ({ ...g, result: i === 0 ? 'home_covers' : null }))
+    const [row] = weeklyScoreRows(picks.slice(0, 2), half, 'w1', 'nfl_college')
+
+    assert.equal(row.correct_picks, 1)
+    assert.equal(row.total_points, 1, 'one correct, one still to play')
+  })
+
+  test('a week nobody picked writes nothing at all', () => {
+    assert.deepEqual(weeklyScoreRows([], games, 'w1', 'nfl_college'), [])
+  })
+
+  test('rows carry the week and the shape the table expects', () => {
+    const [row] = weeklyScoreRows(picks, games, 'w1', 'nfl_college')
+    assert.deepEqual(Object.keys(row).sort(), [
+      'base_points', 'bonus_points', 'correct_picks', 'nfl_correct',
+      'push_count', 'total_points', 'user_id', 'week_id',
+    ])
+    assert.equal(row.week_id, 'w1')
   })
 })

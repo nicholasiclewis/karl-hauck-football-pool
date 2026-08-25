@@ -169,6 +169,63 @@ export function weekPoints(picks, games, containerType) {
 }
 
 /**
+ * A weekly_scores row for every player holding a pick in the week.
+ *
+ * A player is in the week the moment they have picks in it, so they get a row
+ * whether or not any of their games have finished — at zero until one does.
+ * Grading used to bail out entirely when nothing in the week had settled,
+ * which meant a submitted slate produced no row, and a player with no row is
+ * absent from the standings altogether. Picks entered before the first kickoff
+ * therefore looked like they had not saved at all.
+ *
+ * Only settled games contribute. An ungraded game is skipped rather than
+ * counted as wrong, so a row climbs as the week lands instead of starting at a
+ * loss it never took.
+ *
+ * @param {Array} picks   every pick in the week
+ * @param {Array} games   the week's featured games
+ * @param {string} weekId
+ * @param {string} containerType
+ */
+export function weeklyScoreRows(picks, games, weekId, containerType) {
+  const byId = Object.fromEntries((games ?? []).map((g) => [g.id, g]))
+
+  return [...new Set((picks ?? []).map((p) => p.user_id))].map((userId) => {
+    const mine = picks.filter((p) => p.user_id === userId)
+
+    let totalCorrect = 0
+    let nflCorrect = 0
+    let pushCount = 0
+
+    for (const pick of mine) {
+      const game = byId[pick.game_id]
+      if (!game?.result) continue
+
+      if (game.result === 'push') {
+        pushCount++
+      } else if ((game.result === 'home_covers') === (pick.picked_team === 'home')) {
+        totalCorrect++
+        if (game.sport === 'nfl') nflCorrect++
+      }
+    }
+
+    const { basePoints, bonusPoints, totalPoints } =
+      calculateWeeklyScore(containerType, { totalCorrect, nflCorrect, pushCount })
+
+    return {
+      user_id:       userId,
+      week_id:       weekId,
+      correct_picks: totalCorrect,
+      nfl_correct:   nflCorrect,
+      push_count:    pushCount,
+      base_points:   basePoints,
+      bonus_points:  bonusPoints,
+      total_points:  totalPoints,
+    }
+  })
+}
+
+/**
  * Calculate the points earned for a single pick outcome.
  */
 export function pointsForOutcome(outcome) {

@@ -35,7 +35,7 @@ import { weekWindow } from '../src/lib/weekWindow.js'
 import { espnDate, fetchFinals, findFinal, indexFinals } from '../src/lib/espnScores.js'
 import { COLLEGE_KEY, isScored, scoreKeysFor, weekSyncPlan } from '../src/lib/scoreSync.js'
 import {
-  calculateWeeklyScore, pointsForOutcome, resolveGameResult,
+  pointsForOutcome, resolveGameResult, weeklyScoreRows,
 } from '../src/lib/scoring.js'
 import { authorize } from './_shared.js'
 
@@ -270,7 +270,10 @@ export default async function handler(req, res) {
  */
 async function resolveWeek({ db, readJson, week, games }) {
   const scored = games.filter(isScored)
-  if (!scored.length) return { week: week.week_number, players: 0, games: 0 }
+
+  // No early exit when nothing has settled: a player with picks belongs in the
+  // standings at zero, and bailing here is what made picks entered before the
+  // first kickoff look like they had never saved.
 
   // Results first — the rest of the app reads games.result for Final badges.
   for (const game of scored) {
@@ -314,39 +317,9 @@ async function resolveWeek({ db, readJson, week, games }) {
     pick.outcome = outcome
   }
 
-  // Weekly totals, rebuilt from scratch for everyone who played this week.
-  const rows = []
-  for (const userId of new Set(picks.map((p) => p.user_id))) {
-    const mine = picks.filter((p) => p.user_id === userId)
-    let totalCorrect = 0
-    let nflCorrect = 0
-    let pushCount = 0
-
-    for (const pick of mine) {
-      const game = byId[pick.game_id]
-      if (!game?.result) continue
-      if (game.result === 'push') {
-        pushCount++
-      } else if ((game.result === 'home_covers') === (pick.picked_team === 'home')) {
-        totalCorrect++
-        if (game.sport === 'nfl') nflCorrect++
-      }
-    }
-
-    const { basePoints, bonusPoints, totalPoints } =
-      calculateWeeklyScore(week.container_type, { totalCorrect, nflCorrect, pushCount })
-
-    rows.push({
-      user_id:       userId,
-      week_id:       week.id,
-      correct_picks: totalCorrect,
-      nfl_correct:   nflCorrect,
-      push_count:    pushCount,
-      base_points:   basePoints,
-      bonus_points:  bonusPoints,
-      total_points:  totalPoints,
-    })
-  }
+  // Weekly totals, rebuilt from scratch for everyone holding a pick — including
+  // players whose games have not finished, who sit at zero until they do.
+  const rows = weeklyScoreRows(picks, games, week.id, week.container_type)
 
   if (rows.length) {
     const r = await db('weekly_scores?on_conflict=user_id,week_id', {
