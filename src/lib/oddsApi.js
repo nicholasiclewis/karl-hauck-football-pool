@@ -45,6 +45,30 @@ export async function fetchScores(weekId) {
   return out
 }
 
+/**
+ * Re-grade a week and rebuild everyone's totals from what is in the database
+ * right now.
+ *
+ * Picks entered after a week's games have finished arrive with no outcome and
+ * no points, and nothing is left in progress to trigger the grading that would
+ * give them one — so the standings quietly disagree with the picks until
+ * somebody asks. This is asking.
+ *
+ * Same endpoint and same scoring rules as the automatic path; it just skips
+ * the "is anything playing?" check that would otherwise send it home.
+ */
+export async function refreshStandings(weekId) {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not signed in')
+
+  const res = await fetch(`/api/sync-scores?week_id=${weekId}&resolve=1`, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  const out = await res.json()
+  if (!res.ok || out.ok === false) throw new Error(out.error ?? `HTTP ${res.status}`)
+  return out
+}
+
 /** Resolve pick outcomes for all completed games in a week. */
 export async function resolveWeekPicks(weekId) {
   const { data, error } = await supabase.functions.invoke('resolve-picks', {

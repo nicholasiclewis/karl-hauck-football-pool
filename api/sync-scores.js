@@ -28,6 +28,8 @@
  * Query params (for manual runs):
  *   ?dry=1        report what it is watching and what would close, call nothing
  *   ?week_id=...  restrict to one week
+ *   ?resolve=1    re-grade the week even with nothing in progress — for picks
+ *                 entered after its games finished
  */
 import { weekWindow } from '../src/lib/weekWindow.js'
 import { espnDate, fetchFinals, findFinal, indexFinals } from '../src/lib/espnScores.js'
@@ -57,6 +59,10 @@ export default async function handler(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
 
   const dryRun = req.query?.dry === '1' || req.query?.dry === 'true'
+  // Picks entered after a week's games have finished have no outcome and no
+  // points until something re-grades them, and by then nothing is in progress
+  // to trigger it. This is that trigger.
+  const forceResolve = req.query?.resolve === '1' || req.query?.resolve === 'true'
   const now = new Date()
 
   const db = (path, init = {}) =>
@@ -114,7 +120,10 @@ export default async function handler(req, res) {
     )
 
     const watching = plans.flatMap((p) => p.watching)
-    const closing = plans.filter((p) => p.closeReady)
+    // A week already marked complete needs no closing, and saying it closed
+    // again on every forced re-grade would be noise.
+    const byId = new Map(weeks.map((w) => [w.id, w]))
+    const closing = plans.filter((p) => p.closeReady && !byId.get(p.weekId)?.is_complete)
 
     const summary = {
       ok: true,
@@ -130,7 +139,7 @@ export default async function handler(req, res) {
 
     // Nothing in progress and nothing to close: the common case between game
     // days, and it costs one database read.
-    if (!watching.length && !closing.length) {
+    if (!watching.length && !closing.length && !forceResolve) {
       return res.status(200).json({ ...summary, skipped: 'No games in progress', updated: 0 })
     }
 
@@ -172,7 +181,12 @@ export default async function handler(req, res) {
     // ── Write the finals ─────────────────────────────────────────────────
     // Only finished games are in the index — parseScoreboard drops anything
     // still playing, because a score at halftime would grade the whole week.
-    const touchedWeeks = new Set(closing.map((p) => p.weekId))
+    // A forced run re-grades every week in scope whether or not this tick
+    // found anything, which is the whole point of asking for it.
+    const touchedWeeks = new Set([
+      ...closing.map((p) => p.weekId),
+      ...(forceResolve ? weeks.map((w) => w.id) : []),
+    ])
     const stillOpen = []
     let updated = 0
 

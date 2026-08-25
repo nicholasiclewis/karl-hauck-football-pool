@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { calculatePickOutcome, calculateWeeklyScore, pointsForOutcome, resolveGameResult } from '../../lib/scoring'
-import { fetchScores } from '../../lib/oddsApi'
+import { fetchScores, refreshStandings } from '../../lib/oddsApi'
 
 export default function ResultsTab() {
   const [weeks, setWeeks]               = useState([])
@@ -99,92 +98,32 @@ export default function ResultsTab() {
     }
   }
 
-  async function resolvePicks() {
+  /**
+   * Re-grade the week and rebuild everyone's totals.
+   *
+   * Goes through the same endpoint the scheduler uses, so the numbers written
+   * here are produced by exactly the code that writes them automatically. This
+   * used to be a second implementation of the scoring rules living in the
+   * browser, which is one edit away from disagreeing with the real one.
+   *
+   * The case that needs it: picks entered after a week's games have finished
+   * arrive ungraded, and nothing is still in progress to set them off.
+   */
+  async function refreshStandingsNow() {
     setResolving(true)
     setError('')
     setMessage('')
     try {
-      const week = weeks.find(w => w.id === selectedWeekId)
-      if (!week) throw new Error('Week not found')
+      const result = await refreshStandings(selectedWeekId)
+      await loadGames()
 
-      // Reload freshest game data
-      const { data: freshGames } = await supabase.from('games').select('*').eq('week_id', selectedWeekId).eq('is_featured', true)
-
-      // Persist each scored game's result. The resolve-picks edge function
-      // writes this column and the rest of the app reads it — Final badges,
-      // the points tracker, the email storylines — but this client path had
-      // drifted and left it null, so nothing downstream ever saw a settled game.
-      for (const g of freshGames ?? []) {
-        if (g.home_score === null || g.away_score === null) continue
-        const result = resolveGameResult(g)
-        if (result && result !== g.result) {
-          const { error: resErr } = await supabase.from('games').update({ result }).eq('id', g.id)
-          if (resErr) throw resErr
-          g.result = result
-        }
-      }
-
-      const gameMap = Object.fromEntries((freshGames ?? []).map(g => [g.id, g]))
-
-      // Fetch all picks for this week
-      const { data: allPicks } = await supabase.from('picks').select('*').eq('week_id', selectedWeekId)
-
-      // Compute outcomes for picks with scored games
-      const toUpdate = (allPicks ?? [])
-        .filter(p => {
-          const g = gameMap[p.game_id]
-          return g && g.home_score !== null && g.away_score !== null
-        })
-        .map(p => {
-          const g = gameMap[p.game_id]
-          const outcome = calculatePickOutcome(g, p.picked_team)
-          return { ...p, outcome, points_earned: pointsForOutcome(outcome) }
-        })
-
-      // Batch-update picks
-      for (const pick of toUpdate) {
-        await supabase.from('picks').update({
-          outcome:       pick.outcome,
-          points_earned: pick.points_earned,
-          is_locked:     true,
-        }).eq('id', pick.id)
-      }
-
-      // Group by user → compute weekly scores
-      const userPicksMap = {}
-      for (const pick of toUpdate) {
-        if (!userPicksMap[pick.user_id]) userPicksMap[pick.user_id] = []
-        userPicksMap[pick.user_id].push(pick)
-      }
-
-      const scoreRows = []
-      for (const [userId, userPicks] of Object.entries(userPicksMap)) {
-        const totalCorrect = userPicks.filter(p => p.outcome === 'win').length
-        const nflCorrect   = userPicks.filter(p => p.outcome === 'win' && gameMap[p.game_id]?.sport === 'nfl').length
-        const pushCount    = userPicks.filter(p => p.outcome === 'push').length
-        const { basePoints, bonusPoints, totalPoints } = calculateWeeklyScore(
-          week.container_type, { totalCorrect, nflCorrect, pushCount }
-        )
-        scoreRows.push({
-          user_id:       userId,
-          week_id:       selectedWeekId,
-          correct_picks: totalCorrect,
-          nfl_correct:   nflCorrect,
-          push_count:    pushCount,
-          base_points:   basePoints,
-          bonus_points:  bonusPoints,
-          total_points:  totalPoints,
-        })
-      }
-
-      if (scoreRows.length > 0) {
-        const { error: upsertErr } = await supabase
-          .from('weekly_scores')
-          .upsert(scoreRows, { onConflict: 'user_id,week_id' })
-        if (upsertErr) throw upsertErr
-      }
-
-      setMessage(`✓ Resolved ${toUpdate.length} picks across ${scoreRows.length} players.`)
+      const graded = result.resolved?.[0]
+      setMessage(
+        graded
+          ? `✓ Standings refreshed — ${graded.games} game${graded.games === 1 ? '' : 's'} graded ` +
+            `across ${graded.players} player${graded.players === 1 ? '' : 's'}.`
+          : '✓ Standings refreshed — nothing to grade yet.'
+      )
     } catch (err) {
       setError(err.message)
     } finally {
@@ -285,7 +224,7 @@ export default function ResultsTab() {
             className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
           >
-            {fetching ? 'Fetching...' : '⬇ Fetch Scores from Odds API'}
+            {fetching ? 'Fetching...' : '⬇ Fetch Scores'}
           </button>
 
           <div className="flex gap-3">
@@ -298,17 +237,18 @@ export default function ResultsTab() {
               {saving ? 'Saving...' : 'Save Scores'}
             </button>
             <button
-              onClick={resolvePicks}
+              onClick={refreshStandingsNow}
               disabled={resolving}
+              title="Re-grade every pick in this week and rebuild the standings"
               className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#2563eb', color: '#ffffff' }}
             >
-              {resolving ? 'Resolving...' : 'Resolve Picks'}
+              {resolving ? 'Refreshing...' : '↻ Refresh Standings'}
             </button>
           </div>
 
           <p className="text-[10px] text-center" style={{ color: '#94afd4' }}>
-            Fetch pulls scores automatically · Save stores manual edits · Resolve updates standings
+            Fetch pulls finals · Save stores manual edits · Refresh re-grades picks added later
           </p>
         </>
       )}
