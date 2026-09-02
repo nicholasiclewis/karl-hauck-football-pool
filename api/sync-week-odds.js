@@ -5,13 +5,17 @@
  * active season, pulls every game whose kickoff falls in that week's
  * Tuesday→Monday-night window, and imports them as playable games.
  *
- * The week still starts Tuesday, but odds post Wednesday morning — a day of
- * line movement settles the numbers and the slate arrives as one piece. The
- * exception is a game that kicks off before that: MAC weeks post college on
- * Tuesday (MACtion plays Tuesday night) and NFL posts Tuesday in any week
- * carrying a Tuesday NFL game. src/lib/oddsRelease.js holds those rules; the
- * scheduler runs this both mornings and each run imports only what has
- * reached its release day.
+ * A week opens on its own first day — the Tuesday it starts — and closes once
+ * its last game has kicked off. Opening does not wait for odds: the week is
+ * live from day one and the board fills in underneath it.
+ *
+ * Odds themselves post Wednesday morning — a day of line movement settles the
+ * numbers and the slate arrives as one piece. The exception is a week with a
+ * midweek game: MAC weeks post college on Tuesday (MACtion plays Tuesday
+ * night), and either sport posts Tuesday in a week carrying a Tuesday or
+ * Wednesday kickoff, so no game lands with only hours left to pick it.
+ * src/lib/oddsRelease.js holds those rules; the scheduler runs this both
+ * mornings and each run imports only what has reached its release day.
  *
  * Schedule lives in .github/workflows/pool-scheduler.yml.
  *
@@ -32,8 +36,9 @@ import {
   weekWindow, poolToday, poolWeekStartFor, isInWeekWindow, formatWeekWindow,
 } from '../src/lib/weekWindow.js'
 import { selectEligible, sportsFor } from '../src/lib/gameSelection.js'
-import { fetchTop25, buildRankMap, resolveWeekForDate } from '../src/lib/rankings.js'
+import { fetchTop25ForWeek, buildRankMap } from '../src/lib/rankings.js'
 import { releaseDateFor, sportsReleasedBy } from '../src/lib/oddsRelease.js'
+import { shouldOpen, shouldClose } from '../src/lib/weekState.js'
 import { COLLEGE_KEY, nflKeysForKickoff } from '../src/lib/scoreSync.js'
 import { authorize } from './_shared.js'
 
@@ -125,15 +130,16 @@ export default async function handler(req, res) {
       ? `id=eq.${req.query.week_id}`
       : `season_id=eq.${season.id}&week_start=eq.${weekStart}`
 
-    // State-only mode: open/close weeks without touching the Odds API. Runs
-    // daily so a week closes the morning after its last game rather than
-    // waiting for the next Tuesday import.
+    // State-only mode: open/close weeks without touching the Odds API. This is
+    // what puts a week live on its own Tuesday, hours before its odds are due,
+    // and it runs daily so a finished week closes the morning after its last
+    // game rather than waiting for the next Tuesday import.
     if (stateOnly) {
       const current = await readJson(
         await db(`weeks?select=*&season_id=eq.${season.id}&week_start=eq.${poolWeekStartFor()}&limit=1`),
         'current week'
       )
-      const weekState = await manageWeekState({ db, readJson, season, week: current[0] ?? null })
+      const weekState = await manageWeekState({ db, readJson, season, week: current[0] ?? null, now })
       return res.status(200).json({ ok: true, mode: 'state', season: season.year, weekState })
     }
 
@@ -171,12 +177,16 @@ export default async function handler(req, res) {
       sports = sportsReleasedBy(today, allSports, week, kickoffs)
 
       if (!sports.length) {
+        // No odds due today, but the week itself may still need opening —
+        // that is exactly the shape of a Tuesday whose lines post Wednesday.
+        const weekState = await manageWeekState({ db, readJson, season, week, now })
         return res.status(200).json({
           ok: true,
           season:  season.year,
           week:    week.week_number,
           skipped: `Nothing releases on ${today}`,
           release,
+          weekState,
         })
       }
     }
@@ -245,7 +255,7 @@ export default async function handler(req, res) {
     let warning = null
     if (week.college_focus === 'top25' && sports.includes('college')) {
       try {
-        const poll = await fetchTop25ForWeekStart(week.week_start)
+        const poll = await fetchTop25ForWeek(week.week_start, { poll: 'ap' })
         rankMap = buildRankMap(poll)
         pollUsed = poll.headline
       } catch (err) {
@@ -350,13 +360,10 @@ export default async function handler(req, res) {
     }
 
     // ── Week state ────────────────────────────────────────────────────────
-    // Opening happens here because this runs the morning a week begins, and a
-    // week with games ready should not sit closed waiting to be switched on.
-    // Closing keys off the last kickoff rather than the calendar: once every
-    // game has started there is nothing left to pick.
-    const weekState = await manageWeekState({
-      db, readJson, season, week, gameCount: eligible.length,
-    })
+    // Opening keys off the calendar — a week is live from the Tuesday it
+    // starts. Closing keys off the last kickoff rather than the calendar:
+    // once every game has started there is nothing left to pick.
+    const weekState = await manageWeekState({ db, readJson, season, week, now })
 
     return res.status(200).json({ ...summary, weekState })
   } catch (err) {
@@ -365,42 +372,42 @@ export default async function handler(req, res) {
 }
 
 /**
- * Open the current week and close any week that has run its course.
+ * Open the week that is currently running and close any week that has run its
+ * course.
  *
- * A week closes once its last game has kicked off — not when the calendar week
- * ends — so a slate that finishes Saturday does not sit open until Tuesday.
- * Completed weeks are never reopened.
+ * A week opens on day one — the Tuesday it starts — and not when its games
+ * arrive. Odds post Wednesday in most weeks, so waiting for a full board left
+ * the week shut for its first day and players staring at "No Active Week"
+ * while the pool was in fact underway. An open week with an empty board says
+ * "lines post Wednesday morning"; a closed one says nothing at all.
+ *
+ * Closing sweeps every open week except the one currently running, and keys
+ * off the last kickoff rather than the calendar: once every game has started
+ * there is nothing left to pick. A week that never got a board is the one
+ * exception — it is waiting on its odds, not finished, so it closes only once
+ * its window has passed. Completed weeks are never reopened.
  */
-async function manageWeekState({ db, readJson, season, week, gameCount = null }) {
-  const now = Date.now()
+async function manageWeekState({ db, readJson, season, week, now = new Date() }) {
   const opened = []
   const closed = []
 
-  // Open the current week once it actually has games to pick from. Opening an
-  // empty week would just show players a blank slate.
-  if (week && !week.is_complete && !week.picks_open) {
-    let count = gameCount
-    if (count === null) {
-      const rows = await readJson(
-        await db(`games?select=id&week_id=eq.${week.id}&is_featured=eq.true&limit=1`),
-        'week games'
-      )
-      count = rows.length
-    }
-    if (count > 0) {
-      const r = await db(`weeks?id=eq.${week.id}`, {
-        method: 'PATCH',
-        headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({ picks_open: true }),
-      })
-      if (r.ok) opened.push(week.week_number)
-    }
+  if (shouldOpen(week, now)) {
+    const r = await db(`weeks?id=eq.${week.id}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ picks_open: true }),
+    })
+    if (r.ok) opened.push(week.week_number)
   }
 
-  // Any other open week in this season whose games have all started.
+  // Every other open week in the season. The one this run is about is left
+  // alone: it was just opened, or it is the week currently being played.
   const skip = week ? `&id=neq.${week.id}` : ''
   const others = await readJson(
-    await db(`weeks?select=id,week_number&season_id=eq.${season.id}&picks_open=eq.true&is_complete=eq.false${skip}`),
+    await db(
+      `weeks?select=id,week_number,week_start,picks_open,is_complete` +
+      `&season_id=eq.${season.id}&picks_open=eq.true&is_complete=eq.false${skip}`
+    ),
     'open weeks'
   )
 
@@ -409,9 +416,7 @@ async function manageWeekState({ db, readJson, season, week, gameCount = null })
       await db(`games?select=kickoff_time&week_id=eq.${w.id}&is_featured=eq.true&order=kickoff_time.desc&limit=1`),
       'last kickoff'
     )
-    const last = games[0]?.kickoff_time
-    // No games at all also means nothing left to pick.
-    if (last && new Date(last).getTime() > now) continue
+    if (!shouldClose(w, games[0]?.kickoff_time ?? null, now)) continue
 
     const r = await db(`weeks?id=eq.${w.id}`, {
       method: 'PATCH',
@@ -459,14 +464,4 @@ async function fetchKickoffs({ sports, window, oddsKey }) {
   }
 
   return out
-}
-
-/** Top 25 covering the Saturday of a week that starts on `weekStart`. */
-async function fetchTop25ForWeekStart(weekStart) {
-  // Polls are published Sunday/Monday and keyed to the upcoming slate; ask
-  // about the Saturday inside this window rather than the Tuesday it opens.
-  const saturday = new Date(`${weekStart}T12:00:00Z`)
-  saturday.setUTCDate(saturday.getUTCDate() + 4)
-  const { year, week, seasonType } = await resolveWeekForDate(saturday)
-  return fetchTop25({ year, week, seasonType, poll: 'ap' })
 }

@@ -7,11 +7,14 @@ import PointsPreview from '../components/picks/PointsPreview'
 import { useAuth } from '../hooks/useAuth'
 import { useWeek } from '../hooks/useWeek'
 import { useLiveScores } from '../hooks/useLiveScores'
+import { useRankings } from '../hooks/useRankings'
 import { findFinal } from '../lib/espnScores'
 import { usePicks } from '../hooks/usePicks'
 import { countdownToKickoff, formatKickoff } from '../lib/gameUtils'
 import { weekPoints } from '../lib/scoring'
-import { remainingPicks } from '../lib/gameSelection'
+import { remainingPicks, sportsFor } from '../lib/gameSelection'
+import { releaseDateFor, RELEASE_HOUR } from '../lib/oddsRelease'
+import { POOL_TZ, parseDateOnly, poolTimeToUtc } from '../lib/weekWindow'
 
 export default function Picks() {
   const { user } = useAuth()
@@ -39,6 +42,13 @@ export default function Picks() {
   // Split games into NFL and college sections
   const nflGames     = games.filter((g) => g.sport === 'nfl')
   const collegeGames = games.filter((g) => g.sport === 'college')
+
+  // AP ranks for the college slate. Decoration, and skipped entirely on a
+  // week with no college games, so an NFL-only week makes no request at all.
+  const { rankOf: apRank, label: pollLabel } = useRankings(
+    week?.week_start,
+    collegeGames.length > 0
+  )
 
   // Every eligible game is offered; each player picks their own slate, capped
   // per sport. Count what's used by joining picks back to their games.
@@ -253,6 +263,8 @@ export default function Picks() {
             ? '🔒 Picks locked in — unlock in the summary below to make changes'
             : complete
             ? '✓ All picks in — lock them in below so a stray tap can\'t change them'
+            : games.length === 0
+            ? 'Week is open — the board fills in when the lines post'
             : `Choose ${[
                 remaining.college > 0 ? `${remaining.college} more college` : null,
                 remaining.nfl > 0 ? `${remaining.nfl} more NFL` : null,
@@ -294,6 +306,9 @@ export default function Picks() {
         </div>
       )}
 
+      {/* ── Waiting on the lines ─────────────────────────────── */}
+      {games.length === 0 && <EmptyBoard week={week} />}
+
       {/* ── College Games ────────────────────────────────────── */}
       {collegeGames.length > 0 && (
         <>
@@ -302,6 +317,7 @@ export default function Picks() {
             title="College Games"
             count={collegeGames.length}
             progress={limits.college > 0 ? `${used.college}/${limits.college} picked` : null}
+            note={pollLabel}
           />
           {collegeGames.map((game) => (
             <GameCard
@@ -313,6 +329,8 @@ export default function Picks() {
               capReached={atCap(game)}
               playerLocked={lockedIn}
               live={liveFor(game)}
+              homeRank={apRank(game.home_team)}
+              awayRank={apRank(game.away_team)}
             />
           ))}
         </>
@@ -372,10 +390,48 @@ function Divider() {
   return <div className="w-px h-8 bg-border" />
 }
 
-function SectionHeader({ icon, title, count, progress = null }) {
+/**
+ * An open week whose lines have not posted yet.
+ *
+ * The week goes live on its first day and the odds arrive a day later, so a
+ * blank Tuesday board is the normal state of things rather than a fault. This
+ * says which morning to come back, instead of leaving the page empty.
+ */
+function EmptyBoard({ week }) {
+  // The earliest morning any of this week’s sports is due to post. Without a
+  // schedule to check, releaseDateFor gives the ordinary Wednesday — and a
+  // week that had a midweek game would already have its board.
+  const due = sportsFor(week.container_type)
+    .map((sport) => releaseDateFor(sport, week))
+    .sort()[0]
+
+  const { year, month, day } = parseDateOnly(due)
+  const dueAt   = poolTimeToUtc(year, month, day, RELEASE_HOUR)
+  const late    = Date.now() >= dueAt.getTime()
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: POOL_TZ, weekday: 'long',
+  }).format(dueAt)
+
+  return (
+    <div className="mx-4 mt-6 bg-card border border-border rounded-2xl px-5 py-8 text-center">
+      <span className="text-4xl">📋</span>
+      <h2 className="text-text font-bold text-base mt-3">The Board Isn’t Up Yet</h2>
+      <p className="text-muted text-sm mt-2 leading-relaxed">
+        {late
+          ? 'The lines were due by now and haven’t landed. They post automatically — they’ll show up here without anyone doing anything.'
+          : `Week ${week.week_number} is open. The lines post ${weekday} morning — come back then to make your picks.`}
+      </p>
+    </div>
+  )
+}
+
+function SectionHeader({ icon, title, count, progress = null, note = null }) {
   return (
     <div className="flex items-center gap-2.5 px-4 pt-5 pb-2.5">
       <span className="text-[13px] tracking-widest uppercase text-muted">{icon} {title}</span>
+      {note && (
+        <span className="hidden xs:inline text-[10px] text-muted whitespace-nowrap">{note}</span>
+      )}
       <div className="flex-1 h-px bg-border" />
       {progress && (
         <span className="text-[11px] text-primary-light font-semibold">{progress}</span>

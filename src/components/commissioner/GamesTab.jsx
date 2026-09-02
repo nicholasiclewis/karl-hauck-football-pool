@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
-import { fetchTop25ForDate, buildRankMap, rankOf } from '../../lib/rankings'
+import { fetchTop25ForWeek, buildRankMap, rankOf } from '../../lib/rankings'
 import { weekWindow, formatWeekWindow } from '../../lib/weekWindow'
 import { pickLimits } from '../../lib/gameSelection'
 import TrashIcon from '../ui/TrashIcon'
+import RankBadge from '../ui/RankBadge'
 
 const BLANK = {
   sport: 'nfl',
@@ -86,10 +87,8 @@ export default function GamesTab() {
       } else {
         const short = out.shortfall?.nfl || out.shortfall?.college
         setImportResult(
-          `${out.candidates} game${out.candidates === 1 ? '' : 's'} found · ` +
+          `${out.eligible} of ${out.inWindow} game${out.inWindow === 1 ? '' : 's'} in the window are pickable · ` +
           `${out.inserted} new · ${out.refreshed} refreshed` +
-          (out.featuredApplied ? ` · ${out.featuredApplied} starred` : '') +
-          (out.featuredSkipped ? ' · kept your existing picks' : '') +
           (short ? ` · short ${out.shortfall.nfl} NFL / ${out.shortfall.college} CFB` : '') +
           (out.warning ? ` · ${out.warning}` : '')
         )
@@ -167,7 +166,7 @@ export default function GamesTab() {
     if (sport === 'college' && week?.week_start) {
       setRankMap(null)
       setRankLabel('')
-      fetchTop25ForDate(week.week_start)
+      fetchTop25ForWeek(week.week_start, { poll: 'ap' })
         .then(poll => { setRankMap(buildRankMap(poll)); setRankLabel(poll.headline) })
         .catch(() => setRankLabel('rankings unavailable'))
     }
@@ -400,9 +399,9 @@ export default function GamesTab() {
                     {/* Game info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>
-                        <Rank n={rankOf(game.away_team, rankMap)} />{game.away_team}
+                        <RankBadge rank={rankOf(game.away_team, rankMap)} />{game.away_team}
                         {' @ '}
-                        <Rank n={rankOf(game.home_team, rankMap)} />{game.home_team}
+                        <RankBadge rank={rankOf(game.home_team, rankMap)} />{game.home_team}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
                         {favTeam} {formatSpread(-Math.abs(game.spread))}
@@ -702,10 +701,4 @@ function Chip({ active, onClick, disabled = false, title, children }) {
       {children}
     </button>
   )
-}
-
-/** AP rank prefix, e.g. the "#3" in "#3 Ohio State Buckeyes". */
-function Rank({ n }) {
-  if (n == null) return null
-  return <span style={{ color: '#f5b301', fontWeight: 700 }}>#{n} </span>
 }

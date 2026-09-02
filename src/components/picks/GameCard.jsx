@@ -1,5 +1,6 @@
 import { formatKickoff, countdownToKickoff, formatSpread, teamAbbr } from '../../lib/gameUtils'
 import TeamLogo from '../ui/TeamLogo'
+import RankBadge from '../ui/RankBadge'
 
 /**
  * Single game card — handles open, locked, and completed states.
@@ -11,8 +12,10 @@ import TeamLogo from '../ui/TeamLogo'
  *   disabled     — week is not open, or this game is out of reach
  *   capReached   — unpicked and this sport's limit is already used up
  *   playerLocked — the player locked their slate; buttons freeze until they unlock
+ *   homeRank     — AP rank of the home team, or null when unranked
+ *   awayRank     — AP rank of the away team, or null when unranked
  */
-export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false, live = null }) {
+export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false, live = null, homeRank = null, awayRank = null }) {
   const kickedOff  = new Date(game.kickoff_time) <= new Date()
   const isLocked   = kickedOff || pick?.is_locked
   const isComplete = game.result !== null
@@ -84,37 +87,35 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           ) : null}
         </div>
 
-        {/* ── Matchup ───────────────────────────────── */}
+        {/* ── Matchup ───────────────────────────────────
+            Visitor on the left, host on the right, so the "@" between them
+            reads the way the matchup is spoken: East Carolina @ Alabama. */}
         <div className="flex items-center gap-2 mb-4">
 
-          {/* Home team */}
-          <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-            <TeamLogo team={game.home_team} sport={game.sport} abbr={homeAbbr} />
-            <span className="text-sm font-bold text-white leading-tight">{game.home_team}</span>
-            {showScore && (
-              <span className="text-lg font-bold text-white">{homeScore ?? '—'}</span>
-            )}
-          </div>
+          <Side
+            team={game.away_team} abbr={awayAbbr} sport={game.sport}
+            rank={awayRank} score={awayScore} showScore={showScore}
+          />
 
-          {/* Spread / VS column */}
+          {/* Separator, sitting over the line it belongs to. The number is
+              quoted for the home team, so the box names that team rather than
+              saying "Spread" between two teams it could equally describe. */}
           <div className="flex flex-col items-center gap-1 flex-shrink-0 w-14">
-            <div className="bg-bg border border-border2 rounded-lg px-2.5 py-1.5 text-center">
+            <span className="text-[11px] text-muted">@</span>
+            <div className="w-full bg-bg border border-border2 rounded-lg px-1 py-1.5 text-center">
               <span className="block text-base font-bold text-primary-light">
                 {formatSpread(homeSpread)}
               </span>
-              <span className="block text-[9px] text-muted uppercase tracking-wide">Spread</span>
+              <span className="block text-[9px] text-muted uppercase tracking-wide truncate">
+                {homeAbbr}
+              </span>
             </div>
-            <span className="text-[11px] text-muted">@</span>
           </div>
 
-          {/* Away team */}
-          <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
-            <TeamLogo team={game.away_team} sport={game.sport} abbr={awayAbbr} />
-            <span className="text-sm font-bold text-white leading-tight">{game.away_team}</span>
-            {showScore && (
-              <span className="text-lg font-bold text-white">{awayScore ?? '—'}</span>
-            )}
-          </div>
+          <Side
+            team={game.home_team} abbr={homeAbbr} sport={game.sport}
+            rank={homeRank} score={homeScore} showScore={showScore}
+          />
         </div>
 
         {/* ── Pick buttons or locked state ──────────── */}
@@ -141,18 +142,20 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           <>
             <div className="flex gap-2">
               <PickBtn
-                team={game.home_team}
-                spread={formatSpread(homeSpread)}
-                selected={pickedHome}
-                disabled={disabled}
-                onClick={() => onPick(game.id, 'home')}
-              />
-              <PickBtn
                 team={game.away_team}
+                rank={awayRank}
                 spread={formatSpread(awaySpread)}
                 selected={pickedAway}
                 disabled={disabled}
                 onClick={() => onPick(game.id, 'away')}
+              />
+              <PickBtn
+                team={game.home_team}
+                rank={homeRank}
+                spread={formatSpread(homeSpread)}
+                selected={pickedHome}
+                disabled={disabled}
+                onClick={() => onPick(game.id, 'home')}
               />
             </div>
             {playerLocked ? (
@@ -177,7 +180,20 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
   )
 }
 
-function PickBtn({ team, spread, selected, disabled, onClick }) {
+/** One side of the matchup: crest, rank, name, and score once there is one. */
+function Side({ team, abbr, sport, rank, score, showScore }) {
+  return (
+    <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
+      <TeamLogo team={team} sport={sport} abbr={abbr} />
+      <span className="text-sm font-bold text-white leading-tight">
+        <RankBadge rank={rank} />{team}
+      </span>
+      {showScore && <span className="text-lg font-bold text-white">{score ?? '—'}</span>}
+    </div>
+  )
+}
+
+function PickBtn({ team, rank, spread, selected, disabled, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -188,7 +204,9 @@ function PickBtn({ team, spread, selected, disabled, onClick }) {
           : 'border-border bg-bg text-accent-text hover:border-primary-light hover:text-primary-light hover:bg-primary/5'
       }`}
     >
-      <span className="block text-[13px] font-bold leading-tight line-clamp-2">{team}</span>
+      <span className="block text-[13px] font-bold leading-tight line-clamp-2">
+        <RankBadge rank={rank} />{team}
+      </span>
       <span className="block text-[11px] opacity-80 mt-0.5">{spread}</span>
     </button>
   )

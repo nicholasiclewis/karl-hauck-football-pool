@@ -4,9 +4,10 @@
  * Run with:  node --test tests/
  *
  * The week still starts Tuesday; the lines post Wednesday morning. The whole
- * risk in that split is a game kicking off before its own odds are up — a
- * Tuesday-night MAC game, or one of the Tuesday NFL games the league now
- * schedules — so that is what these cover.
+ * risk in that split is a midweek game — a Tuesday-night MAC game, one of the
+ * Tuesday NFL games the league now schedules, a Wednesday MACtion opener —
+ * arriving with no time left to pick it. Those weeks post Tuesday instead, and
+ * that is what these cover.
  */
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
@@ -15,6 +16,8 @@ import {
   releaseDate,
   releaseDateFor,
   releaseInstant,
+  midweekCutoff,
+  hasMidweekGame,
   isMacWeek,
   sportsReleasedBy,
   TUESDAY,
@@ -76,10 +79,16 @@ describe('MAC weeks', () => {
   })
 })
 
-describe('Tuesday NFL games', () => {
-  test('a Tuesday night kickoff pulls the NFL release forward', () => {
+describe('midweek games', () => {
+  test('a Tuesday night kickoff pulls the release forward', () => {
     const kickoffs = [et('2026-09-08 20:15'), et('2026-09-13 13:00')]
     assert.equal(releaseDateFor('nfl', week(), kickoffs), TUE)
+  })
+
+  test('a Wednesday night kickoff does too — clearing the 9am post is not enough', () => {
+    // 7pm Wednesday is nine hours after a Wednesday morning release, which is
+    // technically in time and useless as a week to pick in.
+    assert.equal(releaseDateFor('college', week(), [et('2026-09-09 19:00')]), TUE)
   })
 
   test('a normal week with a Thursday opener still waits for Wednesday', () => {
@@ -87,10 +96,17 @@ describe('Tuesday NFL games', () => {
     assert.equal(releaseDateFor('nfl', week(), kickoffs), WED)
   })
 
-  test('the line is the release itself, not the calendar day', () => {
-    // A game at 8am Wednesday would kick off before the 9am post.
-    assert.equal(releaseDateFor('nfl', week(), [et('2026-09-09 08:00')]), TUE)
-    assert.equal(releaseDateFor('nfl', week(), [et('2026-09-09 10:00')]), WED)
+  test('the cutoff is midnight opening Thursday', () => {
+    assert.equal(releaseDateFor('nfl', week(), [et('2026-09-09 23:59')]), TUE)
+    assert.equal(releaseDateFor('nfl', week(), [et('2026-09-10 00:01')]), WED)
+    assert.equal(midweekCutoff(WEEK_START).toISOString(), '2026-09-10T04:00:00.000Z')
+  })
+
+  test('hasMidweekGame reads the same window on its own', () => {
+    assert.equal(hasMidweekGame(WEEK_START, [et('2026-09-08 20:15')]), true)
+    assert.equal(hasMidweekGame(WEEK_START, [et('2026-09-12 12:00')]), false)
+    assert.equal(hasMidweekGame(WEEK_START, []), false)
+    assert.equal(hasMidweekGame(WEEK_START, ['not a date']), false)
   })
 
   test('the same safety net covers a non-MAC college game on Tuesday', () => {
@@ -112,7 +128,7 @@ describe('what a scheduled run imports', () => {
     assert.deepEqual(sportsReleasedBy(WED, sports, mac), ['nfl', 'college'])
   })
 
-  test('a Tuesday NFL game: NFL Tuesday, college still Wednesday', () => {
+  test('a midweek NFL game: NFL Tuesday, college still Wednesday', () => {
     const kickoffs = { nfl: [et('2026-09-08 20:15')], college: [et('2026-09-12 12:00')] }
     assert.deepEqual(sportsReleasedBy(TUE, sports, week(), kickoffs), ['nfl'])
     assert.deepEqual(sportsReleasedBy(WED, sports, week(), kickoffs), ['nfl', 'college'])

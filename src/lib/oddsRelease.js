@@ -5,12 +5,13 @@
  * of movement settles the numbers, and NFL and college land together so the
  * slate arrives as one thing.
  *
- * The exception is a game that kicks off before Wednesday morning — odds can
- * never post after their own kickoff:
+ * The exception is a week with a midweek game. A sport whose slate opens on
+ * the Tuesday or the Wednesday posts on Tuesday instead, so nothing is ever
+ * pickable for only a few hours:
  *
  *   - MAC weeks post college on Tuesday. MACtion is a Tuesday/Wednesday-night
- *     league, so a Wednesday release would miss its own opener.
- *   - NFL posts Tuesday in any week carrying a Tuesday NFL game.
+ *     league, so a Wednesday release leaves its opener barely pickable.
+ *   - NFL posts Tuesday in any week carrying a Tuesday or Wednesday game.
  *
  * Both exceptions are derived from real kickoffs, read from the Odds API's
  * events endpoint, which is free — checking costs nothing. The MAC rule is
@@ -26,6 +27,9 @@ export const RELEASE_HOUR = 9
 export const TUESDAY = 0
 export const WEDNESDAY = 1
 
+/** Days from week_start to the Thursday that ends the midweek slate. */
+export const THURSDAY = 2
+
 /** The instant odds post, for a week starting `weekStart`. */
 export function releaseInstant(weekStart, dayOffset = WEDNESDAY) {
   const { year, month, day } = addDays(parseDateOnly(weekStart), dayOffset)
@@ -35,6 +39,24 @@ export function releaseInstant(weekStart, dayOffset = WEDNESDAY) {
 /** The date odds post on, as 'YYYY-MM-DD'. */
 export function releaseDate(weekStart, dayOffset = WEDNESDAY) {
   return toDateString(addDays(parseDateOnly(weekStart), dayOffset))
+}
+
+/**
+ * Midnight ET opening the Thursday of a week — the end of its midweek slate.
+ * A kickoff before this is on the Tuesday or the Wednesday.
+ */
+export function midweekCutoff(weekStart) {
+  const { year, month, day } = addDays(parseDateOnly(weekStart), THURSDAY)
+  return poolTimeToUtc(year, month, day, 0)
+}
+
+/** True when a sport has a kickoff on the week's Tuesday or Wednesday. */
+export function hasMidweekGame(weekStart, kickoffs = []) {
+  const cutoff = midweekCutoff(weekStart).getTime()
+  return kickoffs.some((k) => {
+    const t = new Date(k).getTime()
+    return Number.isFinite(t) && t < cutoff
+  })
 }
 
 /** True for a college week built around the MAC. */
@@ -54,13 +76,10 @@ export function releaseDateFor(sport, week, kickoffs = []) {
   const weekStart = week.week_start
   if (sport === 'college' && isMacWeek(week)) return releaseDate(weekStart, TUESDAY)
 
-  const wednesday = releaseInstant(weekStart, WEDNESDAY).getTime()
-  const early = kickoffs.some((k) => {
-    const t = new Date(k).getTime()
-    return Number.isFinite(t) && t < wednesday
-  })
-
-  return releaseDate(weekStart, early ? TUESDAY : WEDNESDAY)
+  // A Wednesday-night kickoff clears a Wednesday-morning post by hours, but
+  // half a day is not a week to pick in. The whole midweek slate moves to
+  // Tuesday so every game is on the board for a full day before it starts.
+  return releaseDate(weekStart, hasMidweekGame(weekStart, kickoffs) ? TUESDAY : WEDNESDAY)
 }
 
 /**

@@ -23,7 +23,8 @@ on:
     # game; Wednesday covers everything else and repairs a missed Tuesday.
     # 13:00 UTC is 9am EDT — an hour later in EST, still well before kickoff.
     - cron: '0 13 * * 2,3'
-    # Week state (open/close picks). No API calls, safe to run daily.
+    # Week state (open/close picks). This is what opens a week on its own
+    # Tuesday, before its odds are due. No API calls, safe to run daily.
     - cron: '0 11 * * *'
     # Score sync: every 15 minutes across the hours football is played, so a
     # final lands within a quarter hour of the whistle. A tick with no game in

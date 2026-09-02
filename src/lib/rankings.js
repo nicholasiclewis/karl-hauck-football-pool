@@ -179,6 +179,21 @@ export async function fetchTop25ForDate(date, opts = {}) {
   return fetchTop25({ year, week, seasonType, ...opts })
 }
 
+/**
+ * The Top 25 covering a pool week.
+ *
+ * Polls are published Sunday/Monday and keyed to the upcoming slate, so the
+ * lookup asks about the Saturday inside the window rather than the Tuesday the
+ * week opens on — a Tuesday date resolves to the week that just finished.
+ *
+ * @param {string} weekStart 'YYYY-MM-DD', the Tuesday a pool week begins
+ */
+export async function fetchTop25ForWeek(weekStart, opts = {}) {
+  const saturday = new Date(`${weekStart}T12:00:00Z`)
+  saturday.setUTCDate(saturday.getUTCDate() + 4)
+  return fetchTop25ForDate(saturday, opts)
+}
+
 // ── Helpers for filtering games ──────────────────────────────────────────────
 
 /**
