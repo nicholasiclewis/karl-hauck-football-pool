@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { supabase } from './supabase'
+import { teamAbbr } from './gameUtils'
 
 // Palette and page helpers are shared with the weekly exports so the documents
 // players see side by side look like they came from the same place.
@@ -180,8 +181,10 @@ export async function downloadReport() {
       autoTable(doc, {
         startY: y,
         head: [['Matchup', 'Away', 'Home']],
+        // Abbreviated to match the weekly slate, where spelled-out schools
+        // outgrew their column.
         body: scoredGames.map((g) => [
-          `${g.away_team} @ ${g.home_team}`,
+          `${teamAbbr(g.away_team)} @ ${teamAbbr(g.home_team)}`,
           g.away_score,
           g.home_score,
         ]),

@@ -19,7 +19,7 @@
  * rather than typed, or it comes out as garbage.
  */
 import { jsPDF } from 'jspdf'
-import { formatKickoff, formatSpread } from './gameUtils.js'
+import { formatKickoff, formatSpread, teamAbbr } from './gameUtils.js'
 import { weekWindow, formatWeekWindow } from './weekWindow.js'
 import { formatLabel, picksNeeded, MAX_WEEK_POINTS } from './weeklyEmail.js'
 import {
@@ -423,6 +423,32 @@ export function buildResultsPdf(data) {
 
 // ── Games PDF ────────────────────────────────────────────────────────────────
 
+/**
+ * Slate row columns.
+ *
+ * Teams are named by their abbreviation here, not in full. Spelled out, the
+ * favourite ran past its column and took the spread with it — "Mississippi
+ * State Bulldogs -10.5" printed as "Mississippi State Bull…", losing the one
+ * number the row exists to carry — and the longest matchups ("Middle Tennessee
+ * Blue Raiders at Florida International Panthers") overran the matchup column
+ * too. The abbreviations are ESPN's, the same ones the pick cards and the
+ * app's history use, so the sheet reads like the ticker rather than like a
+ * directory.
+ *
+ * The columns moved in with them. The old layout gave the matchup most of the
+ * row because the names needed it; against a widest-case "WASH at WAKE" that
+ * left 90mm of nothing before the line and 5mm between the line and the
+ * kickoff. These three anchors space the row evenly, and the section head
+ * labels them so the air between reads as a table rather than as a gap.
+ */
+const MATCH_X = L + 3      // matchup, left-aligned
+const LINE_X  = L + 100    // favourite and spread, right-aligned
+const KICK_X  = R          // kickoff, right-aligned
+
+const LINE_W  = 40                    // room to the left of LINE_X
+const MATCH_W = LINE_X - LINE_W - MATCH_X
+const KICK_W  = KICK_X - LINE_X
+
 export function buildGamesPdf({ week, season, games, limits }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'The Slate' })
@@ -462,7 +488,12 @@ export function buildGamesPdf({ week, season, games, limits }) {
       y = 18
     }
 
-    y = sectionHead(doc, y + 4, sport === 'nfl' ? 'NFL' : 'College')
+    // Column labels are laid out from the right edge inwards, so KICKOFF
+    // carries the distance back to the line column's anchor.
+    y = sectionHead(doc, y + 4, sport === 'nfl' ? 'NFL' : 'College', [
+      { label: 'LINE', w: 0 },
+      { label: 'KICKOFF', w: KICK_W },
+    ])
 
     list.forEach((g, i) => {
       const rowH = 8
@@ -478,20 +509,20 @@ export function buildGamesPdf({ week, season, games, limits }) {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9.5)
       rgb(doc, TEXT)
-      doc.text(clip(doc, `${g.away_team}  at  ${g.home_team}`, W - 74), L + 3, base)
+      doc.text(clip(doc, `${teamAbbr(g.away_team)}  at  ${teamAbbr(g.home_team)}`, MATCH_W), MATCH_X, base)
 
       doc.setFontSize(8.5)
       rgb(doc, GOLD)
       const fav = g.favorite === 'home' ? g.home_team : g.away_team
       doc.text(
-        clip(doc, `${fav} ${formatSpread(-Math.abs(g.spread))}`, 40),
-        R - 34, base, { align: 'right' }
+        clip(doc, `${teamAbbr(fav)} ${formatSpread(-Math.abs(g.spread))}`, LINE_W),
+        LINE_X, base, { align: 'right' }
       )
 
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       rgb(doc, MUTED)
-      doc.text(formatKickoff(g.kickoff_time), R - 2, base, { align: 'right' })
+      doc.text(formatKickoff(g.kickoff_time), KICK_X, base, { align: 'right' })
 
       doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
       doc.setLineWidth(0.2)
