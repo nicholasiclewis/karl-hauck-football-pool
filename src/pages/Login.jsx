@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { isRemembered } from '../lib/authStorage'
+import { authRedirectError } from '../lib/authRedirectError'
 
 // The two modes available on this screen
 const MODES = {
@@ -12,7 +13,9 @@ const MODES = {
 
 export default function Login() {
   const [mode, setMode] = useState('signIn')   // 'signIn' | 'createAccount' | 'resetPassword'
-  const [serverError, setServerError] = useState('')
+  // Seeded, not empty: if this page load came from a reset link Supabase
+  // rejected, that is the first thing the player needs to read.
+  const [serverError, setServerError] = useState(authRedirectError)
   const [successMsg, setSuccessMsg] = useState('')
   const { signIn, signUp, resetPassword } = useAuth()
   const navigate = useNavigate()
