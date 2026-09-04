@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { setRemembered } from '../lib/authStorage'
+import { siteUrl } from '../lib/siteUrl'
 
 // Create a context — think of this as a global variable any component can read
 const AuthContext = createContext(null)
@@ -105,6 +106,7 @@ export function AuthProvider({ children }) {
       password,
       options: {
         data: { display_name: displayName.trim() },
+        emailRedirectTo: siteUrl(),
       },
     })
     if (error) throw error
@@ -137,11 +139,15 @@ export function AuthProvider({ children }) {
   /**
    * Email a password-reset link. Opening it signs the user in with a
    * recovery session, which App routes into the set-new-password screen.
-   * The redirect URL must be on the Supabase project's allowed list.
+   *
+   * The destination comes from siteUrl(), not from wherever this build
+   * happens to be served, so a preview deployment cannot mail out a link
+   * that dies with it. It must still be on the project's allowed redirect
+   * list, or Supabase quietly swaps in the dashboard Site URL instead.
    */
   async function resetPassword(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: siteUrl(),
     })
     if (error) throw error
   }

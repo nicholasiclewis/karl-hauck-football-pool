@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { siteUrl } from '../../lib/siteUrl'
 
 export default function PlayersTab() {
   const { user } = useAuth()
@@ -59,7 +60,10 @@ export default function PlayersTab() {
     try {
       await navigator.clipboard.writeText(
         'Karl Hauck Football Pool login\n' +
-        `Site: ${window.location.origin}\n` +
+        // Not whatever address this build happens to answer on: a commissioner
+        // working from a preview deployment would otherwise hand out a link
+        // that dies when Vercel removes it.
+        `Site: ${siteUrl()}\n` +
         `Email: ${created.email}\n` +
         `Temporary password: ${created.tempPassword}`
       )
