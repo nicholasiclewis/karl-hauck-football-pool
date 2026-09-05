@@ -5,13 +5,13 @@ import { lateEntry } from '../../lib/pickAudit'
  * A single pick row inside the expanded WeekCard.
  * Shows: team abbr circle | matchup | picked team + spread | outcome badge
  *
- * A pick someone else entered after kickoff also carries a line saying who and
- * when. That write is allowed and often routine, but it is the one made
- * knowing something, so it is recorded in the open on the slate it affected
- * rather than in a log only admins read.
+ * An admin's pick that another admin entered after kickoff also carries a line
+ * saying who and when. Ordinary players are never marked: a late entry for
+ * them is the entry tab doing its job. See pickAudit for why the line is drawn
+ * there.
  */
-export default function PickRow({ game, pick }) {
-  const late = lateEntry(pick, game)
+export default function PickRow({ game, pick, subjectIsAdmin = false }) {
+  const late = lateEntry(pick, game, subjectIsAdmin)
   const pickedHome = pick?.picked_team === 'home'
   const pickedTeamName = pick
     ? (pickedHome ? game.home_team : game.away_team)
