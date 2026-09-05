@@ -340,7 +340,12 @@ export default function EntryTab() {
           <div className="space-y-2">
             {games.map(game => {
               const pick    = picks[game.id]
-              const started = new Date(game.kickoff_time) <= new Date()
+              // Kicked off and graded are different states, and the row used to
+              // conflate them: a game finished hours ago still read "started".
+              // Final is what the sync has actually settled, the same line the
+              // pick card draws.
+              const final   = game.result !== null
+              const started = !final && new Date(game.kickoff_time) <= new Date()
               const blocked = !pick && remaining[game.sport] === 0
               return (
                 <div
@@ -364,12 +369,17 @@ export default function EntryTab() {
                     <span className="text-[11px]" style={{ color: '#94afd4' }}>
                       {formatKickoff(game.kickoff_time)}
                     </span>
-                    {started && (
+                    {final ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(148,175,212,0.15)', color: '#94afd4' }}>
+                        Final {game.away_score}–{game.home_score}
+                      </span>
+                    ) : started ? (
                       <span className="text-[10px] px-2 py-0.5 rounded-full"
                             style={{ background: 'rgba(245,179,1,0.15)', color: '#f5b301' }}>
                         started
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="flex gap-2">
