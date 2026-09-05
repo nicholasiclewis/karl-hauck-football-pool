@@ -75,7 +75,14 @@ export default function WeekCard({ week, score, userId }) {
     if (!expanded && picks.length === 0) {
       setLoadingPicks(true)
       const [{ data: picksData }, { data: gamesData }] = await Promise.all([
-        supabase.from('picks').select('*').eq('week_id', week.id).eq('user_id', userId),
+        // The embed names whoever entered the pick, for the receipt PickRow
+        // shows on a late one. It is a left join on a nullable column, so a
+        // pick nobody stamped still comes back.
+        supabase
+          .from('picks')
+          .select('*, entered_by_user:entered_by ( display_name )')
+          .eq('week_id', week.id)
+          .eq('user_id', userId),
         supabase.from('games').select('*').eq('week_id', week.id).eq('is_featured', true).order('kickoff_time'),
       ])
       setPicks(picksData ?? [])

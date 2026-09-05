@@ -1,10 +1,17 @@
 import { formatSpread, teamAbbr, formatKickoff } from '../../lib/gameUtils'
+import { lateEntry } from '../../lib/pickAudit'
 
 /**
  * A single pick row inside the expanded WeekCard.
  * Shows: team abbr circle | matchup | picked team + spread | outcome badge
+ *
+ * A pick someone else entered after kickoff also carries a line saying who and
+ * when. That write is allowed and often routine, but it is the one made
+ * knowing something, so it is recorded in the open on the slate it affected
+ * rather than in a log only admins read.
  */
 export default function PickRow({ game, pick }) {
+  const late = lateEntry(pick, game)
   const pickedHome = pick?.picked_team === 'home'
   const pickedTeamName = pick
     ? (pickedHome ? game.home_team : game.away_team)
@@ -51,6 +58,16 @@ export default function PickRow({ game, pick }) {
           </div>
         ) : (
           <div className="text-sm mt-0.5" style={{ color: '#94afd4' }}>No pick</div>
+        )}
+
+        {late && (
+          <div
+            className="text-[10px] mt-1 leading-snug"
+            style={{ color: '#f5b301' }}
+            title={`Entered ${new Date(late.at).toLocaleString()}`}
+          >
+            ⚠ entered by {late.by}, after kickoff
+          </div>
         )}
       </div>
 
