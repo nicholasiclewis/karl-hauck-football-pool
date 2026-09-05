@@ -95,6 +95,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           <Side
             team={game.away_team} abbr={awayAbbr} sport={game.sport}
             rank={awayRank} score={awayScore} showScore={showScore}
+            covered={game.result === 'away_covers'}
           />
 
           {/* Separator, sitting over the line it belongs to. The number is
@@ -110,11 +111,19 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
                 {homeAbbr}
               </span>
             </div>
+            {/* Nobody covered, so neither side goes green. Said out loud, or an
+                unhighlighted final looks like a game the app forgot to grade. */}
+            {game.result === 'push' && (
+              <span className="text-[9px] font-bold text-muted uppercase tracking-wide">
+                Push
+              </span>
+            )}
           </div>
 
           <Side
             team={game.home_team} abbr={homeAbbr} sport={game.sport}
             rank={homeRank} score={homeScore} showScore={showScore}
+            covered={game.result === 'home_covers'}
           />
         </div>
 
@@ -180,15 +189,37 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
   )
 }
 
-/** One side of the matchup: crest, rank, name, and score once there is one. */
-function Side({ team, abbr, sport, rank, score, showScore }) {
+/**
+ * One side of the matchup: crest, rank, name, and score once there is one.
+ *
+ * `covered` greens the side that beat the spread — everyone's, not just the
+ * player's own pick, so the card answers "who covered?" at a glance. It keys
+ * off game.result, which only the sync writes, so a team ahead on the live
+ * scoreboard never goes green before the game is graded. The word carries the
+ * meaning alongside the colour; green on its own says nothing to a player who
+ * cannot see it.
+ */
+function Side({ team, abbr, sport, rank, score, showScore, covered = false }) {
   return (
-    <div className="flex-1 flex flex-col items-center gap-1.5 text-center">
+    <div
+      className={`flex-1 flex flex-col items-center gap-1.5 text-center rounded-lg px-1 py-1.5 transition-colors ${
+        covered ? 'bg-green/10 ring-1 ring-green/40' : ''
+      }`}
+    >
       <TeamLogo team={team} sport={sport} abbr={abbr} />
-      <span className="text-sm font-bold text-white leading-tight">
+      <span className={`text-sm font-bold leading-tight ${covered ? 'text-green' : 'text-white'}`}>
         <RankBadge rank={rank} />{team}
       </span>
-      {showScore && <span className="text-lg font-bold text-white">{score ?? '—'}</span>}
+      {showScore && (
+        <span className={`text-lg font-bold ${covered ? 'text-green' : 'text-white'}`}>
+          {score ?? '—'}
+        </span>
+      )}
+      {covered && (
+        <span className="text-[9px] font-bold text-green uppercase tracking-wide">
+          ✓ Covered
+        </span>
+      )}
     </div>
   )
 }
