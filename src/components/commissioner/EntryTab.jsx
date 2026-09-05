@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { remainingPicks } from '../../lib/gameSelection'
+import { useAuth } from '../../hooks/useAuth'
 
 /**
  * Enter picks on a player's behalf.
@@ -13,8 +14,20 @@ import { remainingPicks } from '../../lib/gameSelection'
  *
  * The per-sport limits still apply: those are enforced by a database trigger,
  * so there is no way to enter a seventh pick from here either.
+ *
+ * One player is never in the list: whoever is signed in. Writing after kickoff
+ * is the whole point of this form, so entering your own picks here is picking
+ * games whose results you already know. A second admin entering them is a
+ * different act — someone else has seen the message that came in, which is a
+ * witness rather than a loophole — so admins can still do each other's slates.
+ * Only your own is closed, and it is closed to everyone, always.
  */
 export default function EntryTab() {
+  const { user } = useAuth()
+
+  /** The one player this form will not write for, whoever is signed in. */
+  const isSelf = (id) => !!id && id === user?.id
+
   const [weeks, setWeeks]       = useState([])
   const [players, setPlayers]   = useState([])
   const [weekId, setWeekId]     = useState(null)
@@ -83,6 +96,7 @@ export default function EntryTab() {
    * dropdown.
    */
   function togglePlayer(playerId) {
+    if (isSelf(playerId)) return
     setUserId(cur => (cur === playerId ? '' : playerId))
   }
 
@@ -108,6 +122,13 @@ export default function EntryTab() {
 
   async function setPick(game, side) {
     setError('')
+    // The form cannot be pointed at yourself, but this is the function that
+    // actually writes, so it declines on its own account rather than trusting
+    // that every future caller kept the rule.
+    if (isSelf(userId)) {
+      setError('You cannot enter your own picks here — use the Picks page, or ask another admin.')
+      return
+    }
     setSaving(game.id)
     const existing = picks[game.id]
     try {
@@ -168,6 +189,8 @@ export default function EntryTab() {
         ...c,
         total:    c.nfl + c.college,
         complete: c.nfl === limits.nfl && c.college === limits.college,
+        // Still counted and still listed — just not a door into the form.
+        locked:   isSelf(p.id),
       }
     })
     .sort((a, b) =>
@@ -203,7 +226,7 @@ export default function EntryTab() {
           <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Player</span>
           <select value={userId} onChange={e => setUserId(e.target.value)} className="input-field w-full">
             <option value="">— select a player —</option>
-            {players.map(p => (
+            {players.filter(p => !isSelf(p.id)).map(p => (
               <option key={p.id} value={p.id}>{p.display_name}</option>
             ))}
           </select>
@@ -386,6 +409,10 @@ export default function EntryTab() {
  * One line of the player summary. Tapping it drills into that player's picks
  * in the form below; tapping it again closes them. The short names are the
  * ones the commissioner is about to chase, so they lead the list.
+ *
+ * Your own row is a plain div rather than a button: your count is still worth
+ * reading, but there is nothing here to open. Rendering it as a disabled
+ * button would offer a control that is never going to work.
  */
 function PlayerSummaryRow({ player, slate, limits, selected, onSelect }) {
   const isShort = !player.complete
@@ -395,32 +422,46 @@ function PlayerSummaryRow({ player, slate, limits, selected, onSelect }) {
     ? `NFL ${player.nfl}/${limits.nfl} · CFB ${player.college}/${limits.college}`
     : ''
 
+  const Row = player.locked ? 'div' : 'button'
+  const rowProps = player.locked
+    ? {}
+    : { type: 'button', onClick: onSelect, 'aria-expanded': selected }
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-expanded={selected}
+    <Row
+      {...rowProps}
       className="w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left"
       style={{
-        background:  isShort ? 'rgba(245,179,1,0.08)' : '#0f172a',
-        borderColor: selected ? '#60a5fa' : isShort ? 'rgba(245,179,1,0.35)' : '#374e6b',
+        background:  isShort && !player.locked ? 'rgba(245,179,1,0.08)' : '#0f172a',
+        borderColor: selected ? '#60a5fa' : isShort && !player.locked ? 'rgba(245,179,1,0.35)' : '#374e6b',
       }}
     >
-      <span
-        className="text-xs font-semibold truncate"
-        style={{ color: isShort ? '#f0f6ff' : '#94afd4' }}
-      >
-        {player.display_name}
+      <span className="flex items-center gap-2 min-w-0">
+        <span
+          className="text-xs font-semibold truncate"
+          style={{ color: isShort && !player.locked ? '#f0f6ff' : '#94afd4' }}
+        >
+          {player.display_name}
+        </span>
+        {player.locked && (
+          <span
+            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
+            style={{ background: 'rgba(148,175,212,0.15)', color: '#94afd4' }}
+            title="You cannot enter your own picks here — use the Picks page"
+          >
+            You
+          </span>
+        )}
       </span>
       <span className="flex items-center gap-2 shrink-0">
         {split && <span className="text-[10px]" style={{ color: '#94afd4' }}>{split}</span>}
         <span
           className="text-xs font-bold"
-          style={{ color: isShort ? '#f5b301' : '#10b981' }}
+          style={{ color: isShort ? (player.locked ? '#94afd4' : '#f5b301') : '#10b981' }}
         >
           {isShort ? `${player.total}/${slate}` : '✓'}
         </span>
       </span>
-    </button>
+    </Row>
   )
 }
