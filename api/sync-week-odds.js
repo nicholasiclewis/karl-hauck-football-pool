@@ -241,9 +241,7 @@ export default async function handler(req, res) {
           // The same event can surface under more than one key.
           if (seenEvents.has(event.id)) continue
 
-          const market = event.bookmakers?.[0]?.markets?.find((m) => m.key === 'spreads')
-          const home = market?.outcomes?.find((o) => o.name === event.home_team)
-          if (!market || !home || home.point == null) continue
+          const point = homeSpreadFrom(event)
 
           seenEvents.add(event.id)
           candidates.push({
@@ -251,8 +249,10 @@ export default async function handler(req, res) {
             sport,
             home_team:    event.home_team,
             away_team:    event.away_team,
-            spread:       home.point,               // negative = home favored
-            favorite:     home.point < 0 ? 'home' : 'away',
+            // null until somebody posts a number. The game still goes on the
+            // board; it simply cannot be picked yet.
+            spread:       point,                    // negative = home favored
+            favorite:     point == null ? null : point < 0 ? 'home' : 'away',
             kickoff_time: event.commence_time,
             odds_api_id:  event.id,
           })
@@ -283,7 +283,11 @@ export default async function handler(req, res) {
       }
     }
 
-    const { eligible, bySport, limits, shortfall } = selectEligible(candidates, week, rankMap)
+    // requireSpread false on purpose: a game with no line yet belongs on the
+    // board, marked "Line to come", rather than disappearing until some book
+    // gets round to pricing it. The next run fills the number in.
+    const { eligible, bySport, limits, shortfall } =
+      selectEligible(candidates, week, rankMap, { requireSpread: false })
 
     // ── What's already in the table for this week ─────────────────────────
     const existing = await readJson(
@@ -303,8 +307,14 @@ export default async function handler(req, res) {
     )
     const stale = eligible.filter((c) => byEventId.has(c.odds_api_id) && !started(c))
 
+    // How much of the board is still waiting on a book. Zero is the ordinary
+    // answer; a number that does not fall on the next run is the thing worth
+    // noticing, and it is now in the response rather than invisible.
+    const withoutLine = eligible.filter((g) => g.spread == null).length
+
     const summary = {
       ok: true,
+      withoutLine,
       dryRun,
       season:      season.year,
       week:        week.week_number,
@@ -346,7 +356,9 @@ export default async function handler(req, res) {
     if (dryRun) {
       return res.status(200).json({
         ...summary,
-        sample: eligible.slice(0, 12).map((g) => `${g.away_team} @ ${g.home_team} (${g.spread})`),
+        sample: eligible.slice(0, 12).map(
+        (g) => `${g.away_team} @ ${g.home_team} (${g.spread ?? 'no line yet'})`
+      ),
       })
     }
 
@@ -363,15 +375,21 @@ export default async function handler(req, res) {
     }
 
     // Refresh spreads/kickoffs on games we already had — lines move all week.
+    //
+    // A line only ever gets written when there is one. This is what turns a
+    // game that went up without a number into a playable one as soon as a book
+    // prices it — and it is also why a book pulling a line cannot blank a
+    // spread the week is already being picked against.
     for (const g of stale) {
+      const patch = { kickoff_time: g.kickoff_time }
+      if (g.spread != null && g.favorite) {
+        patch.spread = g.spread
+        patch.favorite = g.favorite
+      }
       const r = await db(`games?odds_api_id=eq.${encodeURIComponent(g.odds_api_id)}`, {
         method: 'PATCH',
         headers: { Prefer: 'return=minimal' },
-        body: JSON.stringify({
-          spread:       g.spread,
-          favorite:     g.favorite,
-          kickoff_time: g.kickoff_time,
-        }),
+        body: JSON.stringify(patch),
       })
       if (!r.ok) throw new Error(`refresh game: ${r.status} ${(await r.text()).slice(0, 200)}`)
     }
@@ -458,6 +476,26 @@ async function manageWeekState({ db, readJson, season, week, now = new Date() })
  * release. The MAC rule needs no schedule at all, so a MACtion week still
  * posts Tuesday even if this comes back empty.
  */
+/**
+ * The home spread for an event, from whichever book has posted one.
+ *
+ * This used to read bookmakers[0] and give up if that book had no spreads
+ * market — so a game every other book had priced was dropped for the sake of
+ * the one that had not got to it yet. Books post at their own pace, and
+ * college later than NFL, which is how a whole sport could go missing from a
+ * week without anything being logged.
+ *
+ * @returns {number|null} null when no book has a line yet
+ */
+export function homeSpreadFrom(event) {
+  for (const book of event.bookmakers ?? []) {
+    const market = book.markets?.find((m) => m.key === 'spreads')
+    const home = market?.outcomes?.find((o) => o.name === event.home_team)
+    if (home?.point != null) return home.point
+  }
+  return null
+}
+
 /**
  * Put the week's schedule on the board before its lines exist.
  *

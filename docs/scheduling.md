@@ -51,6 +51,24 @@ not, so a missed release repairs itself instead of leaving the week half open.
 
 Rules live in `src/lib/oddsRelease.js`, tested in `tests/oddsRelease.test.mjs`.
 
+## The board is the schedule, not the lines
+
+Every game in the week's window goes on the board whether or not anybody has
+priced it yet. A game with no spread shows as *Line to come* and cannot be
+picked; the next run writes the number in as soon as a book posts one.
+
+This replaced a rule that dropped such games silently. The old reader looked at
+`bookmakers[0]` alone and skipped any game that book had not priced, so a
+midweek game could be missing from its own week, and — because college prices
+later than NFL — an entire sport could vanish with nothing logged but a
+shortfall count. The reader now takes the first book that has a line, and a
+game with none from any book still goes up.
+
+A line is only ever written when there is one, so a book pulling a price cannot
+blank a spread the week is already being picked against. The response reports
+`withoutLine`: zero is the ordinary answer, and a number that does not fall on
+the following run is the thing worth looking at.
+
 ## The board on Tuesday: games without lines
 
 A week opens on its own Tuesday, but in an ordinary week its odds are not due
