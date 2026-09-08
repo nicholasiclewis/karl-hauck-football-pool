@@ -247,7 +247,7 @@ export default function Standings() {
             {/* 2nd place — left */}
             <PodiumSlot
               entry={standings[1] ?? null}
-              place={2}
+              place={standings[1]?.rank ?? 2}
               blockHeight={52}
               duesIcon={badgeFor(standings[1]?.user_id)}
               payout={season?.payout_2nd ?? null}
@@ -255,7 +255,7 @@ export default function Standings() {
             {/* 1st place — center, tallest */}
             <PodiumSlot
               entry={standings[0] ?? null}
-              place={1}
+              place={standings[0]?.rank ?? 1}
               blockHeight={70}
               duesIcon={badgeFor(standings[0]?.user_id)}
               payout={season?.payout_1st ?? null}
@@ -263,7 +263,7 @@ export default function Standings() {
             {/* 3rd place — right, shortest */}
             <PodiumSlot
               entry={standings[2] ?? null}
-              place={3}
+              place={standings[2]?.rank ?? 3}
               blockHeight={38}
               duesIcon={badgeFor(standings[2]?.user_id)}
               payout={season?.payout_3rd ?? null}
@@ -308,19 +308,19 @@ export default function Standings() {
               className="mx-4 rounded-xl overflow-hidden border"
               style={{ borderColor: '#374e6b' }}
             >
-              {standings.map((entry, index) => {
+              {standings.map((entry) => {
                 const payoutMap = { 1: season?.payout_1st, 2: season?.payout_2nd, 3: season?.payout_3rd }
                 return (
                   <PlayerRow
                     key={entry.user_id}
                     entry={entry}
-                    rank={index + 1}
+                    rank={entry.rank}
                     isCurrentUser={entry.user_id === user?.id}
                     isExpanded={expandedUserId === entry.user_id}
                     onToggle={() => toggleExpand(entry.user_id)}
                     weeks={weeks}
                     duesIcon={badgeFor(entry.user_id)}
-                    payout={payoutMap[index + 1] ?? null}
+                    payout={payoutMap[entry.rank] ?? null}
                   />
                 )
               })}
