@@ -183,9 +183,18 @@ export default async function handler(req, res) {
         // so the board shows who is playing while the numbers are being set —
         // and the week itself may still need opening. This is exactly the
         // shape of a Tuesday whose lines post Wednesday.
-        const preview = await importPreview({
-          db, readJson, week, schedule, allSports, now, dryRun,
-        })
+        // A preview is a nicety. Opening the week and, next morning, importing
+        // the odds are not — so this never takes the run down with it, whether
+        // the cause is a schema that has not caught up or the schedule
+        // endpoint having a bad day.
+        let preview
+        try {
+          preview = await importPreview({
+            db, readJson, week, schedule, allSports, now, dryRun,
+          })
+        } catch (err) {
+          preview = { added: 0, error: err.message }
+        }
         const weekState = await manageWeekState({ db, readJson, season, week, now })
         return res.status(200).json({
           ok: true,
