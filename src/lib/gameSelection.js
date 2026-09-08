@@ -79,19 +79,26 @@ export function filterCollegeByFocus(games, week, rankMap = null) {
  * @param {Array}  candidates games already limited to the week's window
  * @param {object} week       { container_type, college_focus, conference }
  * @param {Map}   [rankMap]   from buildRankMap(), for 'top25' weeks
+ * @param {object} [opts]
+ * @param {boolean} [opts.requireSpread=true]  drop games with no line yet.
+ *        True for the odds import, which is choosing what can be picked. False
+ *        for the Tuesday preview, which is choosing what to *show* — those
+ *        games have a schedule and no numbers, and are the same games that
+ *        will be pickable once Wednesday fills the lines in.
  * @returns {{ eligible: Array, bySport: object, limits: object, shortfall: object }}
  */
-export function selectEligible(candidates, week, rankMap = null) {
+export function selectEligible(candidates, week, rankMap = null, { requireSpread = true } = {}) {
   const limits = pickLimits(week?.container_type)
   const sports = sportsFor(week?.container_type)
 
-  const withSpread = (s) => candidates.filter((g) => g.sport === s && g.spread != null)
+  const ofSport = (s) =>
+    candidates.filter((g) => g.sport === s && (!requireSpread || g.spread != null))
 
-  const nfl = sports.includes('nfl') ? withSpread('nfl') : []
+  const nfl = sports.includes('nfl') ? ofSport('nfl') : []
 
   const college = sports.includes('college')
     ? filterCollegeByFocus(
-        withSpread('college').filter((g) =>
+        ofSport('college').filter((g) =>
           // At least one recognized FBS side. The Odds API also carries FCS
           // opponents (Tarleton State and the like), never pool games.
           getTeamConference(g.home_team) !== null || getTeamConference(g.away_team) !== null

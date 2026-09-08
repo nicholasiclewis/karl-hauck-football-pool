@@ -51,6 +51,34 @@ not, so a missed release repairs itself instead of leaving the week half open.
 
 Rules live in `src/lib/oddsRelease.js`, tested in `tests/oddsRelease.test.mjs`.
 
+## The board on Tuesday: games without lines
+
+A week opens on its own Tuesday, but in an ordinary week its odds are not due
+until Wednesday — so for a full day the board had nothing on it and the picks
+page could only promise that something would appear.
+
+The schedule, though, is knowable on Tuesday. The same free `events` endpoint
+that decides the release day also says who is playing, so the Tuesday run now
+puts those games on the board **with no spread and no favorite**. Players see
+the week's matchups a day early, each marked *Line to come*, and the card
+offers no buttons.
+
+Nothing can be picked against one. The card hides the controls, the entry tab
+disables them, and `picks_require_line` (migration 012) refuses the write
+outright — a pick with no number behind it could never be graded, so this is a
+database rule rather than a UI courtesy.
+
+Wednesday's run does not create duplicates. Preview rows carry the same
+`odds_api_id` the odds import uses, so it recognises them as games it already
+had and patches the real spread onto them: the preview *becomes* the game. The
+preview insert never merges duplicates, so a game that already has its line is
+never handed a null one.
+
+Selection is the same either way — same window, sport, and college focus — so a
+preview shows the games that will actually be pickable, not every fixture in
+the window. `selectEligible` takes a `requireSpread` flag for the difference,
+tested in `tests/previewGames.test.mjs`.
+
 ## Scores: at the end of each game
 
 A game is watched from kickoff until it has a score. Each tick reads ESPN's

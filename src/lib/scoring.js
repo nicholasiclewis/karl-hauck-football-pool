@@ -34,6 +34,11 @@ export function resolveGameResult(game) {
   if (game.home_score === null || game.away_score === null) return null
 
   const { home_score, away_score, spread, favorite } = game
+
+  // A game on the board before its line posted has no number to measure the
+  // result against. Math.abs(null) is 0, so without this a preview game that
+  // somehow reached a final would be graded as a pick'em nobody agreed to.
+  if (spread === null || spread === undefined || !favorite) return null
   const absSpread = Math.abs(spread)
   const margin = home_score - away_score // positive = home winning
 

@@ -143,6 +143,11 @@ export default function EntryTab() {
       return
     }
 
+    if (game.spread === null || game.spread === undefined) {
+      setError('That game has no line yet — it cannot be picked until the spread posts.')
+      return
+    }
+
     const existing = picks[game.id]
     setPending({
       game,
@@ -387,6 +392,10 @@ export default function EntryTab() {
               // pick card draws.
               const final   = game.result !== null
               const started = !final && new Date(game.kickoff_time) <= new Date()
+              // On the board as a preview, before its line posted. The
+              // database refuses a pick against one, so the form must not
+              // offer to make it.
+              const noLine  = game.spread === null || game.spread === undefined
               const blocked = !pick && remaining[game.sport] === 0
               return (
                 <div
@@ -420,6 +429,11 @@ export default function EntryTab() {
                             style={{ background: 'rgba(245,179,1,0.15)', color: '#f5b301' }}>
                         started
                       </span>
+                    ) : noLine ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(148,175,212,0.15)', color: '#94afd4' }}>
+                        line to come
+                      </span>
                     ) : null}
                   </div>
 
@@ -432,7 +446,7 @@ export default function EntryTab() {
                         <button
                           key={side}
                           onClick={() => requestPick(game, side)}
-                          disabled={saving === game.id || (blocked && !on)}
+                          disabled={saving === game.id || noLine || (blocked && !on)}
                           className="flex-1 py-2 px-2 rounded-lg border-2 text-center"
                           style={{
                             borderColor: on ? '#60a5fa' : '#374e6b',
