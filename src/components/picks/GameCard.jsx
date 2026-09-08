@@ -113,14 +113,19 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
               saying "Spread" between two teams it could equally describe. */}
           <div className="flex flex-col items-center gap-1 flex-shrink-0 w-14">
             <span className="text-[11px] text-muted">@</span>
-            <div className="w-full bg-bg border border-border2 rounded-lg px-1 py-1.5 text-center">
-              <span className="block text-base font-bold text-primary-light">
-                {formatSpread(homeSpread)}
-              </span>
-              <span className="block text-[9px] text-muted uppercase tracking-wide truncate">
-                {homeAbbr}
-              </span>
-            </div>
+            {/* No line, no box. The box exists to quote a number against a
+                team, so with neither it was showing a team name where the
+                spread belongs — which reads as odds that are not there. */}
+            {!noLine && (
+              <div className="w-full bg-bg border border-border2 rounded-lg px-1 py-1.5 text-center">
+                <span className="block text-base font-bold text-primary-light">
+                  {formatSpread(homeSpread)}
+                </span>
+                <span className="block text-[9px] text-muted uppercase tracking-wide truncate">
+                  {homeAbbr}
+                </span>
+              </div>
+            )}
             {/* Nobody covered, so neither side goes green. Said out loud, or an
                 unhighlighted final looks like a game the app forgot to grade. */}
             {game.result === 'push' && (

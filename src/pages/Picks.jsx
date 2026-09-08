@@ -14,6 +14,7 @@ import { countdownToKickoff, formatKickoff } from '../lib/gameUtils'
 import { weekPoints } from '../lib/scoring'
 import { remainingPicks, sportsFor } from '../lib/gameSelection'
 import { releaseDateFor, RELEASE_HOUR } from '../lib/oddsRelease'
+import { collegeFocusLabel } from '../lib/weekLabels'
 import { POOL_TZ, parseDateOnly, poolTimeToUtc } from '../lib/weekWindow'
 
 export default function Picks() {
@@ -317,7 +318,7 @@ export default function Picks() {
             title="College Games"
             count={collegeGames.length}
             progress={limits.college > 0 ? `${used.college}/${limits.college} picked` : null}
-            note={pollLabel}
+            note={collegeFocusLabel(week) || pollLabel}
           />
           {collegeGames.map((game) => (
             <GameCard
@@ -427,10 +428,14 @@ function EmptyBoard({ week }) {
 
 function SectionHeader({ icon, title, count, progress = null, note = null }) {
   return (
-    <div className="flex items-center gap-2.5 px-4 pt-5 pb-2.5">
-      <span className="text-[13px] tracking-widest uppercase text-muted">{icon} {title}</span>
+    <div className="flex items-center gap-2.5 px-4 pt-6 pb-3">
+      <span className="text-base font-extrabold tracking-wide uppercase text-text">
+        {icon} {title}
+      </span>
       {note && (
-        <span className="hidden xs:inline text-[10px] text-muted whitespace-nowrap">{note}</span>
+        <span className="hidden xs:inline text-[11px] font-semibold text-accent-text whitespace-nowrap">
+          {note}
+        </span>
       )}
       <div className="flex-1 h-px bg-border" />
       {progress && (

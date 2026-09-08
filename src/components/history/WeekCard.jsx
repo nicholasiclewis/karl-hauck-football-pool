@@ -3,6 +3,7 @@ import PickRow from './PickRow'
 import RoomPicks from './RoomPicks'
 import { supabase } from '../../lib/supabase'
 import { collegeFirst } from '../../lib/gameUtils'
+import { focusName } from '../../lib/weekLabels'
 import { roomPicks } from '../../lib/roomPicks'
 
 /**
@@ -69,13 +70,7 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
     else parts.push('6 CFB')
 
     if (week.college_focus) {
-      const focus = week.college_focus === 'power4' ? 'Power 4'
-        : week.college_focus === 'group5' ? 'Group of 5'
-        : week.college_focus === 'top25' ? 'Top 25'
-        : week.college_focus === 'rivalry' ? 'Rivalry'
-        : week.college_focus === 'confchamp' ? 'Conf. Champs'
-        : week.college_focus === 'cfp' ? 'CFP'
-        : week.college_focus
+      const focus = focusName(week.college_focus)
       parts.push(week.conference ? `${focus} (${week.conference})` : focus)
     }
     return parts.join(' · ')
