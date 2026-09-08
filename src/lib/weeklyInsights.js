@@ -10,6 +10,16 @@ import { assignRanks } from './placings.js'
 
 export const MAX_WEEK_POINTS = 8
 
+/** Everyone sharing the best score in an already-sorted table. */
+const atTop = (rows) => rows.filter((r) => r.points === rows[0].points)
+
+/** "Dana", "Dana & Marcus", "Dana, Marcus & Sam" — nobody left off. */
+function nameList(rows) {
+  const names = rows.map((r) => r.name)
+  if (names.length <= 1) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`
+}
+
 /** Points a scored week is worth to a player. */
 const pts = (s) => Number(s?.total_points ?? 0)
 
@@ -251,22 +261,41 @@ export function notables({ weekTable, standings, movement, streaks, breakdown })
   }
 
   // How close the race is at the top.
+  //
+  // Everyone on the leading score, not the first two rows of the table. Three
+  // players level at the top used to be reported as two of them tied, with the
+  // third left out of their own dead heat purely for sorting third.
   if (standings.length >= 2) {
-    const lead = Number((standings[0].points - standings[1].points).toFixed(1))
-    out.push({
-      label: 'Race for First',
-      value: lead === 0 ? 'Dead heat' : `${lead} pt${lead === 1 ? '' : 's'}`,
-      detail: lead === 0
-        ? `${standings[0].name} & ${standings[1].name} tied`
-        : `${standings[0].name} leads ${standings[1].name}`,
-    })
+    const leaders = atTop(standings)
+    const chasers = standings.filter((r) => r.points !== leaders[0].points)
+    const nearest = chasers.length ? atTop(chasers) : []
+
+    if (leaders.length > 1) {
+      out.push({
+        label: 'Race for First',
+        value: 'Dead heat',
+        detail: `${nameList(leaders)} tied`,
+      })
+    } else if (nearest.length) {
+      const lead = Number((leaders[0].points - nearest[0].points).toFixed(1))
+      out.push({
+        label: 'Race for First',
+        value: `${lead} pt${lead === 1 ? '' : 's'}`,
+        detail: `${leaders[0].name} leads ${nameList(nearest)}`,
+      })
+    }
   }
 
-  // Margin of victory for the week itself.
+  // Margin of victory for the week itself, over the best player who did not
+  // win it. A shared win has no margin and says nothing rather than "0 pts".
   if (weekTable.length >= 2) {
-    const margin = Number((weekTable[0].points - weekTable[1].points).toFixed(1))
-    if (margin > 0) {
-      out.push({ label: 'Won By', value: `${margin} pt${margin === 1 ? '' : 's'}`, detail: 'clear of the field' })
+    const won = atTop(weekTable)
+    const rest = weekTable.filter((r) => r.points !== won[0].points)
+    if (won.length === 1 && rest.length) {
+      const margin = Number((won[0].points - rest[0].points).toFixed(1))
+      if (margin > 0) {
+        out.push({ label: 'Won By', value: `${margin} pt${margin === 1 ? '' : 's'}`, detail: 'clear of the field' })
+      }
     }
   }
 

@@ -315,3 +315,63 @@ describe('everyone\'s picks for the recap', () => {
     assert.deepEqual(card.picks, [])
   })
 })
+
+/**
+ * Nobody is left out of their own tie.
+ *
+ * The race storyline used to read the first two rows of the table, so a third
+ * player level at the top was omitted from the dead heat they were part of —
+ * and a player tied for second went unmentioned while the one who happened to
+ * sort above them was named as the sole chaser.
+ */
+describe('race for first, with ties', () => {
+  const table = (...rows) => rows.map(([name, points], i) => ({ userId: 'u' + i, name, points }))
+  const base = { movement: new Map(), streaks: new Map(), breakdown: [] }
+  const race = (standings) =>
+    notables({ ...base, weekTable: [], standings }).find((x) => x.label === 'Race for First')
+
+  test('two level at the top is still a dead heat', () => {
+    const r = race(table(['Dana', 19], ['Marcus', 19], ['Sam', 12]))
+    assert.equal(r.value, 'Dead heat')
+    assert.equal(r.detail, 'Dana & Marcus tied')
+  })
+
+  test('three level at the top names all three', () => {
+    const r = race(table(['Dana', 19], ['Marcus', 19], ['Urbano', 19], ['Sam', 12]))
+    assert.equal(r.value, 'Dead heat')
+    assert.equal(r.detail, 'Dana, Marcus & Urbano tied', 'the third was being dropped')
+  })
+
+  test('a leader over several tied chasers names every chaser', () => {
+    const r = race(table(['Dana', 24], ['Marcus', 19], ['Urbano', 19]))
+    assert.equal(r.value, '5 pts')
+    assert.equal(r.detail, 'Dana leads Marcus & Urbano')
+  })
+
+  test('a single point is singular', () => {
+    assert.equal(race(table(['Dana', 20], ['Marcus', 19])).value, '1 pt')
+  })
+
+  test('everyone level is one big dead heat', () => {
+    const r = race(table(['Dana', 12], ['Marcus', 12], ['Urbano', 12]))
+    assert.equal(r.detail, 'Dana, Marcus & Urbano tied')
+  })
+
+  test('a shared week win reports no margin rather than zero', () => {
+    const won = notables({
+      ...base,
+      standings: [],
+      weekTable: table(['Dana', 8], ['Urbano', 8], ['Sam', 5]),
+    }).find((x) => x.label === 'Won By')
+    assert.equal(won, undefined)
+  })
+
+  test('a clear week win measures against the best who did not win', () => {
+    const won = notables({
+      ...base,
+      standings: [],
+      weekTable: table(['Dana', 8], ['Urbano', 6], ['Sam', 6]),
+    }).find((x) => x.label === 'Won By')
+    assert.equal(won.value, '2 pts')
+  })
+})
