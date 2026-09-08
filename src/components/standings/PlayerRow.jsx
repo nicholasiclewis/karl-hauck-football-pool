@@ -6,7 +6,8 @@ import WeekBreakdown from './WeekBreakdown'
  *
  * Props:
  *   entry       — standings entry object from useStandings
- *   rank        — 1-based rank number
+ *   rank        — shared position from assignRanks; entry.tied says whether
+ *                 anybody else is on it
  *   isCurrentUser — true if this row belongs to the logged-in user
  *   isExpanded  — whether the breakdown is open
  *   onToggle    — callback to toggle expansion
@@ -51,7 +52,7 @@ export default function PlayerRow({
       <button
         onClick={onToggle}
         aria-expanded={isExpanded}
-        aria-label={`${entry.display_name ?? 'Unknown'}, rank ${rank}, ${entry.total_points ?? 0} points — week by week`}
+        aria-label={`${entry.display_name ?? 'Unknown'}, ${entry.tied ? 'tied for' : ''} rank ${rank}, ${entry.total_points ?? 0} points — week by week`}
         className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
         style={{
           background: isCurrentUser
@@ -62,12 +63,14 @@ export default function PlayerRow({
           borderLeft: isCurrentUser ? '2px solid #60a5fa' : '2px solid transparent',
         }}
       >
-        {/* Rank */}
+        {/* Rank — T for a position shared with somebody on the same points,
+            so two players reading the same number looks deliberate rather
+            than like a bug. The pool breaks these in the final week. */}
         <span
           className="w-6 text-center text-sm font-bold flex-shrink-0"
           style={{ color: rankColor }}
         >
-          {rank}
+          {entry.tied ? `T${rank}` : rank}
         </span>
 
         {/* Avatar — the clown takes the whole circle when dues are late */}

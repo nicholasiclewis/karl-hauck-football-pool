@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { assignRanks } from '../lib/placings'
 import { useRefreshOnFocus } from './useRefreshOnFocus'
 
 /**
@@ -100,7 +101,10 @@ export function useStandings(seasonId) {
         (a, b) => b.total_points - a.total_points
       )
 
-      setStandings(sorted)
+      // Level players share a position. The pool has no tiebreaker until the
+      // last week of the season, so the order the sort happened to put two
+      // equal players in must not be shown as a placing between them.
+      setStandings(assignRanks(sorted))
     } catch (err) {
       setError(err.message)
     } finally {

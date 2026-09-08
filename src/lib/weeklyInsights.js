@@ -6,6 +6,8 @@
  * plain rows so they can be tested without a database.
  */
 
+import { assignRanks } from './placings.js'
+
 export const MAX_WEEK_POINTS = 8
 
 /** Points a scored week is worth to a player. */
@@ -55,16 +57,12 @@ export function standingsAfter(scores, weekIds, names) {
     .sort((a, b) => b.points - a.points || b.correct - a.correct || a.name.localeCompare(b.name))
 
   // Ties share a rank: two players on the same points are both 2nd, and the
-  // next is 4th. Showing one of them as 3rd would be wrong.
-  let lastPoints = null
-  let lastRank = 0
-  return table.map((r, i) => {
-    const rank = r.points === lastPoints ? lastRank : i + 1
-    lastPoints = r.points
-    lastRank = rank
-    const gap = table[0] ? Number((table[0].points - r.points).toFixed(1)) : 0
-    return { ...r, rank, gap }
-  })
+  // next is 4th. The rule lives in placings.js, so the report and the app's
+  // standings cannot drift into disagreeing about who is level with whom.
+  return assignRanks(table, (r) => r.points).map((r) => ({
+    ...r,
+    gap: table[0] ? Number((table[0].points - r.points).toFixed(1)) : 0,
+  }))
 }
 
 /**
