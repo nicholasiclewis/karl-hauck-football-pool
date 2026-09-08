@@ -39,8 +39,13 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
 
   const countdown = kickedOff ? null : countdownToKickoff(game.kickoff_time)
 
-  const homeSpread = game.spread                 // e.g. -3.5 (home favored)
-  const awaySpread = -game.spread                // e.g. +3.5
+  // On the board before its line posted. The schedule is free to look up and
+  // arrives a day before the odds, so the week shows who is playing while the
+  // numbers are still being set — but there is nothing here to pick yet.
+  const noLine = game.spread === null || game.spread === undefined
+
+  const homeSpread = noLine ? null : game.spread   // e.g. -3.5 (home favored)
+  const awaySpread = noLine ? null : -game.spread  // e.g. +3.5
   const homeAbbr   = teamAbbr(game.home_team)
   const awayAbbr   = teamAbbr(game.away_team)
 
@@ -81,6 +86,11 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           ) : isLocked ? (
             <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-border text-muted border border-border2 text-[11px]">
               🔒 Locked
+            </span>
+          ) : noLine ? (
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+                  style={{ background: 'rgba(245,179,1,0.12)', color: '#f5b301' }}>
+              Line to come
             </span>
           ) : countdown ? (
             <span className="text-[11px] text-muted">{countdown}</span>
@@ -127,8 +137,15 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
           />
         </div>
 
-        {/* ── Pick buttons or locked state ──────────── */}
-        {isLocked ? (
+        {/* ── Pick buttons, locked state, or no line yet ─ */}
+        {noLine ? (
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-bg rounded-lg border border-border">
+            <span className="text-sm">⏳</span>
+            <span className="text-sm text-muted flex-1 leading-snug">
+              Line not posted yet — this game becomes pickable when it lands.
+            </span>
+          </div>
+        ) : isLocked ? (
           <div className="flex items-center gap-2 px-3 py-2.5 bg-bg rounded-lg border border-border">
             <span className="text-sm">🔒</span>
             <span className="text-sm text-muted flex-1">

@@ -50,6 +50,9 @@ export function collegeFirst(a, b) {
 
 /** Format a spread number → "+6.5", "-3.5", "PK" */
 export function formatSpread(spread) {
+  // A game can be on the board before its line posts. Without this the null
+  // falls through Math.abs to 0 and prints as PK — a number the pool never set.
+  if (spread === null || spread === undefined) return '—'
   if (spread === 0) return 'PK'
   const abs = Math.abs(spread)
   const val = abs % 1 === 0 ? String(abs) : abs.toFixed(1)

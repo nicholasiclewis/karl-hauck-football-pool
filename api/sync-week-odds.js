@@ -167,9 +167,11 @@ export default async function handler(req, res) {
     const allSports = sportsFor(week.container_type)
     let sports = allSports
     let release = null
+    let schedule = null
 
     if (!targeted && !listOnly) {
-      const kickoffs = await fetchKickoffs({ sports: allSports, window, oddsKey })
+      schedule = await fetchSchedule({ sports: allSports, window, oddsKey })
+      const kickoffs = kickoffsFrom(schedule)
       const today = poolToday(now)
       release = Object.fromEntries(
         allSports.map((s) => [s, releaseDateFor(s, week, kickoffs[s] ?? [])])
@@ -177,14 +179,20 @@ export default async function handler(req, res) {
       sports = sportsReleasedBy(today, allSports, week, kickoffs)
 
       if (!sports.length) {
-        // No odds due today, but the week itself may still need opening —
-        // that is exactly the shape of a Tuesday whose lines post Wednesday.
+        // No odds due today. The schedule is still knowable and costs nothing,
+        // so the board shows who is playing while the numbers are being set —
+        // and the week itself may still need opening. This is exactly the
+        // shape of a Tuesday whose lines post Wednesday.
+        const preview = await importPreview({
+          db, readJson, week, schedule, allSports, now, dryRun,
+        })
         const weekState = await manageWeekState({ db, readJson, season, week, now })
         return res.status(200).json({
           ok: true,
           season:  season.year,
           week:    week.week_number,
-          skipped: `Nothing releases on ${today}`,
+          skipped: `No odds release on ${today}`,
+          preview,
           release,
           weekState,
         })
@@ -441,11 +449,81 @@ async function manageWeekState({ db, readJson, season, week, now = new Date() })
  * release. The MAC rule needs no schedule at all, so a MACtion week still
  * posts Tuesday even if this comes back empty.
  */
-async function fetchKickoffs({ sports, window, oddsKey }) {
+/**
+ * Put the week's schedule on the board before its lines exist.
+ *
+ * Runs on the mornings when no odds are due — in practice the Tuesday of an
+ * ordinary week. The games go in with no spread and no favorite, which the
+ * app renders as a preview and the database refuses to accept picks against.
+ *
+ * They carry the same odds_api_id the odds import uses, and that is the whole
+ * mechanism: Wednesday's run finds these rows already present, treats them as
+ * games it already had, and PATCHes the real spread onto them. The preview
+ * becomes the game rather than competing with it.
+ *
+ * Only ever inserts. The odds import merges duplicates, which here would write
+ * a null spread over a real one — so a game already on the board, with a line
+ * or without, is left exactly as it is.
+ */
+async function importPreview({ db, readJson, week, schedule, allSports, now, dryRun }) {
+  if (!schedule) return { added: 0, note: 'no schedule looked up' }
+
+  const candidates = []
+  for (const sport of allSports) {
+    for (const event of schedule[sport] ?? []) {
+      if (!event?.id || !event.home_team || !event.away_team) continue
+      candidates.push(previewRow(week, sport, event))
+    }
+  }
+  if (!candidates.length) return { added: 0, note: 'schedule came back empty' }
+
+  let rankMap = null
+  if (week.college_focus === 'top25' && allSports.includes('college')) {
+    try {
+      rankMap = buildRankMap(await fetchTop25ForWeek(week.week_start, { poll: 'ap' }))
+    } catch {
+      // No poll means we cannot tell which games qualify, and selectEligible
+      // answers with no college games. Previewing the wrong ones would be
+      // worse than previewing none.
+    }
+  }
+
+  // The same eligibility the odds import applies, minus the line it does not
+  // have yet — so a preview shows the games that will actually be pickable,
+  // not every fixture in the window.
+  const { eligible } = selectEligible(candidates, week, rankMap, { requireSpread: false })
+
+  const existing = await readJson(
+    await db(`games?select=odds_api_id&week_id=eq.${week.id}`),
+    'existing games'
+  )
+  const have = new Set(existing.map((g) => g.odds_api_id).filter(Boolean))
+
+  const fresh = eligible.filter(
+    (g) => !have.has(g.odds_api_id) && new Date(g.kickoff_time) > now
+  )
+
+  const sample = fresh.slice(0, 8).map((g) => `${g.away_team} @ ${g.home_team}`)
+  if (dryRun) return { added: 0, wouldAdd: fresh.length, sample }
+  if (!fresh.length) return { added: 0, note: 'board already up to date' }
+
+  const r = await db('games', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify(fresh.map((g) => ({ ...g, is_featured: true }))),
+  })
+  if (!r.ok) {
+    throw new Error(`insert preview games: ${r.status} ${(await r.text()).slice(0, 300)}`)
+  }
+
+  return { added: fresh.length, sample }
+}
+
+async function fetchSchedule({ sports, window, oddsKey }) {
   const out = {}
 
   for (const sport of sports) {
-    const times = []
+    const events = []
     for (const sportKey of sportKeysFor(sport, window)) {
       try {
         const r = await fetch(
@@ -454,14 +532,44 @@ async function fetchKickoffs({ sports, window, oddsKey }) {
         )
         if (!r.ok) continue
         for (const event of await r.json()) {
-          if (isInWeekWindow(event.commence_time, window)) times.push(event.commence_time)
+          if (isInWeekWindow(event.commence_time, window)) events.push(event)
         }
       } catch {
         // Never let a schedule lookup take the import down with it.
       }
     }
-    out[sport] = times
+    out[sport] = events
   }
 
   return out
+}
+
+/** Just the kickoff times, which is all the release-day rules need. */
+function kickoffsFrom(schedule) {
+  return Object.fromEntries(
+    Object.entries(schedule).map(([sport, events]) => [
+      sport,
+      events.map((e) => e.commence_time),
+    ])
+  )
+}
+
+/**
+ * A game row for the board before its line exists.
+ *
+ * Same odds_api_id the odds import uses, which is the whole trick: Wednesday's
+ * run finds these rows already present and PATCHes the spread onto them, so
+ * the preview becomes the real game rather than a duplicate of it.
+ */
+function previewRow(week, sport, event) {
+  return {
+    week_id:      week.id,
+    sport,
+    home_team:    event.home_team,
+    away_team:    event.away_team,
+    kickoff_time: event.commence_time,
+    odds_api_id:  event.id,
+    spread:       null,
+    favorite:     null,
+  }
 }
