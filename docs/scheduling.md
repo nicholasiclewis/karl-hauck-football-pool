@@ -69,6 +69,25 @@ blank a spread the week is already being picked against. The response reports
 `withoutLine`: zero is the ordinary answer, and a number that does not fall on
 the following run is the thing worth looking at.
 
+## The whole board goes up, whatever has released
+
+The release day decides when a sport's **odds** post. It does not decide when
+its **games** appear.
+
+A week with a Tuesday NFL release and a Wednesday college release used to show
+four NFL games on Tuesday and nothing else — the college half of the week
+turned up out of nowhere the next morning. The fixtures were knowable the whole
+time, from the free `events` lookup the release check already makes.
+
+Every sport in the week now goes on the board on the first run. A sport whose
+odds are not due yet goes up bare, marked *Line to come*, and collects its
+numbers on the morning it releases.
+
+This is also why a manual fetch from the Games tab used to show more than the
+scheduler did: `?week_id=` is a *targeted* run, which skips the release check
+and imports both sports at once. The two paths now agree about which games
+exist and differ only in when the numbers arrive.
+
 ## The board on Tuesday: games without lines
 
 A week opens on its own Tuesday, but in an ordinary week its odds are not due

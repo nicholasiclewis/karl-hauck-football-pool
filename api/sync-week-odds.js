@@ -264,13 +264,33 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── Sports that have not released yet ─────────────────────────────────
+    //
+    // A week where one sport releases today and the other tomorrow used to put
+    // only the first on the board: the release check picked the sports to
+    // fetch odds for, and anything left out was simply absent. So a Tuesday
+    // NFL release showed four NFL games and no college at all, and the college
+    // half of the week appeared out of nowhere the next morning.
+    //
+    // Not releasing odds is not a reason to hide the fixtures. Those games go
+    // up bare, from the schedule that was already looked up for free, and
+    // collect their numbers on the morning they are due.
+    for (const sport of allSports.filter((s) => !sports.includes(s))) {
+      for (const event of schedule?.[sport] ?? []) {
+        if (!event?.id || !event.home_team || !event.away_team) continue
+        if (seenEvents.has(event.id)) continue
+        seenEvents.add(event.id)
+        candidates.push(previewRow(week, sport, event))
+      }
+    }
+
     // ── Narrow to the games players may actually pick ─────────────────────
     // There is no curation step, so what gets imported is exactly what the
     // players see. The focus filter has to run here, not as a suggestion.
     let rankMap = null
     let pollUsed = null
     let warning = null
-    if (week.college_focus === 'top25' && sports.includes('college')) {
+    if (week.college_focus === 'top25' && allSports.includes('college')) {
       try {
         const poll = await fetchTop25ForWeek(week.week_start, { poll: 'ap' })
         rankMap = buildRankMap(poll)
