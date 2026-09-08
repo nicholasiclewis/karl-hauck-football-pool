@@ -40,6 +40,12 @@ export default function EntryTab() {
   const [saving, setSaving]     = useState(null)   // game id being written
   const [error, setError]       = useState('')
 
+  // What the commissioner is about to do, held until they say yes. Every write
+  // from this form now goes through here: entering somebody else's pick is
+  // worth one deliberate step, and the dialog is where the game's state gets
+  // said out loud before the pick lands rather than after.
+  const [pending, setPending]   = useState(null)
+
   useEffect(() => { init() }, [])
   useEffect(() => { if (weekId) { loadGames(); loadCounts() } }, [weekId])
   useEffect(() => { if (weekId && userId) loadPicks() }, [weekId, userId])
@@ -119,6 +125,38 @@ export default function EntryTab() {
   const week = weeks.find(w => w.id === weekId)
   const pickedGames = games.filter(g => picks[g.id])
   const { used, limits, remaining, complete } = remainingPicks(pickedGames, week?.container_type)
+
+  /**
+   * Tapping a side asks, it does not write.
+   *
+   * The check that matters happens here rather than in the dialog, so an
+   * action that was never going to be allowed is refused before the
+   * commissioner is asked to confirm it.
+   */
+  function requestPick(game, side) {
+    setError('')
+    if (isSelf(userId)) {
+      setError('You cannot enter your own picks here — use the Picks page, or ask another admin.')
+      return
+    }
+
+    const existing = picks[game.id]
+    setPending({
+      game,
+      side,
+      // Tapping the side already picked retracts it, so the question asked has
+      // to be the question actually being answered.
+      action: existing?.picked_team === side ? 'clear' : existing ? 'change' : 'add',
+      from: existing?.picked_team ?? null,
+    })
+  }
+
+  /** Yes was pressed. Close the question, then do the thing. */
+  async function confirmPending() {
+    const p = pending
+    setPending(null)
+    if (p) await setPick(p.game, p.side)
+  }
 
   async function setPick(game, side) {
     setError('')
@@ -390,7 +428,7 @@ export default function EntryTab() {
                       return (
                         <button
                           key={side}
-                          onClick={() => setPick(game, side)}
+                          onClick={() => requestPick(game, side)}
                           disabled={saving === game.id || (blocked && !on)}
                           className="flex-1 py-2 px-2 rounded-lg border-2 text-center"
                           style={{
@@ -411,6 +449,133 @@ export default function EntryTab() {
           </div>
         </>
       )}
+
+      {pending && (
+        <PickConfirm
+          pending={pending}
+          playerName={player?.display_name ?? 'this player'}
+          onCancel={() => setPending(null)}
+          onConfirm={confirmPending}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * "You are about to enter Eagles -3.5 for Dan Hauck."
+ *
+ * Every write from the entry tab stops here first. Most of the time it is a
+ * formality, and that is fine — the cost is one tap and the thing it prevents
+ * is a pick landing on the wrong player's slate, or on a game the commissioner
+ * had not noticed was over.
+ *
+ * The game's state is the part worth reading, so it is stated plainly and
+ * loudest when it matters most: a finished game says so, with its score, in
+ * the colour the rest of the app uses for a warning.
+ */
+function PickConfirm({ pending, playerName, onCancel, onConfirm }) {
+  const { game, side, action, from } = pending
+
+  const team   = side === 'home' ? game.home_team : game.away_team
+  const spread = side === 'home' ? game.spread : -game.spread
+  const fromTeam = from ? (from === 'home' ? game.home_team : game.away_team) : null
+
+  const isFinal   = game.result !== null
+  const hasKicked = new Date(game.kickoff_time) <= new Date()
+
+  const heading =
+    action === 'clear'  ? `Clear ${playerName}'s pick?`
+    : action === 'change' ? `Change ${playerName}'s pick?`
+    : `Enter a pick for ${playerName}?`
+
+  // Escape closes it, the way any dialog should.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancel() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,6,26,0.75)' }}
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={heading}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl border p-4 space-y-3"
+        style={{ background: '#1e293b', borderColor: '#374e6b' }}
+      >
+        <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{heading}</h3>
+
+        <div className="rounded-lg border px-3 py-2.5 space-y-1" style={{ background: '#0f172a', borderColor: '#374e6b' }}>
+          <p className="text-[11px]" style={{ color: '#94afd4' }}>
+            {game.away_team} @ {game.home_team}
+          </p>
+          <p className="text-[11px]" style={{ color: '#94afd4' }}>
+            {formatKickoff(game.kickoff_time)}
+          </p>
+          {action === 'clear' ? (
+            <p className="text-sm font-bold" style={{ color: '#f87171' }}>
+              Removing {fromTeam} {formatSpread(from === 'home' ? game.spread : -game.spread)}
+            </p>
+          ) : (
+            <p className="text-sm font-bold" style={{ color: '#93c5fd' }}>
+              {team} {formatSpread(spread)}
+              {fromTeam && (
+                <span className="block text-[11px] font-normal mt-0.5" style={{ color: '#94afd4' }}>
+                  replacing {fromTeam}
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+
+        {/* The reason this dialog exists at all. */}
+        {isFinal ? (
+          <p
+            className="text-xs px-3 py-2 rounded-lg font-semibold"
+            style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}
+          >
+            ⚠ This game is already final, {game.away_score}–{game.home_score}. The
+            result is known.
+          </p>
+        ) : hasKicked ? (
+          <p
+            className="text-xs px-3 py-2 rounded-lg font-semibold"
+            style={{ background: 'rgba(245,179,1,0.12)', color: '#f5b301' }}
+          >
+            ⚠ This game has already kicked off.
+          </p>
+        ) : null}
+
+        <div className="flex gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-lg text-sm font-semibold border"
+            style={{ background: '#0f172a', borderColor: '#374e6b', color: '#94afd4' }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            autoFocus
+            className="flex-1 py-2.5 rounded-lg text-sm font-bold"
+            style={{
+              background: action === 'clear' ? '#b91c1c' : '#2563eb',
+              color: '#ffffff',
+            }}
+          >
+            {action === 'clear' ? 'Clear it' : 'Confirm'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
