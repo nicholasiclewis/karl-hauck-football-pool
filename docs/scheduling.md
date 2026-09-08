@@ -69,6 +69,24 @@ blank a spread the week is already being picked against. The response reports
 `withoutLine`: zero is the ordinary answer, and a number that does not fall on
 the following run is the thing worth looking at.
 
+## A line arrives when its own game is near, not its sport's
+
+The release day decides which mornings the odds endpoint is called. It does not
+decide which games keep what comes back.
+
+One midweek game pulls its whole sport's call forward to Tuesday, and that is
+right — the midweek game needs its number. It used to bring every other game in
+the sport with it, so a Sunday line went up on Tuesday with five days left to
+move before anybody could act on it, which is the opposite of the point of
+waiting a day.
+
+Each game now takes its line on its own release day: Tuesday if it kicks off
+that Tuesday or Wednesday, Wednesday otherwise. Everything else in the week is
+on the board without a number until then.
+
+A hand-run import (`?week_id=`) is exempt — asking for a week by name means
+wanting it now, lines and all.
+
 ## The whole board goes up, whatever has released
 
 The release day decides when a sport's **odds** post. It does not decide when

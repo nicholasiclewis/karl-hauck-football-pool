@@ -37,7 +37,7 @@ import {
 } from '../src/lib/weekWindow.js'
 import { selectEligible, sportsFor } from '../src/lib/gameSelection.js'
 import { fetchTop25ForWeek, buildRankMap } from '../src/lib/rankings.js'
-import { releaseDateFor, sportsReleasedBy } from '../src/lib/oddsRelease.js'
+import { releaseDateFor, releaseDateForKickoff, sportsReleasedBy } from '../src/lib/oddsRelease.js'
 import { shouldOpen, shouldClose } from '../src/lib/weekState.js'
 import { COLLEGE_KEY, nflKeysForKickoff } from '../src/lib/scoreSync.js'
 import { authorize } from './_shared.js'
@@ -165,6 +165,7 @@ export default async function handler(req, res) {
     // should have posted Tuesday and did not, so a missed release repairs
     // itself instead of leaving the week half open.
     const allSports = sportsFor(week.container_type)
+    const today = poolToday(now)
     let sports = allSports
     let release = null
     let schedule = null
@@ -172,7 +173,6 @@ export default async function handler(req, res) {
     if (!targeted && !listOnly) {
       schedule = await fetchSchedule({ sports: allSports, window, oddsKey })
       const kickoffs = kickoffsFrom(schedule)
-      const today = poolToday(now)
       release = Object.fromEntries(
         allSports.map((s) => [s, releaseDateFor(s, week, kickoffs[s] ?? [])])
       )
@@ -241,7 +241,17 @@ export default async function handler(req, res) {
           // The same event can surface under more than one key.
           if (seenEvents.has(event.id)) continue
 
-          const point = homeSpreadFrom(event)
+          // The sport's release day says whether to make the call. This says
+          // whether *this* game keeps what came back. A midweek game pulls the
+          // whole sport's call forward, and without this every Sunday game in
+          // it took a Tuesday line home too — five days for the number to move
+          // before anybody could act on it.
+          //
+          // A hand-run import is exempt: asking for a week by name means
+          // wanting it now, lines and all.
+          const due = releaseDateForKickoff(week.week_start, event.commence_time)
+          const early = !targeted && today < due
+          const point = early ? null : homeSpreadFrom(event)
 
           seenEvents.add(event.id)
           candidates.push({

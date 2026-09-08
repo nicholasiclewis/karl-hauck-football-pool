@@ -50,13 +50,35 @@ export function midweekCutoff(weekStart) {
   return poolTimeToUtc(year, month, day, 0)
 }
 
+/** True when a single game kicks off on the week's Tuesday or Wednesday. */
+export function isMidweekKickoff(weekStart, kickoff) {
+  // new Date(null) is the epoch, which is a finite time in 1970 and therefore
+  // "before Thursday" — a missing kickoff would have counted as midweek and
+  // pulled a whole sport's odds forward a day.
+  if (kickoff === null || kickoff === undefined || kickoff === '') return false
+  const t = new Date(kickoff).getTime()
+  return Number.isFinite(t) && t < midweekCutoff(weekStart).getTime()
+}
+
 /** True when a sport has a kickoff on the week's Tuesday or Wednesday. */
 export function hasMidweekGame(weekStart, kickoffs = []) {
-  const cutoff = midweekCutoff(weekStart).getTime()
-  return kickoffs.some((k) => {
-    const t = new Date(k).getTime()
-    return Number.isFinite(t) && t < cutoff
-  })
+  return kickoffs.some((k) => isMidweekKickoff(weekStart, k))
+}
+
+/**
+ * The date a single game's line is due.
+ *
+ * Sport-level release decides which mornings the odds endpoint is called at
+ * all. This decides which games actually take a number home from that call.
+ *
+ * They are not the same question, and treating them as one is what put a
+ * Sunday line on the board on Tuesday: one midweek game pulled its whole sport
+ * forward, and every other game in it came along. A line is only worth having
+ * early if the game is played early — otherwise the number just has longer to
+ * move before anybody can act on it, which is the opposite of the point.
+ */
+export function releaseDateForKickoff(weekStart, kickoff) {
+  return releaseDate(weekStart, isMidweekKickoff(weekStart, kickoff) ? TUESDAY : WEDNESDAY)
 }
 
 /** True for a college week built around the MAC. */

@@ -12,17 +12,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  releaseDate,
-  releaseDateFor,
-  releaseInstant,
-  midweekCutoff,
-  hasMidweekGame,
-  isMacWeek,
-  sportsReleasedBy,
-  TUESDAY,
-  WEDNESDAY,
-} from '../src/lib/oddsRelease.js'
+import { releaseDate, releaseDateFor, releaseInstant, midweekCutoff, hasMidweekGame, isMacWeek, sportsReleasedBy, TUESDAY, WEDNESDAY, releaseDateForKickoff, isMidweekKickoff } from '../src/lib/oddsRelease.js'
 
 // Week 2 of 2026: Tuesday Sept 8 through Monday Sept 14.
 const WEEK_START = '2026-09-08'
@@ -140,5 +130,49 @@ describe('what a scheduled run imports', () => {
     const mac = week({ conference: 'MAC' })
     assert.ok(sportsReleasedBy(WED, sports, mac).includes('college'))
     assert.ok(sportsReleasedBy('2026-09-11', sports, mac).includes('college'))
+  })
+})
+
+/**
+ * Which games take a line home from a Tuesday call.
+ *
+ * A midweek game pulls its whole sport's odds call forward to Tuesday. That is
+ * about when the endpoint is hit, not about which games get numbers — and
+ * conflating the two put Sunday's line on the board five days early, with all
+ * that time left to move before anybody could act on it.
+ */
+describe('releaseDateForKickoff', () => {
+  const WEEK = '2026-09-08'   // a Tuesday
+
+  const at = (local) => new Date(`${local}:00-04:00`).toISOString()
+
+  test('a Tuesday night game is due Tuesday', () => {
+    assert.equal(releaseDateForKickoff(WEEK, at('2026-09-08T19:30')), '2026-09-08')
+  })
+
+  test('a Wednesday night game is due Tuesday too', () => {
+    assert.equal(releaseDateForKickoff(WEEK, at('2026-09-09T20:00')), '2026-09-08')
+  })
+
+  test('a Thursday night game waits for Wednesday', () => {
+    assert.equal(releaseDateForKickoff(WEEK, at('2026-09-10T20:15')), '2026-09-09')
+  })
+
+  test('the Sunday slate waits for Wednesday, whatever the midweek holds', () => {
+    assert.equal(releaseDateForKickoff(WEEK, at('2026-09-13T13:00')), '2026-09-09')
+  })
+
+  test('Monday night is still this week, and still Wednesday', () => {
+    assert.equal(releaseDateForKickoff(WEEK, at('2026-09-14T20:15')), '2026-09-09')
+  })
+
+  test('midnight Thursday is the boundary, and is not midweek', () => {
+    assert.equal(isMidweekKickoff(WEEK, at('2026-09-09T23:59')), true)
+    assert.equal(isMidweekKickoff(WEEK, at('2026-09-10T00:00')), false)
+  })
+
+  test('an unreadable kickoff is not treated as midweek', () => {
+    assert.equal(isMidweekKickoff(WEEK, 'not a date'), false)
+    assert.equal(isMidweekKickoff(WEEK, null), false)
   })
 })
