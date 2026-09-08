@@ -198,6 +198,10 @@ export default function History() {
               week={week}
               score={scores[week.id] ?? null}
               userId={user?.id}
+              // These are the signed-in player's own weeks, so the subject of
+              // every pick here is them — and only an admin's slate carries the
+              // late-entry receipt.
+              subjectIsAdmin={Boolean(profile?.is_commissioner)}
             />
           ))
         )}
