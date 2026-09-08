@@ -7,6 +7,7 @@ import { useStandings } from '../hooks/useStandings'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { poolToday } from '../lib/weekWindow'
+import { assignRanks } from '../lib/placings'
 
 // ── Dues helper ─────────────────────────────────────────────────────────────
 /**
@@ -157,13 +158,24 @@ export default function Standings() {
 
   // For the weekly tab: filter weekly scores to the selected week
   const weeklyRows = selectedWeekId
-    ? standings.map((entry) => {
-        const weekScore = (entry.weekly ?? []).find((w) => w.week_id === selectedWeekId)
-        return {
-          ...entry,
-          weekScore: weekScore ?? null,
-        }
-      }).sort((a, b) => (b.weekScore?.total_points ?? -1) - (a.weekScore?.total_points ?? -1))
+    ? (() => {
+        const rows = standings.map((entry) => {
+          const weekScore = (entry.weekly ?? []).find((w) => w.week_id === selectedWeekId)
+          return { ...entry, weekScore: weekScore ?? null }
+        })
+        // Only players with a score take a position, and level scores share
+        // one — the same rule as the season table, since the week has no
+        // tiebreaker either. Players with no score are not last, they are
+        // absent, so they sit below with a dash and no place at all.
+        const played = rows
+          .filter((r) => r.weekScore)
+          .sort((a, b) => (b.weekScore.total_points ?? 0) - (a.weekScore.total_points ?? 0))
+        const absent = rows.filter((r) => !r.weekScore)
+        return [
+          ...assignRanks(played, (r) => r.weekScore.total_points ?? 0),
+          ...absent.map((r) => ({ ...r, rank: null, tied: false })),
+        ]
+      })()
     : []
 
   const selectedWeek = weeks.find((w) => w.id === selectedWeekId)
@@ -394,7 +406,7 @@ export default function Standings() {
                 </span>
               </div>
 
-              {weeklyRows.map((entry, index) => {
+              {weeklyRows.map((entry) => {
                 const ws = entry.weekScore
                 const isCurrentUser = entry.user_id === user?.id
                 const initials = (entry.display_name || '?')
@@ -421,16 +433,18 @@ export default function Standings() {
                       className="w-6 text-center text-sm font-bold flex-shrink-0"
                       style={{
                         color:
-                          index === 0
+                          !ws
+                            ? '#94afd4'
+                            : entry.rank === 1
                             ? '#fbbf24'
-                            : index === 1
+                            : entry.rank === 2
                             ? '#94a3b8'
-                            : index === 2
+                            : entry.rank === 3
                             ? '#b45309'
                             : '#f0f6ff',
                       }}
                     >
-                      {ws ? index + 1 : '–'}
+                      {ws ? (entry.tied ? `T${entry.rank}` : entry.rank) : '–'}
                     </span>
 
                     {/* Avatar */}

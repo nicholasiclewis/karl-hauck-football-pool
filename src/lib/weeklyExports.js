@@ -7,6 +7,7 @@
  */
 import { supabase } from './supabase'
 import { pickLimits } from './gameSelection'
+import { assignRanks } from './placings'
 import { MAX_WEEK_POINTS, buildResultsEmail, buildGamesEmail } from './weeklyEmail'
 import {
   standingsAfter, rankMovement, winStreaks, gameBreakdown, notables, pickCards,
@@ -66,20 +67,25 @@ export async function loadResultsData(weekId) {
     })
     .sort((a, b) => b.points - a.points || b.correct - a.correct)
 
-  const top     = weekTable[0]?.points ?? 0
-  const winners = weekTable.filter((r) => r.points === top && top > 0)
-  const perfect = weekTable.filter((r) => r.points >= MAX_WEEK_POINTS)
+  // Level on points is level, whatever the sort did with them afterwards: the
+  // pool has no tiebreaker until the final week, so the week table shares a
+  // place the same way the season table does.
+  const ranked = assignRanks(weekTable, (r) => r.points)
+
+  const top     = ranked[0]?.points ?? 0
+  const winners = ranked.filter((r) => r.points === top && top > 0)
+  const perfect = ranked.filter((r) => r.points >= MAX_WEEK_POINTS)
 
   const standings = standingsAfter(rows, upTo, names)
   const previous  = standingsAfter(rows, upToPrev, names)
   const movement  = rankMovement(standings, previous)
   const streaks   = winStreaks(rows, upTo)
   const breakdown = gameBreakdown(games ?? [], picks ?? [])
-  const cards     = pickCards(weekTable, games ?? [], picks ?? [])
-  const stories   = notables({ weekTable, standings, movement, streaks, breakdown })
+  const cards     = pickCards(ranked, games ?? [], picks ?? [])
+  const stories   = notables({ weekTable: ranked, standings, movement, streaks, breakdown })
 
   return {
-    week, season, weekTable, winners, perfect,
+    week, season, weekTable: ranked, winners, perfect,
     standings, movement, streaks, breakdown, stories, cards,
     // The email builder still takes the simpler shape.
     season_table: standings.map((r) => ({ ...r })),

@@ -244,56 +244,19 @@ export function buildResultsPdf(data) {
 
   folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'Results' })
 
-  let y = 18
-  if (winners.length) {
-    y = winnerPoster(doc, y, { winners, formatText: formatLabel(week) })
-  } else {
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    rgb(doc, MUTED)
-    doc.text('No scores recorded for this week yet.', L, y + 8)
-    y += 12
+  const nextPage = () => {
+    doc.addPage()
+    folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'Results' })
+    return 18
   }
 
-  // Both of these collapse when empty — most weeks have neither.
-  if (perfect.length) y = perfectStrip(doc, y, perfect)
-  if (stories.length) y = storylineStrip(doc, y, stories)
-
-  // ── Week scoreboard ──
-  y = sectionHead(doc, y, `Week ${week.week_number} Scoreboard`)
-  weekTable.forEach((r, i) => {
-    const lead = i === 0
-    const h = lead ? 9 : 7
-    fill(doc, i % 2 === 0 ? CARD : CARD2)
-    doc.rect(L, y, W, h, 'F')
-
-    const base = y + (lead ? 6.4 : 5)
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(lead ? 15 : i < 3 ? 11 : 9)
-    rgb(doc, medal(i + 1))
-    doc.text(String(i + 1), L + 2, base)
-
-    doc.setFontSize(lead ? 12 : i < 3 ? 10 : 9)
-    if (i >= 3) doc.setFont('helvetica', 'normal')
-    rgb(doc, i < 3 ? medal(i + 1) : TEXT)
-    doc.text(clip(doc, r.name, W - 60), L + 11, base)
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    rgb(doc, MUTED)
-    doc.text(`${r.correct}-${r.losses}-${r.pushes}`, R - 34, base, { align: 'right' })
-    doc.text(r.bonus ? `+${Number(r.bonus).toFixed(1)}` : '—', R - 20, base, { align: 'right' })
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(lead ? 13 : 10)
-    rgb(doc, lead ? GOLD : TEXT)
-    doc.text(Number(r.points).toFixed(1), R - 2, base, { align: 'right' })
-
-    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
-    doc.setLineWidth(0.2)
-    doc.line(L, y + h, R, y + h)
-    y += h
-  })
+  // Order: the season first, then the week, then the arguing.
+  //
+  // Each table gets a page of its own. They used to run one into the next down
+  // a single sheet, so where a week ended and the season began depended on how
+  // many players there were — and the season table, which is the one anybody
+  // still cares about in November, was the half that got pushed off the bottom.
+  let y = 18
 
   // ── Season standings ──
   y = sectionHead(doc, y + 4, 'Season Standings', [
@@ -302,7 +265,9 @@ export function buildResultsPdf(data) {
   ])
 
   standings.forEach((r, i) => {
+    const top3 = r.rank <= 3
     const h = 6.4
+    if (y + h > PAGE_H - 14) y = nextPage()
     fill(doc, i % 2 === 0 ? CARD : CARD2)
     doc.rect(L, y, W, h, 'F')
     const base = y + 4.4
@@ -327,13 +292,13 @@ export function buildResultsPdf(data) {
       doc.line(mx, base - 1.6, mx + 2.8, base - 1.6)
     }
 
-    doc.setFont('helvetica', i < 3 ? 'bold' : 'normal')
-    doc.setFontSize(i < 3 ? 10 : 9)
-    rgb(doc, i < 3 ? medal(r.rank) : MUTED)
-    doc.text(String(r.rank), L + 8, base)
+    doc.setFont('helvetica', top3 ? 'bold' : 'normal')
+    doc.setFontSize(top3 ? 10 : 9)
+    rgb(doc, top3 ? medal(r.rank) : MUTED)
+    doc.text(r.tied ? `T${r.rank}` : String(r.rank), L + 8, base)
 
     doc.setFontSize(9)
-    rgb(doc, i < 3 ? medal(r.rank) : TEXT)
+    rgb(doc, top3 ? medal(r.rank) : TEXT)
     doc.text(clip(doc, r.name, W - 74), L + 14, base)
 
     doc.setFont('helvetica', 'normal')
@@ -346,8 +311,68 @@ export function buildResultsPdf(data) {
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
-    rgb(doc, i === 0 ? GOLD : TEXT)
+    rgb(doc, r.rank === 1 ? GOLD : TEXT)
     doc.text(Number(r.points).toFixed(1), R, base, { align: 'right' })
+
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+    doc.setLineWidth(0.2)
+    doc.line(L, y + h, R, y + h)
+    y += h
+  })
+
+
+  y = nextPage()
+
+  if (winners.length) {
+    y = winnerPoster(doc, y, { winners, formatText: formatLabel(week) })
+  } else {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    rgb(doc, MUTED)
+    doc.text('No scores recorded for this week yet.', L, y + 8)
+    y += 12
+  }
+
+  // Both of these collapse when empty — most weeks have neither.
+  if (perfect.length) y = perfectStrip(doc, y, perfect)
+  if (stories.length) y = storylineStrip(doc, y, stories)
+
+  // ── Week scoreboard ──
+  y = sectionHead(doc, y, `Week ${week.week_number} Scoreboard`)
+  weekTable.forEach((r, i) => {
+    // Position, not row number. Players level on points share a place — the
+    // pool has no tiebreaker until the last week of the season — so two on the
+    // same score are both 2nd and read "T2", exactly as the season table does.
+    const rank = r.rank ?? i + 1
+    const lead = rank === 1
+    const top3 = rank <= 3
+    const h = lead ? 9 : 7
+    if (y + h > PAGE_H - 14) y = nextPage()
+    fill(doc, i % 2 === 0 ? CARD : CARD2)
+    doc.rect(L, y, W, h, 'F')
+
+    const base = y + (lead ? 6.4 : 5)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(lead ? 15 : top3 ? 11 : 9)
+    rgb(doc, medal(rank))
+    doc.text(r.tied ? `T${rank}` : String(rank), L + 2, base)
+
+    doc.setFontSize(lead ? 12 : top3 ? 10 : 9)
+    if (!top3) doc.setFont('helvetica', 'normal')
+    rgb(doc, top3 ? medal(rank) : TEXT)
+    doc.text(clip(doc, r.name, W - 60), L + 11, base)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    rgb(doc, MUTED)
+    doc.text(`${r.correct}-${r.losses}-${r.pushes}`, R - 34, base, { align: 'right' })
+    doc.text(r.bonus ? `+${Number(r.bonus).toFixed(1)}` : '—', R - 20, base, { align: 'right' })
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(lead ? 13 : 10)
+    rgb(doc, lead ? GOLD : TEXT)
+    doc.text(Number(r.points).toFixed(1), R - 2, base, { align: 'right' })
+
 
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
     doc.setLineWidth(0.2)
@@ -359,14 +384,8 @@ export function buildResultsPdf(data) {
   // The tables above settle who won; this is the part that gets argued over,
   // so it runs to a second page rather than being trimmed to fit the first.
   if (cards.length) {
-    const nextPage = () => {
-      doc.addPage()
-      folioRail(doc, { year: season.year, weekNumber: week.week_number, kind: 'Results' })
-      return 18
-    }
-
-    if (y > 200) y = nextPage()
-    y = sectionHead(doc, y + 4, 'Every Pick', [{ label: 'PTS', w: 14 }])
+    y = nextPage()
+    y = sectionHead(doc, y, 'Every Pick', [{ label: 'PTS', w: 14 }])
 
     for (const card of cards) {
       // Keep a player's name with at least their first pick: a heading alone
