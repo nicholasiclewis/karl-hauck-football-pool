@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { currentWeek } from '../../lib/weekState'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { getTeamConference, CONFERENCE_ORDER } from '../../lib/conferences'
 import { fetchTop25ForWeek, buildRankMap, rankOf } from '../../lib/rankings'
@@ -49,7 +50,8 @@ export default function GamesTab() {
     const { data: w } = await supabase.from('weeks').select('*').eq('season_id', s.id).order('week_number')
     const rows = w ?? []
     setWeeks(rows)
-    if (rows.length > 0) setSelectedWeekId(rows[0].id)
+    // Ordered oldest-first here, so rows[0] was week 1 all season.
+    setSelectedWeekId(currentWeek(rows)?.id ?? '')
     setLoading(false)
   }
 

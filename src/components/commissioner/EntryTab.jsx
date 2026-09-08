@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { formatKickoff, formatSpread } from '../../lib/gameUtils'
 import { remainingPicks } from '../../lib/gameSelection'
 import { useAuth } from '../../hooks/useAuth'
+import { currentWeek } from '../../lib/weekState'
 
 /**
  * Enter picks on a player's behalf.
@@ -62,9 +63,11 @@ export default function EntryTab() {
     ])
     setWeeks(w ?? [])
     setPlayers(u ?? [])
-    // The open week is the one the commissioner is chasing picks for. Weeks
-    // are newest-first, so w[0] is the fallback once the season is over.
-    if (w?.length) setWeekId((w.find(x => x.picks_open) ?? w[0]).id)
+    // The open week is the one the commissioner is chasing picks for. When
+    // none is open yet the calendar decides — rows are newest-first, so the
+    // old w[0] fallback landed on the last week of the season.
+    const start = w?.find(x => x.picks_open) ?? currentWeek(w)
+    if (start) setWeekId(start.id)
     setLoading(false)
   }
 

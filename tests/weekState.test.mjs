@@ -11,7 +11,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { isRunning, shouldOpen, shouldClose } from '../src/lib/weekState.js'
+import { isRunning, shouldOpen, shouldClose, currentWeek } from '../src/lib/weekState.js'
 
 // Week 2 of 2026: Tuesday Sept 8 through Monday Sept 14.
 const WEEK_START = '2026-09-08'
@@ -121,5 +121,63 @@ describe('a whole Tuesday morning run', () => {
 
     assert.equal(shouldOpen(current, NEXT_TUE), true)
     assert.equal(shouldClose(previous, et('2026-09-14 20:15'), NEXT_TUE), true)
+  })
+})
+
+/**
+ * Which week a picker should land on.
+ *
+ * The season is planned out in full before it starts, so these lists are
+ * nineteen rows deep from day one — and the bug this replaces was defaulting
+ * to the newest row, which is the last week of the year.
+ */
+describe('currentWeek', () => {
+  // Nineteen weeks, every Tuesday from 2026-09-01. Newest first, the order the
+  // screens actually load them in.
+  const season = Array.from({ length: 19 }, (_, i) => ({
+    id: `w${i + 1}`,
+    week_number: i + 1,
+    week_start: new Date(Date.UTC(2026, 8, 1 + i * 7)).toISOString().slice(0, 10),
+  })).reverse()
+
+  test('lands on the week the calendar is inside, not the last one loaded', () => {
+    // 2026-09-08 is the Tuesday week 2 starts.
+    assert.equal(currentWeek(season, et('2026-09-08 09:00'))?.week_number, 2)
+    assert.equal(currentWeek(season, et('2026-09-12 15:00'))?.week_number, 2)
+  })
+
+  test('a Monday night still belongs to the week that began the week before', () => {
+    assert.equal(currentWeek(season, et('2026-09-14 22:00'))?.week_number, 2)
+  })
+
+  test('the next Tuesday moves it on', () => {
+    assert.equal(currentWeek(season, et('2026-09-15 06:00'))?.week_number, 3)
+  })
+
+  test('before the season it shows the first week, not the last', () => {
+    assert.equal(currentWeek(season, et('2026-08-01 12:00'))?.week_number, 1)
+  })
+
+  test('after the season it shows the last week, which by then is the recent one', () => {
+    assert.equal(currentWeek(season, et('2027-06-01 12:00'))?.week_number, 19)
+  })
+
+  test('a gap in the planned weeks falls back to the most recent one begun', () => {
+    const withGap = [
+      { id: 'a', week_number: 1, week_start: '2026-09-01' },
+      { id: 'c', week_number: 3, week_start: '2026-11-03' },
+    ]
+    assert.equal(currentWeek(withGap, et('2026-10-06 12:00'))?.week_number, 1)
+  })
+
+  test('row order does not decide it', () => {
+    const shuffled = [...season].sort(() => 0.5 - Math.random())
+    assert.equal(currentWeek(shuffled, et('2026-09-08 09:00'))?.week_number, 2)
+  })
+
+  test('no weeks is null, not a crash', () => {
+    assert.equal(currentWeek([], TUE_MORNING), null)
+    assert.equal(currentWeek(null, TUE_MORNING), null)
+    assert.equal(currentWeek([{ id: 'x' }], TUE_MORNING), null)
   })
 })

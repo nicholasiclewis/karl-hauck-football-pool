@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { downloadReport } from '../../lib/exportPdf'
 import { supabase } from '../../lib/supabase'
+import { currentWeek } from '../../lib/weekState'
 import {
   loadResultsData, loadGamesData,
   buildResultsEmail, buildGamesEmail,
@@ -32,7 +33,9 @@ export default function ReportsTab() {
       .from('weeks').select('id,week_number,container_type,college_focus,conference,week_start,is_complete')
       .eq('season_id', s.id).order('week_number', { ascending: false })
     setWeeks(w ?? [])
-    if (w?.length) setWeekId(w[0].id)
+    // The week we are actually in. Rows arrive newest-first, so the old
+    // w[0] was the last week of a season planned out nineteen weeks ahead.
+    setWeekId(currentWeek(w)?.id ?? '')
   }
 
   async function run(kind, fn) {
