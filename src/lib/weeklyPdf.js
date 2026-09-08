@@ -250,13 +250,74 @@ export function buildResultsPdf(data) {
     return 18
   }
 
-  // Order: the season first, then the week, then the arguing.
+  // Order: the week, then the season, then the arguing.
   //
   // Each table gets a page of its own. They used to run one into the next down
   // a single sheet, so where a week ended and the season began depended on how
-  // many players there were — and the season table, which is the one anybody
-  // still cares about in November, was the half that got pushed off the bottom.
+  // many players there were, and whichever table came second got pushed off
+  // the bottom. The week leads because the report is a weekly one: its winner,
+  // its storylines and its scoreboard belong together on the first page, and
+  // the season table reads as the consequence rather than the preamble.
   let y = 18
+
+  if (winners.length) {
+    y = winnerPoster(doc, y, { winners, formatText: formatLabel(week) })
+  } else {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    rgb(doc, MUTED)
+    doc.text('No scores recorded for this week yet.', L, y + 8)
+    y += 12
+  }
+
+  // Both of these collapse when empty — most weeks have neither.
+  if (perfect.length) y = perfectStrip(doc, y, perfect)
+  if (stories.length) y = storylineStrip(doc, y, stories)
+
+  // ── Week scoreboard ──
+  y = sectionHead(doc, y, `Week ${week.week_number} Scoreboard`)
+  weekTable.forEach((r, i) => {
+    // Position, not row number. Players level on points share a place — the
+    // pool has no tiebreaker until the last week of the season — so two on the
+    // same score are both 2nd and read "T2", exactly as the season table does.
+    const rank = r.rank ?? i + 1
+    const lead = rank === 1
+    const top3 = rank <= 3
+    const h = lead ? 9 : 7
+    if (y + h > PAGE_H - 14) y = nextPage()
+    fill(doc, i % 2 === 0 ? CARD : CARD2)
+    doc.rect(L, y, W, h, 'F')
+
+    const base = y + (lead ? 6.4 : 5)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(lead ? 15 : top3 ? 11 : 9)
+    rgb(doc, medal(rank))
+    doc.text(r.tied ? `T${rank}` : String(rank), L + 2, base)
+
+    doc.setFontSize(lead ? 12 : top3 ? 10 : 9)
+    if (!top3) doc.setFont('helvetica', 'normal')
+    rgb(doc, top3 ? medal(rank) : TEXT)
+    doc.text(clip(doc, r.name, W - 60), L + 11, base)
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    rgb(doc, MUTED)
+    doc.text(`${r.correct}-${r.losses}-${r.pushes}`, R - 34, base, { align: 'right' })
+    doc.text(r.bonus ? `+${Number(r.bonus).toFixed(1)}` : '—', R - 20, base, { align: 'right' })
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(lead ? 13 : 10)
+    rgb(doc, lead ? GOLD : TEXT)
+    doc.text(Number(r.points).toFixed(1), R - 2, base, { align: 'right' })
+
+
+    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
+    doc.setLineWidth(0.2)
+    doc.line(L, y + h, R, y + h)
+    y += h
+  })
+
+  y = nextPage()
 
   // ── Season standings ──
   y = sectionHead(doc, y + 4, 'Season Standings', [
@@ -313,66 +374,6 @@ export function buildResultsPdf(data) {
     doc.setFontSize(9)
     rgb(doc, r.rank === 1 ? GOLD : TEXT)
     doc.text(Number(r.points).toFixed(1), R, base, { align: 'right' })
-
-    doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
-    doc.setLineWidth(0.2)
-    doc.line(L, y + h, R, y + h)
-    y += h
-  })
-
-
-  y = nextPage()
-
-  if (winners.length) {
-    y = winnerPoster(doc, y, { winners, formatText: formatLabel(week) })
-  } else {
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(10)
-    rgb(doc, MUTED)
-    doc.text('No scores recorded for this week yet.', L, y + 8)
-    y += 12
-  }
-
-  // Both of these collapse when empty — most weeks have neither.
-  if (perfect.length) y = perfectStrip(doc, y, perfect)
-  if (stories.length) y = storylineStrip(doc, y, stories)
-
-  // ── Week scoreboard ──
-  y = sectionHead(doc, y, `Week ${week.week_number} Scoreboard`)
-  weekTable.forEach((r, i) => {
-    // Position, not row number. Players level on points share a place — the
-    // pool has no tiebreaker until the last week of the season — so two on the
-    // same score are both 2nd and read "T2", exactly as the season table does.
-    const rank = r.rank ?? i + 1
-    const lead = rank === 1
-    const top3 = rank <= 3
-    const h = lead ? 9 : 7
-    if (y + h > PAGE_H - 14) y = nextPage()
-    fill(doc, i % 2 === 0 ? CARD : CARD2)
-    doc.rect(L, y, W, h, 'F')
-
-    const base = y + (lead ? 6.4 : 5)
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(lead ? 15 : top3 ? 11 : 9)
-    rgb(doc, medal(rank))
-    doc.text(r.tied ? `T${rank}` : String(rank), L + 2, base)
-
-    doc.setFontSize(lead ? 12 : top3 ? 10 : 9)
-    if (!top3) doc.setFont('helvetica', 'normal')
-    rgb(doc, top3 ? medal(rank) : TEXT)
-    doc.text(clip(doc, r.name, W - 60), L + 11, base)
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    rgb(doc, MUTED)
-    doc.text(`${r.correct}-${r.losses}-${r.pushes}`, R - 34, base, { align: 'right' })
-    doc.text(r.bonus ? `+${Number(r.bonus).toFixed(1)}` : '—', R - 20, base, { align: 'right' })
-
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(lead ? 13 : 10)
-    rgb(doc, lead ? GOLD : TEXT)
-    doc.text(Number(r.points).toFixed(1), R - 2, base, { align: 'right' })
-
 
     doc.setDrawColor(BORDER[0], BORDER[1], BORDER[2])
     doc.setLineWidth(0.2)
