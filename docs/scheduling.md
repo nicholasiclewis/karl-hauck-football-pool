@@ -87,6 +87,13 @@ on the board without a number until then.
 A hand-run import (`?week_id=`) is exempt — asking for a week by name means
 wanting it now, lines and all.
 
+Lines that are not due yet are taken back, too. A row written before this rule
+existed — or pulled forward by a hand-run import — still carried a spread it
+should not have, so each scheduled run nulls any line in the week whose own
+release day has not arrived. It never touches a game somebody has already
+picked: a pick with no number behind it cannot be graded, and migration 012
+means that state cannot be put back cleanly. The response reports `retracted`.
+
 ## The whole board goes up, whatever has released
 
 The release day decides when a sport's **odds** post. It does not decide when

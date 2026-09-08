@@ -424,13 +424,52 @@ export default async function handler(req, res) {
       if (!r.ok) throw new Error(`refresh game: ${r.status} ${(await r.text()).slice(0, 200)}`)
     }
 
+    // ── Take back lines that are not due yet ──────────────────────────────
+    //
+    // Writing a line early is now impossible, but rows written before that was
+    // true still carry one, and so does anything a hand-run import pulled
+    // forward. A spread on a game five days out is exactly what the Wednesday
+    // release exists to avoid, so the week is tidied to match the rule rather
+    // than left to grow out of it.
+    //
+    // Scheduled runs only, and never a game somebody has already picked: a
+    // pick with no number behind it cannot be graded, and migration 012 means
+    // that state cannot be put back cleanly either.
+    let retracted = 0
+    if (!targeted && !dryRun) {
+      const early = (await readJson(
+        await db(`games?select=id,kickoff_time&week_id=eq.${week.id}&spread=not.is.null`),
+        'games with lines'
+      )).filter((g) => today < releaseDateForKickoff(week.week_start, g.kickoff_time))
+
+      if (early.length) {
+        const picked = new Set(
+          (await readJson(
+            await db(`picks?select=game_id&week_id=eq.${week.id}`),
+            'picks in week'
+          )).map((p) => p.game_id)
+        )
+        for (const g of early.filter((g) => !picked.has(g.id))) {
+          const r = await db(`games?id=eq.${g.id}`, {
+            method: 'PATCH',
+            headers: { Prefer: 'return=minimal' },
+            body: JSON.stringify({ spread: null, favorite: null }),
+          })
+          if (!r.ok) {
+            throw new Error(`retract line: ${r.status} ${(await r.text()).slice(0, 200)}`)
+          }
+          retracted += 1
+        }
+      }
+    }
+
     // ── Week state ────────────────────────────────────────────────────────
     // Opening keys off the calendar — a week is live from the Tuesday it
     // starts. Closing keys off the last kickoff rather than the calendar:
     // once every game has started there is nothing left to pick.
     const weekState = await manageWeekState({ db, readJson, season, week, now })
 
-    return res.status(200).json({ ...summary, weekState })
+    return res.status(200).json({ ...summary, retracted, weekState })
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message })
   }
