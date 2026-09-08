@@ -89,7 +89,7 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
   async function handleExpand() {
     if (!expanded && picks.length === 0) {
       setLoadingPicks(true)
-      const [{ data: picksData }, { data: gamesData }] = await Promise.all([
+      const [picksRes, { data: gamesData }] = await Promise.all([
         // The embed names whoever entered the pick, for the receipt PickRow
         // shows on a late one. It is a left join on a nullable column, so a
         // pick nobody stamped still comes back.
@@ -100,6 +100,19 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
           .eq('user_id', userId),
         supabase.from('games').select('*').eq('week_id', week.id).eq('is_featured', true).order('kickoff_time'),
       ])
+
+      // The embed needs migration 011's entered_by column. Against a database
+      // that has not had it yet PostgREST rejects the whole select, and the
+      // week would render as though the player had never picked — every slate
+      // in their history apparently blank. Losing the receipt is a far smaller
+      // thing than losing the picks, so fall back to reading them plainly.
+      let picksData = picksRes.data
+      if (picksRes.error) {
+        const plain = await supabase
+          .from('picks').select('*').eq('week_id', week.id).eq('user_id', userId)
+        picksData = plain.data
+      }
+
       setPicks(picksData ?? [])
       setGames(gamesData ?? [])
       setLoadingPicks(false)
