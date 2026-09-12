@@ -124,6 +124,29 @@ export function selectEligible(candidates, week, rankMap = null, { requireSpread
 }
 
 /**
+ * Whether a player can still change their slate this week.
+ *
+ * True when some game still to come is either already picked — so that pick
+ * can be retracted — or sits in a sport with a slot left to spend on it.
+ *
+ * Deliberately not "has a pick that can still be retracted". A player who
+ * picked one midweek game and nothing else has nothing retractable once it
+ * kicks off, but the rest of their slate is still theirs to fill in.
+ *
+ * @param {Array}  games          the week's games
+ * @param {object} picks          { game_id → pick } for this player
+ * @param {string} containerType
+ * @param {Date}   [now]
+ */
+export function canChangePicks(games, picks, containerType, now = new Date()) {
+  const list = games ?? []
+  const { remaining } = remainingPicks(list.filter((g) => picks?.[g.id]), containerType)
+  return list.some(
+    (g) => new Date(g.kickoff_time) > now && (picks?.[g.id] || remaining[g.sport] > 0)
+  )
+}
+
+/**
  * How many more picks a player may make in each sport.
  * @param {Array}  picked  the player's current picks, each with a `sport`
  * @param {string} containerType

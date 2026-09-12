@@ -12,7 +12,7 @@ import { findFinal } from '../lib/espnScores'
 import { usePicks } from '../hooks/usePicks'
 import { countdownToKickoff, formatKickoff } from '../lib/gameUtils'
 import { weekPoints } from '../lib/scoring'
-import { remainingPicks, sportsFor } from '../lib/gameSelection'
+import { canChangePicks, remainingPicks, sportsFor } from '../lib/gameSelection'
 import { releaseDateFor, RELEASE_HOUR } from '../lib/oddsRelease'
 import { collegeFocusLabel } from '../lib/weekLabels'
 import { POOL_TZ, parseDateOnly, poolTimeToUtc } from '../lib/weekWindow'
@@ -110,6 +110,16 @@ export default function Picks() {
   const clearableCount = pickedGames.filter(
     (g) => new Date(g.kickoff_time) > new Date()
   ).length
+
+  // Is anything still open to this player — a pick they could retract, or a
+  // game still to come with a slot free for it?
+  //
+  // The player lock used to be offered on clearableCount alone, which counts
+  // only picks already made. Someone who picked a single midweek game and
+  // nothing else watched that count fall to zero when it kicked off, which
+  // took the unlock button down with it and froze them out of the rest of the
+  // week — the one state where they most needed to get back in.
+  const canChange = canChangePicks(games, picks, week?.container_type)
 
   async function handleClearAll() {
     if (!confirm(
@@ -294,7 +304,7 @@ export default function Picks() {
         picks={picks}
         total={limits.nfl + limits.college}
         lockedIn={lockedIn}
-        canLock={week.picks_open && clearableCount > 0}
+        canLock={week.picks_open && canChange}
         onToggleLock={handleToggleLock}
       />
 

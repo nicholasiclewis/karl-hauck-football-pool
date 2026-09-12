@@ -14,12 +14,16 @@ import { formatSpread, formatKickoff, teamAbbr, collegeFirst } from '../../lib/g
  *   picks        — { game_id → pick } for the current user
  *   total        — how many picks a full slate needs
  *   lockedIn     — player lock state
- *   canLock      — week is open and at least one picked game hasn't kicked off
+ *   canLock      — week is open and the player can still change something
  *   onToggleLock — fn() flips the player lock
+ *
+ * Unlocking is offered whenever the lock is on, even once canLock has gone
+ * false: the freeze is the player's own, so it stays theirs to lift.
  */
 export default function PickSummary({ games, picks, total, lockedIn, canLock, onToggleLock }) {
   const picked = games.filter((g) => picks[g.id]).sort(collegeFirst)
-  if (picked.length === 0) return null
+  // Nothing to summarise — but a locked-in player still needs the way out.
+  if (picked.length === 0 && !lockedIn) return null
 
   const outcomeStyle = { win: 'text-green', loss: 'text-red', push: 'text-muted' }
   const outcomeLabel = { win: '✓ W', loss: '✗ L', push: '~ P' }
@@ -71,7 +75,7 @@ export default function PickSummary({ games, picks, total, lockedIn, canLock, on
         )
       })}
 
-      {canLock && (
+      {(canLock || lockedIn) && (
         <div className="px-4 py-3 border-t border-border/50">
           {lockedIn ? (
             <div className="flex items-center gap-2 bg-green/10 border border-green/30 rounded-lg px-3 py-2.5">
