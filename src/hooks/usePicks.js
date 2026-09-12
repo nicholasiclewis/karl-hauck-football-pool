@@ -117,20 +117,41 @@ export function usePicks(weekId) {
   /**
    * Retract every pick for this week.
    *
-   * Sent as one delete rather than a loop. RLS only permits removing picks
-   * whose game has not kicked off, so the result is whatever actually went —
-   * reported back so the caller can say which ones were already locked instead
-   * of claiming a clean sweep.
+   * Sent as one delete rather than a loop, and named down to the games that
+   * have yet to kick off rather than left to RLS to refuse the rest.
+   *
+   * The refusal is not dependable for everyone: policies on picks are
+   * permissive, so a commissioner's full-access policy ORs with the player
+   * one and grants exactly the delete the kickoff rule meant to stop. A
+   * commissioner clearing a week partway through would take their settled
+   * picks with it — and the points already on them — while the dialog had
+   * offered to clear only the games still to come, and the count that reports
+   * what was kept came back zero. Scoping the delete makes this behave the
+   * same way whoever is signed in.
    */
   async function clearPicks() {
     if (!user || !weekId) throw new Error('Not logged in')
 
     const before = Object.keys(picks).length
+    if (before === 0) return { cleared: 0, kept: 0 }
+
+    const { data: open, error: gamesErr } = await supabase
+      .from('games')
+      .select('id')
+      .eq('week_id', weekId)
+      .gt('kickoff_time', new Date().toISOString())
+
+    if (gamesErr) throw new Error(gamesErr.message)
+
+    const clearable = (open ?? []).map((g) => g.id).filter((id) => picks[id])
+    if (clearable.length === 0) return { cleared: 0, kept: before }
+
     const { data, error: err } = await supabase
       .from('picks')
       .delete()
       .eq('week_id', weekId)
       .eq('user_id', user.id)
+      .in('game_id', clearable)
       .select('id')
 
     if (err) {
