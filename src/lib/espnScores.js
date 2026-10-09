@@ -148,6 +148,57 @@ export function parseLiveScores(payload, sport) {
   return live
 }
 
+/**
+ * Pull where each game is being played off a scoreboard payload.
+ *
+ * Every game on the board is included, whatever its state — a stadium is as
+ * true on Tuesday as it is at the final whistle. Games ESPN lists without a
+ * venue are skipped rather than returned empty, so a lookup either has
+ * something to show or finds nothing.
+ *
+ * `neutral` matters more than it looks: the pool's "home" team is whoever the
+ * odds feed listed second, and for a game in London or a bowl that tells a
+ * player nothing about where it is.
+ */
+export function parseVenues(payload, sport) {
+  const venues = []
+
+  for (const event of payload?.events ?? []) {
+    const competition = event.competitions?.[0]
+    const venue = competition?.venue
+    if (!venue?.fullName) continue
+
+    const home = competition.competitors?.find((c) => c.homeAway === 'home')
+    const away = competition.competitors?.find((c) => c.homeAway === 'away')
+    if (!home || !away) continue
+
+    venues.push({
+      sport,
+      home_team: home.team?.displayName ?? home.team?.location ?? '',
+      away_team: away.team?.displayName ?? away.team?.location ?? '',
+      home_location: home.team?.location ?? null,
+      away_location: away.team?.location ?? null,
+      stadium: venue.fullName,
+      city:    venue.address?.city ?? null,
+      // US games carry a state; games abroad carry only a country.
+      region:  venue.address?.state ?? venue.address?.country ?? null,
+      neutral: Boolean(competition.neutralSite),
+    })
+  }
+
+  return venues
+}
+
+/** A venue as one line: "Lambeau Field · Green Bay, WI". */
+export function formatVenue(venue) {
+  if (!venue) return ''
+  const place = [venue.city, venue.region].filter(Boolean).join(', ')
+  // ESPN tells its several Memorial Stadiums apart as "Memorial Stadium
+  // (Lincoln, NE)", which next to the city says the same thing twice.
+  const stadium = place ? venue.stadium.replace(/\s*\([^)]*\)$/, '') : venue.stadium
+  return [stadium, place].filter(Boolean).join(' · ')
+}
+
 /** Index finals for lookup by matchup. */
 export function indexFinals(finals) {
   const byMatchup = new Map()

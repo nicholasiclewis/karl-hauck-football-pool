@@ -16,8 +16,10 @@ import {
   espnDate,
   fetchFinals,
   findFinal,
+  formatVenue,
   indexFinals,
   parseScoreboard,
+  parseVenues,
   scoreboardUrl,
   teamKey,
 } from '../src/lib/espnScores.js'
@@ -190,4 +192,47 @@ describe('which boards get asked', () => {
       assert.match(out.failures[0], /network down/)
     })
   })
+})
+
+describe('where a game is played', () => {
+  const withVenue = (ev, venue, neutralSite = false) => {
+    ev.competitions[0].venue = venue
+    ev.competitions[0].neutralSite = neutralSite
+    return ev
+  }
+  const packers = { home: 'Green Bay Packers', away: 'Chicago Bears', homeScore: 0, awayScore: 0, completed: false }
+
+  test('a venue is found for one of our game rows, before kickoff or after', () => {
+    const venues = parseVenues(
+      board(withVenue(event(packers), { fullName: 'Lambeau Field', address: { city: 'Green Bay', state: 'WI', country: 'USA' } })),
+      'nfl'
+    )
+    const venue = findFinal(
+      { sport: 'nfl', home_team: 'Green Bay Packers', away_team: 'Chicago Bears' },
+      indexFinals(venues)
+    )
+    assert.equal(formatVenue(venue), 'Lambeau Field · Green Bay, WI')
+    assert.equal(venue.neutral, false)
+  })
+
+  test('a game abroad names its country and is flagged neutral', () => {
+    const [venue] = parseVenues(
+      board(withVenue(event(packers), { fullName: 'Tottenham Hotspur Stadium', address: { city: 'London', country: 'England' } }, true)),
+      'nfl'
+    )
+    assert.equal(formatVenue(venue), 'Tottenham Hotspur Stadium · London, England')
+    assert.equal(venue.neutral, true)
+  })
+
+  test('a game ESPN lists without a venue is left out', () => {
+    assert.deepEqual(parseVenues(board(event(packers)), 'nfl'), [])
+    assert.equal(formatVenue(null), '')
+  })
+})
+
+test("ESPN's own city tag on a stadium name is not repeated", () => {
+  assert.equal(
+    formatVenue({ stadium: 'Memorial Stadium (Lincoln, NE)', city: 'Lincoln', region: 'NE' }),
+    'Memorial Stadium · Lincoln, NE'
+  )
 })

@@ -7,6 +7,7 @@ import PointsPreview from '../components/picks/PointsPreview'
 import { useAuth } from '../hooks/useAuth'
 import { useWeek } from '../hooks/useWeek'
 import { useLiveScores } from '../hooks/useLiveScores'
+import { useVenues } from '../hooks/useVenues'
 import { useRankings } from '../hooks/useRankings'
 import { findFinal } from '../lib/espnScores'
 import { usePicks } from '../hooks/usePicks'
@@ -39,6 +40,10 @@ export default function Picks() {
   // ESPN. Display only — the scheduled sync owns what lands in the database.
   const liveScores = useLiveScores(games)
   const liveFor = (game) => findFinal(game, liveScores)
+
+  // Where each game is played, from the same scoreboard. Decoration.
+  const venues = useVenues(games)
+  const venueFor = (game) => findFinal(game, venues)
 
   // Split games into NFL and college sections
   const nflGames     = games.filter((g) => g.sport === 'nfl')
@@ -340,6 +345,7 @@ export default function Picks() {
               capReached={atCap(game)}
               playerLocked={lockedIn}
               live={liveFor(game)}
+              venue={venueFor(game)}
               homeRank={apRank(game.home_team)}
               awayRank={apRank(game.away_team)}
             />
@@ -366,6 +372,7 @@ export default function Picks() {
               capReached={atCap(game)}
               playerLocked={lockedIn}
               live={liveFor(game)}
+              venue={venueFor(game)}
             />
           ))}
         </>

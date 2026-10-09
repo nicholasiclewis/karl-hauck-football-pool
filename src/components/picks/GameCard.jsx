@@ -1,4 +1,5 @@
 import { formatKickoff, countdownToKickoff, formatSpread, teamAbbr } from '../../lib/gameUtils'
+import { formatVenue } from '../../lib/espnScores'
 import TeamLogo from '../ui/TeamLogo'
 import RankBadge from '../ui/RankBadge'
 
@@ -14,8 +15,9 @@ import RankBadge from '../ui/RankBadge'
  *   playerLocked — the player locked their slate; buttons freeze until they unlock
  *   homeRank     — AP rank of the home team, or null when unranked
  *   awayRank     — AP rank of the away team, or null when unranked
+ *   venue        — where the game is played, per ESPN, or null when unknown
  */
-export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false, live = null, homeRank = null, awayRank = null }) {
+export default function GameCard({ game, pick, onPick, disabled = false, capReached = false, playerLocked = false, live = null, homeRank = null, awayRank = null, venue = null }) {
   const kickedOff  = new Date(game.kickoff_time) <= new Date()
   const isLocked   = kickedOff || pick?.is_locked
   const isComplete = game.result !== null
@@ -71,7 +73,7 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
       <div className="p-4">
 
         {/* ── Kickoff row ───────────────────────────── */}
-        <div className="flex items-center justify-between mb-3">
+        <div className={`flex items-center justify-between ${venue ? 'mb-1' : 'mb-3'}`}>
           <span className="text-[11px] text-muted tracking-wide">
             {formatKickoff(game.kickoff_time)}
           </span>
@@ -96,6 +98,14 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
             <span className="text-[11px] text-muted">{countdown}</span>
           ) : null}
         </div>
+
+        {/* ── Location ──────────────────────────────── */}
+        {venue && (
+          <p className="text-[11px] text-muted mb-3 truncate">
+            📍 {formatVenue(venue)}
+            {venue.neutral && <span className="text-accent-text"> · Neutral site</span>}
+          </p>
+        )}
 
         {/* ── Matchup ───────────────────────────────────
             Visitor on the left, host on the right, so the "@" between them
