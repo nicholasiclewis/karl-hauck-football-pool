@@ -14,7 +14,7 @@ import { espnDate, indexFinals, parseVenues, scoreboardUrl } from '../lib/espnSc
  * not change during the afternoon.
  *
  * @param {Array} games  the week's games
- * @returns {Map} matchup key -> { stadium, city, region, neutral }
+ * @returns {Map} matchup key -> { stadium, city, region, international, neutral }
  */
 export function useVenues(games = []) {
   const [venues, setVenues] = useState(() => new Map())

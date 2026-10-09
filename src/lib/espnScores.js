@@ -156,7 +156,8 @@ export function parseLiveScores(payload, sport) {
  * venue are skipped rather than returned empty, so a lookup either has
  * something to show or finds nothing.
  *
- * `neutral` matters more than it looks: the pool's "home" team is whoever the
+ * `international` marks a game played outside the US, and `neutral` one on
+ * nobody's home field. They matter more than they look: the pool's "home" team is whoever the
  * odds feed listed second, and for a game in London or a bowl that tells a
  * player nothing about where it is.
  */
@@ -172,6 +173,12 @@ export function parseVenues(payload, sport) {
     const away = competition.competitors?.find((c) => c.homeAway === 'away')
     if (!home || !away) continue
 
+    // ESPN fills in a state for some games abroad — Melbourne comes back as
+    // "VIC" — so the country decides whether a game is overseas, not the
+    // absence of a state. A venue with no country at all is taken as domestic.
+    const country = venue.address?.country ?? null
+    const international = Boolean(country) && country !== 'USA'
+
     venues.push({
       sport,
       home_team: home.team?.displayName ?? home.team?.location ?? '',
@@ -180,8 +187,10 @@ export function parseVenues(payload, sport) {
       away_location: away.team?.location ?? null,
       stadium: venue.fullName,
       city:    venue.address?.city ?? null,
-      // US games carry a state; games abroad carry only a country.
-      region:  venue.address?.state ?? venue.address?.country ?? null,
+      // The state at home, the country abroad: "Green Bay, WI" but
+      // "Melbourne, Australia", never "Melbourne, VIC".
+      region:  international ? country : venue.address?.state ?? country,
+      international,
       neutral: Boolean(competition.neutralSite),
     })
   }

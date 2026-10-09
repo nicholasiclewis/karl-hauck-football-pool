@@ -100,12 +100,22 @@ export default function GameCard({ game, pick, onPick, disabled = false, capReac
         </div>
 
         {/* ── Location ──────────────────────────────── */}
-        {venue && (
+        {venue && (venue.international ? (
+          // A game abroad is tagged rather than captioned, and allowed to
+          // wrap: the country is the point, and truncating "Tottenham Hotspur
+          // Stadium · London, England" cuts off exactly that.
+          <p className="flex items-start gap-1.5 text-[11px] text-accent-text mb-3">
+            <span className="flex-shrink-0 px-1.5 rounded bg-primary/15 border border-primary/30 text-primary-light font-semibold uppercase tracking-wide text-[9px] leading-[16px]">
+              🌍 International
+            </span>
+            <span className="leading-[16px]">{formatVenue(venue)}</span>
+          </p>
+        ) : (
           <p className="text-[11px] text-muted mb-3 truncate">
             📍 {formatVenue(venue)}
             {venue.neutral && <span className="text-accent-text"> · Neutral site</span>}
           </p>
-        )}
+        ))}
 
         {/* ── Matchup ───────────────────────────────────
             Visitor on the left, host on the right, so the "@" between them

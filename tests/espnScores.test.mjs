@@ -222,6 +222,27 @@ describe('where a game is played', () => {
     )
     assert.equal(formatVenue(venue), 'Tottenham Hotspur Stadium · London, England')
     assert.equal(venue.neutral, true)
+    assert.equal(venue.international, true)
+  })
+
+  test('a game abroad shows its country even when ESPN sends a state', () => {
+    // Melbourne arrives with state "VIC", which once printed in place of
+    // the country.
+    const [venue] = parseVenues(
+      board(withVenue(event(packers), { fullName: 'Melbourne Cricket Ground', address: { city: 'Melbourne', state: 'VIC', country: 'Australia' } }, true)),
+      'nfl'
+    )
+    assert.equal(formatVenue(venue), 'Melbourne Cricket Ground · Melbourne, Australia')
+    assert.equal(venue.international, true)
+  })
+
+  test('a neutral site at home is not a game abroad', () => {
+    const [venue] = parseVenues(
+      board(withVenue(event(packers), { fullName: 'Allegiant Stadium', address: { city: 'Las Vegas', state: 'NV', country: 'USA' } }, true)),
+      'nfl'
+    )
+    assert.equal(venue.international, false)
+    assert.equal(formatVenue(venue), 'Allegiant Stadium · Las Vegas, NV')
   })
 
   test('a game ESPN lists without a venue is left out', () => {
