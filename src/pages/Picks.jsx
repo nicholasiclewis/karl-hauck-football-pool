@@ -225,7 +225,7 @@ export default function Picks() {
       {/* ── Week Header ──────────────────────────────────────── */}
       <div
         className="border-b border-border pb-4"
-        style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)' }}
+        style={{ background: 'linear-gradient(135deg, var(--bg-deep) 0%, var(--card) 100%)' }}
       >
         {/* Week label row */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
@@ -274,7 +274,7 @@ export default function Picks() {
         </div>
 
         {/* How many are still to make, or confirmation they're all in */}
-        <p className="text-[11px] text-center mt-2 px-4" style={{ color: lockedIn || complete ? '#10b981' : '#94afd4' }}>
+        <p className="text-[11px] text-center mt-2 px-4" style={{ color: lockedIn || complete ? 'var(--green)' : 'var(--muted)' }}>
           {lockedIn
             ? '🔒 Picks locked in — unlock in the summary below to make changes'
             : complete

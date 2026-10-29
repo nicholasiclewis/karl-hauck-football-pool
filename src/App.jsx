@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import GuestRoute from './components/layout/GuestRoute'
 import CommissionerRoute from './components/layout/CommissionerRoute'
+import Ghost from './components/layout/Ghost'
 import Login from './pages/Login'
 import Picks from './pages/Picks'
 import Standings from './pages/Standings'
@@ -51,6 +52,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <AppRoutes />
+        <Ghost />
       </BrowserRouter>
     </AuthProvider>
   )

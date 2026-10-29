@@ -34,7 +34,7 @@ export default function PlayerRow({
     .slice(0, 2)
 
   // Rank number colour
-  let rankColor = '#f0f6ff'
+  let rankColor = 'var(--text)'
   if (rank === 1) rankColor = '#fbbf24'   // gold
   if (rank === 2) rankColor = '#94a3b8'   // silver
   if (rank === 3) rankColor = '#b45309'   // bronze
@@ -46,7 +46,7 @@ export default function PlayerRow({
   return (
     <div
       className="border-b"
-      style={{ borderColor: '#253347' }}
+      style={{ borderColor: 'var(--card2)' }}
     >
       {/* Main row */}
       <button
@@ -56,11 +56,11 @@ export default function PlayerRow({
         className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
         style={{
           background: isCurrentUser
-            ? 'linear-gradient(90deg, #2563eb 0%, #253347 100%)'
+            ? 'linear-gradient(90deg, var(--primary) 0%, var(--card2) 100%)'
             : isExpanded
-            ? '#1e293b'
+            ? 'var(--card)'
             : 'transparent',
-          borderLeft: isCurrentUser ? '2px solid #60a5fa' : '2px solid transparent',
+          borderLeft: isCurrentUser ? '2px solid var(--primary-light)' : '2px solid transparent',
         }}
       >
         {/* Rank — T for a position shared with somebody on the same points,
@@ -81,12 +81,12 @@ export default function PlayerRow({
             style={{
               background:
                 rank === 1
-                  ? 'linear-gradient(135deg, #2563eb, #374e6b)'
+                  ? 'linear-gradient(135deg, var(--primary), var(--border))'
                   : rank === 2
-                  ? 'linear-gradient(135deg, #60a5fa, #2a5aaa)'
+                  ? 'linear-gradient(135deg, var(--primary-light), var(--primary-dark))'
                   : rank === 3
                   ? 'linear-gradient(135deg, #b45309, #92400e)'
-                  : '#374e6b',
+                  : 'var(--border)',
               color: '#ffffff',
             }}
           >
@@ -107,14 +107,14 @@ export default function PlayerRow({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span
               className="text-sm font-semibold truncate"
-              style={{ color: isCurrentUser ? '#ffffff' : '#f0f6ff' }}
+              style={{ color: isCurrentUser ? '#ffffff' : 'var(--text)' }}
             >
               {entry.display_name ?? 'Unknown'}
             </span>
             {isCurrentUser && (
               <span
                 className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide flex-shrink-0"
-                style={{ background: '#60a5fa', color: '#1e293b' }}
+                style={{ background: 'var(--primary-light)', color: 'var(--card)' }}
               >
                 You
               </span>
@@ -122,13 +122,13 @@ export default function PlayerRow({
             {payout != null && (
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0"
-                style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
+                style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--green)' }}
               >
                 ${Number(payout).toFixed(0)}
               </span>
             )}
           </div>
-          <div className="text-[11px]" style={{ color: '#94afd4' }}>
+          <div className="text-[11px]" style={{ color: 'var(--muted)' }}>
             {weeksPlayed} wk{weeksPlayed !== 1 ? 's' : ''} played
             &nbsp;·&nbsp;{entry.correct_picks ?? 0} correct
           </div>
@@ -137,10 +137,10 @@ export default function PlayerRow({
         {/* Points + chevron */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="text-right">
-            <div className="text-base font-bold" style={{ color: '#60a5fa' }}>
+            <div className="text-base font-bold" style={{ color: 'var(--primary-light)' }}>
               {entry.total_points ?? 0}
             </div>
-            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#94afd4' }}>
+            <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
               pts
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function PlayerRow({
             className="text-muted text-xs transition-transform duration-200"
             style={{
               transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              color: '#94afd4',
+              color: 'var(--muted)',
             }}
           >
             ▾

@@ -113,50 +113,50 @@ export default function History() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f172a' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
         <div className="flex flex-col items-center gap-3">
           <span className="text-4xl animate-bounce">🏈</span>
-          <p className="text-sm" style={{ color: '#94afd4' }}>Loading history...</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>Loading history...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#0f172a' }}>
+    <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
       <TopNav />
 
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
       <div
         className="pt-header border-b"
-        style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)', borderColor: '#374e6b' }}
+        style={{ background: 'linear-gradient(135deg, var(--bg-deep) 0%, var(--card) 100%)', borderColor: 'var(--border)' }}
       >
         <div className="px-4 pt-5 pb-4">
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             📋 My Pick History
           </h1>
-          <p className="text-xs mt-1" style={{ color: '#94afd4' }}>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
             {season?.year} Season · {shortName}
           </p>
 
           {/* ── Stats bar ──────────────────────────────────────────────────── */}
           <div
             className="grid grid-cols-4 gap-px mt-4 rounded-xl overflow-hidden border"
-            style={{ borderColor: '#374e6b' }}
+            style={{ borderColor: 'var(--border)' }}
           >
             {[
-              { val: totalPts.toFixed(1), lbl: 'Total Pts', color: '#60a5fa' },
-              { val: totalWins,           lbl: 'Wins',      color: '#10b981' },
-              { val: totalLoss,           lbl: 'Losses',    color: '#f87171' },
-              { val: totalPush,           lbl: 'Pushes',    color: '#f0f6ff' },
+              { val: totalPts.toFixed(1), lbl: 'Total Pts', color: 'var(--primary-light)' },
+              { val: totalWins,           lbl: 'Wins',      color: 'var(--green)' },
+              { val: totalLoss,           lbl: 'Losses',    color: 'var(--red)' },
+              { val: totalPush,           lbl: 'Pushes',    color: 'var(--text)' },
             ].map(({ val, lbl, color }) => (
               <div
                 key={lbl}
                 className="flex flex-col items-center py-3"
-                style={{ background: '#1e293b' }}
+                style={{ background: 'var(--card)' }}
               >
                 <span className="text-xl font-bold leading-none" style={{ color }}>{val}</span>
-                <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: '#94afd4' }}>{lbl}</span>
+                <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: 'var(--muted)' }}>{lbl}</span>
               </div>
             ))}
           </div>
@@ -165,16 +165,16 @@ export default function History() {
           {totalGames > 0 && (
             <div className="mt-3">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: '#94afd4' }}>
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
                   Season Record
                 </span>
-                <span className="text-xs font-semibold" style={{ color: '#93c5fd' }}>
+                <span className="text-xs font-semibold" style={{ color: 'var(--accent-text)' }}>
                   {totalWins}-{totalLoss}-{totalPush} · {atsPct}% ATS
                 </span>
               </div>
-              <div className="flex rounded-full overflow-hidden h-2" style={{ background: '#253347' }}>
-                <div style={{ width: `${winPct}%`, background: '#10b981' }} />
-                <div style={{ width: `${pushPct}%`, background: '#94afd4' }} />
+              <div className="flex rounded-full overflow-hidden h-2" style={{ background: 'var(--card2)' }}>
+                <div style={{ width: `${winPct}%`, background: 'var(--green)' }} />
+                <div style={{ width: `${pushPct}%`, background: 'var(--muted)' }} />
               </div>
             </div>
           )}
@@ -182,12 +182,12 @@ export default function History() {
       </div>
 
       {/* ── Week list ───────────────────────────────────────────────────────── */}
-      <div className="mx-4 mt-4 rounded-xl overflow-hidden border" style={{ borderColor: '#374e6b' }}>
+      <div className="mx-4 mt-4 rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
         {weeks.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-4xl mb-3">📋</p>
-            <p className="font-semibold" style={{ color: '#f0f6ff' }}>No weeks yet</p>
-            <p className="text-sm mt-1" style={{ color: '#94afd4' }}>
+            <p className="font-semibold" style={{ color: 'var(--text)' }}>No weeks yet</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
               Your pick history will appear here once the season starts.
             </p>
           </div>

@@ -71,21 +71,21 @@ export default function SeasonTab() {
   }
 
   if (!season) {
-    return <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No active season.</p>
+    return <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>No active season.</p>
   }
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
         <div>
-          <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>Join Code</h2>
-          <p className="text-xs mt-1" style={{ color: '#94afd4' }}>
+          <h2 className="text-sm font-bold" style={{ color: 'var(--accent-text)' }}>Join Code</h2>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
             New players enter this when signing up for the {season.year} season.
           </p>
         </div>
 
         {error && (
-          <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
+          <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red)' }}>
             {error}
           </p>
         )}
@@ -94,18 +94,18 @@ export default function SeasonTab() {
           <>
             <div
               className="rounded-lg border px-4 py-3 flex items-center justify-between gap-3"
-              style={{ background: '#0f172a', borderColor: '#374e6b' }}
+              style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
             >
               <span
                 className="font-bold tracking-[0.3em] text-lg"
-                style={{ color: revealed ? '#f5b301' : '#4a6585' }}
+                style={{ color: revealed ? '#f5b301' : 'var(--border2)' }}
               >
                 {revealed ? code : '••••••'}
               </span>
               <button
                 onClick={() => setRevealed(v => !v)}
                 className="text-xs px-3 py-1.5 rounded-lg flex-shrink-0"
-                style={{ background: '#1e293b', color: '#94afd4' }}
+                style={{ background: 'var(--card)', color: 'var(--muted)' }}
               >
                 {revealed ? 'Hide' : 'Show'}
               </button>
@@ -118,7 +118,7 @@ export default function SeasonTab() {
                 className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
                 style={{
                   background: 'rgba(74,127,212,0.15)',
-                  color: '#60a5fa',
+                  color: 'var(--primary-light)',
                   opacity: revealed ? 1 : 0.4,
                 }}
               >
@@ -136,14 +136,14 @@ export default function SeasonTab() {
           </>
         ) : (
           <>
-            <p className="text-xs" style={{ color: '#94afd4' }}>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
               No join code set for this season — nobody can sign up until there is one.
             </p>
             <button
               onClick={regenerate}
               disabled={busy}
               className="w-full py-2.5 rounded-lg text-sm font-bold"
-              style={{ background: '#2563eb', color: '#ffffff', opacity: busy ? 0.6 : 1 }}
+              style={{ background: 'var(--primary)', color: '#ffffff', opacity: busy ? 0.6 : 1 }}
             >
               {busy ? 'Generating…' : 'Generate Join Code'}
             </button>
@@ -151,9 +151,9 @@ export default function SeasonTab() {
         )}
       </div>
 
-      <div className="rounded-xl border p-4" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
-        <h2 className="text-sm font-bold mb-2" style={{ color: '#93c5fd' }}>How it works</h2>
-        <ul className="text-xs space-y-1.5" style={{ color: '#94afd4' }}>
+      <div className="rounded-xl border p-4" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <h2 className="text-sm font-bold mb-2" style={{ color: 'var(--accent-text)' }}>How it works</h2>
+        <ul className="text-xs space-y-1.5" style={{ color: 'var(--muted)' }}>
           <li>• Only commissioners can see or change this code.</li>
           <li>• Signup checks it without the code ever leaving the server.</li>
           <li>• Generating a new one takes effect immediately and cannot be undone.</li>

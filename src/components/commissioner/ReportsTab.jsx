@@ -79,9 +79,9 @@ export default function ReportsTab() {
   return (
     <div className="space-y-4 mt-2">
       {/* ── Week picker ── */}
-      <div className="rounded-xl border p-4" style={{ borderColor: '#374e6b', background: '#1e293b' }}>
+      <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
         <label className="block">
-          <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</span>
+          <span className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>Week</span>
           <select value={weekId} onChange={e => { setWeekId(e.target.value); setPreview(null) }}
                   className="input-field w-full">
             {weeks.length === 0 && <option value="">No weeks yet</option>}
@@ -95,7 +95,7 @@ export default function ReportsTab() {
       </div>
 
       {error && (
-        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
+        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red)' }}>
           {error}
         </p>
       )}
@@ -124,36 +124,36 @@ export default function ReportsTab() {
 
       {/* ── Text preview ── */}
       {preview && (
-        <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: '#374e6b', background: '#1e293b' }}>
+        <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{preview.kind} email</h3>
+            <h3 className="text-sm font-bold" style={{ color: 'var(--text)' }}>{preview.kind} email</h3>
             <div className="flex gap-2">
               <button onClick={copyAll} className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                      style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}>
+                      style={{ background: 'rgba(74,127,212,0.15)', color: 'var(--primary-light)' }}>
                 {copied ? '✓ Copied' : '📋 Copy all'}
               </button>
               <button onClick={() => setPreview(null)} className="text-xs px-3 py-1.5 rounded-lg"
-                      style={{ background: '#1e293b', color: '#94afd4' }}>
+                      style={{ background: 'var(--card)', color: 'var(--muted)' }}>
                 ✕
               </button>
             </div>
           </div>
 
           <div>
-            <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: '#94afd4' }}>Subject</p>
+            <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>Subject</p>
             <p className="text-xs px-3 py-2 rounded-lg font-semibold"
-               style={{ background: '#0f172a', color: '#f0f6ff' }}>{preview.subject}</p>
+               style={{ background: 'var(--bg)', color: 'var(--text)' }}>{preview.subject}</p>
           </div>
 
           <div>
-            <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: '#94afd4' }}>Body</p>
+            <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>Body</p>
             <textarea
               readOnly
               value={preview.body}
               onFocus={e => e.target.select()}
               rows={16}
               className="w-full text-[11px] px-3 py-2 rounded-lg"
-              style={{ background: '#0f172a', color: '#f0f6ff', border: '1px solid #374e6b',
+              style={{ background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)',
                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', whiteSpace: 'pre' }}
             />
           </div>
@@ -172,9 +172,9 @@ export default function ReportsTab() {
 
 function Panel({ title, blurb, children }) {
   return (
-    <div className="rounded-xl border p-5" style={{ borderColor: '#374e6b', background: '#1e293b' }}>
-      <h3 className="text-sm font-bold mb-1" style={{ color: '#f0f6ff' }}>{title}</h3>
-      <p className="text-xs mb-4" style={{ color: '#94afd4' }}>{blurb}</p>
+    <div className="rounded-xl border p-5" style={{ borderColor: 'var(--border)', background: 'var(--card)' }}>
+      <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--text)' }}>{title}</h3>
+      <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>{blurb}</p>
       {children}
     </div>
   )
@@ -187,8 +187,8 @@ function Btn({ onClick, busy, primary = false, full = false, children }) {
       disabled={busy}
       className={`${full ? 'w-full' : 'flex-1'} py-3 rounded-lg text-sm font-bold transition-opacity`}
       style={{
-        background: primary ? '#2563eb' : 'rgba(74,127,212,0.15)',
-        color:      primary ? '#ffffff' : '#60a5fa',
+        background: primary ? 'var(--primary)' : 'rgba(74,127,212,0.15)',
+        color:      primary ? '#ffffff' : 'var(--primary-light)',
         opacity:    busy ? 0.6 : 1,
       }}
     >

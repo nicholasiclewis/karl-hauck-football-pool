@@ -34,13 +34,13 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
 
   // Score circle color
   const pts = score?.total_points ?? null
-  let circleColor = '#94afd4'   // default muted — the old #1e3a5f dash was near-invisible
-  let circleBorder = '#374e6b'
+  let circleColor = 'var(--muted)'   // default muted — the old #1e3a5f dash was near-invisible
+  let circleBorder = 'var(--border)'
   if (pts !== null) {
-    if (pts >= 7)      { circleColor = '#10b981'; circleBorder = '#10b981' }
-    else if (pts >= 5) { circleColor = '#60a5fa'; circleBorder = '#60a5fa' }
-    else if (pts >= 3) { circleColor = '#f0f6ff'; circleBorder = '#4a6585' }
-    else               { circleColor = '#94afd4'; circleBorder = '#374e6b' }
+    if (pts >= 7)      { circleColor = 'var(--green)'; circleBorder = 'var(--green)' }
+    else if (pts >= 5) { circleColor = 'var(--primary-light)'; circleBorder = 'var(--primary-light)' }
+    else if (pts >= 3) { circleColor = 'var(--text)'; circleBorder = 'var(--border2)' }
+    else               { circleColor = 'var(--muted)'; circleBorder = 'var(--border)' }
   }
 
   // Bonus chips
@@ -141,7 +141,7 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
   return (
     <div
       className="border-b"
-      style={{ borderColor: '#253347' }}
+      style={{ borderColor: 'var(--card2)' }}
     >
       {/* ── Row ── */}
       <button
@@ -161,16 +161,16 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
         {/* Week info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold" style={{ color: '#f0f6ff' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>
               Week {week.week_number}
             </span>
             {isInProgress && (
-              <span className="text-[10px] font-semibold" style={{ color: '#60a5fa' }}>
+              <span className="text-[10px] font-semibold" style={{ color: 'var(--primary-light)' }}>
                 • In Progress
               </span>
             )}
           </div>
-          <p className="text-[11px] mt-0.5" style={{ color: '#94afd4' }}>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--muted)' }}>
             {weekSubLabel()}
           </p>
           {bonusChips.length > 0 && (
@@ -181,8 +181,8 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
                   style={
                     chip.color === 'green'
-                      ? { background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
-                      : { background: 'rgba(74,127,212,0.12)', color: '#60a5fa', borderColor: 'rgba(74,127,212,0.3)' }
+                      ? { background: 'rgba(16,185,129,0.12)', color: 'var(--green)', borderColor: 'rgba(16,185,129,0.3)' }
+                      : { background: 'rgba(74,127,212,0.12)', color: 'var(--primary-light)', borderColor: 'rgba(74,127,212,0.3)' }
                   }
                 >
                   {chip.label}
@@ -195,12 +195,12 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
         {/* Record + chevron */}
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           {record && (
-            <span className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>{record}</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{record}</span>
           )}
           <span
             className="text-xs transition-transform"
             style={{
-              color: '#94afd4',
+              color: 'var(--muted)',
               display: 'inline-block',
               transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
             }}
@@ -212,13 +212,13 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
 
       {/* ── Expanded picks ── */}
       {expanded && (
-        <div style={{ background: '#0f172a', borderTop: '1px solid #253347' }}>
+        <div style={{ background: 'var(--bg)', borderTop: '1px solid var(--card2)' }}>
           {loadingPicks ? (
-            <div className="py-4 text-center text-sm" style={{ color: '#94afd4' }}>
+            <div className="py-4 text-center text-sm" style={{ color: 'var(--muted)' }}>
               Loading picks...
             </div>
           ) : picks.length === 0 ? (
-            <div className="py-4 text-center text-sm" style={{ color: '#94afd4' }}>
+            <div className="py-4 text-center text-sm" style={{ color: 'var(--muted)' }}>
               No picks made this week
             </div>
           ) : (
@@ -244,13 +244,13 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
               Only once the week is settled. Offering it while a week is live
               would turn the pool into a copying exercise. */}
           {weekIsOver && !loadingPicks && (
-            <div style={{ borderTop: '1px solid #253347' }}>
+            <div style={{ borderTop: '1px solid var(--card2)' }}>
               <button
                 type="button"
                 onClick={toggleRoom}
                 aria-expanded={roomOpen}
                 className="w-full px-4 py-3 text-left text-xs font-semibold"
-                style={{ color: '#60a5fa' }}
+                style={{ color: 'var(--primary-light)' }}
               >
                 {roomOpen ? 'Hide' : 'See'} everyone's picks
                 <span className="ml-1.5" style={{ display: 'inline-block', transform: roomOpen ? 'rotate(180deg)' : 'none' }}>
@@ -260,7 +260,7 @@ export default function WeekCard({ week, score, userId, subjectIsAdmin = false }
 
               {roomOpen && (
                 loadingRoom ? (
-                  <div className="py-4 text-center text-sm" style={{ color: '#94afd4' }}>
+                  <div className="py-4 text-center text-sm" style={{ color: 'var(--muted)' }}>
                     Loading the room…
                   </div>
                 ) : (

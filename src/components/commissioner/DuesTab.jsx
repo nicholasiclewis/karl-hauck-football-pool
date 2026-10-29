@@ -107,7 +107,7 @@ export default function DuesTab() {
   }
 
   if (loading) return <Spinner />
-  if (!season)  return <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No active season.</p>
+  if (!season)  return <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>No active season.</p>
 
   const paidCount = entries.filter(e => e.dues?.is_paid).length
   const totalPaid = paidCount * (season.dues_amount ?? 0)
@@ -117,16 +117,16 @@ export default function DuesTab() {
     <div className="space-y-4">
 
       {/* ── Payouts ── */}
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>
+          <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
             Prize Payouts
           </h3>
           <button
             type="button"
             onClick={calcDefaults}
             className="text-[11px] px-2.5 py-1 rounded-lg border font-medium"
-            style={{ color: '#60a5fa', borderColor: '#374e6b', background: 'rgba(96,165,250,0.08)' }}
+            style={{ color: 'var(--primary-light)', borderColor: 'var(--border)', background: 'rgba(96,165,250,0.08)' }}
           >
             Auto-calculate from ${pot} pot
           </button>
@@ -139,9 +139,9 @@ export default function DuesTab() {
             { label: '🥉 3rd Place', val: payout3, set: setPayout3 },
           ].map(({ label, val, set }) => (
             <div key={label} className="flex items-center gap-3">
-              <span className="text-sm w-24 flex-shrink-0" style={{ color: '#f0f6ff' }}>{label}</span>
+              <span className="text-sm w-24 flex-shrink-0" style={{ color: 'var(--text)' }}>{label}</span>
               <div className="flex-1 flex items-center gap-1">
-                <span className="text-sm" style={{ color: '#94afd4' }}>$</span>
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>$</span>
                 <input
                   type="number"
                   min="0"
@@ -160,12 +160,12 @@ export default function DuesTab() {
               type="submit"
               disabled={payoutSaving}
               className="flex-1 py-2 rounded-lg text-sm font-bold"
-              style={{ background: '#2563eb', color: '#ffffff', opacity: payoutSaving ? 0.6 : 1 }}
+              style={{ background: 'var(--primary)', color: '#ffffff', opacity: payoutSaving ? 0.6 : 1 }}
             >
               {payoutSaving ? 'Saving...' : 'Save Payouts'}
             </button>
             {payoutMsg && (
-              <span className="text-xs font-semibold" style={{ color: payoutMsg === 'Saved!' ? '#10b981' : '#f87171' }}>
+              <span className="text-xs font-semibold" style={{ color: payoutMsg === 'Saved!' ? 'var(--green)' : 'var(--red)' }}>
                 {payoutMsg}
               </span>
             )}
@@ -174,21 +174,21 @@ export default function DuesTab() {
       </div>
 
       {/* ── Summary bar ── */}
-      <div className="grid grid-cols-3 gap-px rounded-xl overflow-hidden border" style={{ borderColor: '#374e6b' }}>
+      <div className="grid grid-cols-3 gap-px rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
         {[
           { val: `$${season.dues_amount ?? 0}`, lbl: 'Per Player' },
           { val: `${paidCount} / ${entries.length}`, lbl: 'Paid' },
           { val: `$${totalPaid.toFixed(2)}`, lbl: 'Collected' },
         ].map(({ val, lbl }) => (
-          <div key={lbl} className="flex flex-col items-center py-3" style={{ background: '#1e293b' }}>
-            <span className="text-lg font-bold" style={{ color: '#60a5fa' }}>{val}</span>
-            <span className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: '#94afd4' }}>{lbl}</span>
+          <div key={lbl} className="flex flex-col items-center py-3" style={{ background: 'var(--card)' }}>
+            <span className="text-lg font-bold" style={{ color: 'var(--primary-light)' }}>{val}</span>
+            <span className="text-[9px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--muted)' }}>{lbl}</span>
           </div>
         ))}
       </div>
 
       {/* ── Players list ── */}
-      <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
         {entries.map(({ player, dues }) => {
           const initials = (player.display_name || '?')
             .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -197,18 +197,18 @@ export default function DuesTab() {
             <div
               key={player.id}
               className="flex items-center gap-3 px-4 py-3 border-b"
-              style={{ borderColor: '#253347' }}
+              style={{ borderColor: 'var(--card2)' }}
             >
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
-                style={{ background: '#374e6b', color: '#ffffff' }}
+                style={{ background: 'var(--border)', color: '#ffffff' }}
               >
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>{player.display_name}</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{player.display_name}</p>
                 {dues?.paid_at && (
-                  <p className="text-xs" style={{ color: '#94afd4' }}>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
                     Paid {new Date(dues.paid_at).toLocaleDateString()}
                   </p>
                 )}
@@ -218,8 +218,8 @@ export default function DuesTab() {
                 disabled={toggling === player.id}
                 className="text-xs font-bold px-3 py-1.5 rounded-full border flex-shrink-0"
                 style={isPaid
-                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
-                  : { background: 'rgba(248,113,113,0.1)', color: '#f87171', borderColor: 'rgba(248,113,113,0.3)' }
+                  ? { background: 'rgba(16,185,129,0.15)', color: 'var(--green)', borderColor: 'rgba(16,185,129,0.3)' }
+                  : { background: 'rgba(248,113,113,0.1)', color: 'var(--red)', borderColor: 'rgba(248,113,113,0.3)' }
                 }
               >
                 {toggling === player.id ? '...' : isPaid ? '✓ Paid' : 'Unpaid'}

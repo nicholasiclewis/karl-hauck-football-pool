@@ -219,7 +219,7 @@ export default function EntryTab() {
   }
 
   if (loading) return <div className="py-12 text-center"><span className="text-3xl animate-bounce">✍️</span></div>
-  if (weeks.length === 0) return <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No weeks yet.</p>
+  if (weeks.length === 0) return <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>No weeks yet.</p>
 
   const player = players.find(p => p.id === userId)
 
@@ -250,14 +250,14 @@ export default function EntryTab() {
   return (
     <div className="space-y-4">
       {/* ── Week + player selection ── */}
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
-        <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>Enter Picks For a Player</h2>
-        <p className="text-xs" style={{ color: '#94afd4' }}>
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <h2 className="text-sm font-bold" style={{ color: 'var(--accent-text)' }}>Enter Picks For a Player</h2>
+        <p className="text-xs" style={{ color: 'var(--muted)' }}>
           For picks phoned, texted or emailed in. Works after kickoff.
         </p>
 
         <label className="block">
-          <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Week</span>
+          <span className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>Week</span>
           <select value={weekId ?? ''} onChange={e => setWeekId(e.target.value)} className="input-field w-full">
             {weeks.map(w => (
               <option key={w.id} value={w.id}>
@@ -269,7 +269,7 @@ export default function EntryTab() {
         </label>
 
         <label className="block">
-          <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>Player</span>
+          <span className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>Player</span>
           <select value={userId} onChange={e => setUserId(e.target.value)} className="input-field w-full">
             <option value="">— select a player —</option>
             {players.filter(p => !isSelf(p.id)).map(p => (
@@ -280,15 +280,15 @@ export default function EntryTab() {
       </div>
 
       {/* ── Player summary: who still owes picks ── */}
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>
+          <h2 className="text-sm font-bold" style={{ color: 'var(--accent-text)' }}>
             Week {week?.week_number} Player Summary
           </h2>
           {counts && (
             <span
               className="text-xs font-semibold"
-              style={{ color: short.length ? '#f5b301' : '#10b981' }}
+              style={{ color: short.length ? '#f5b301' : 'var(--green)' }}
             >
               {roster.length === 0
                 ? 'No players yet'
@@ -300,7 +300,7 @@ export default function EntryTab() {
         </div>
 
         {!counts ? (
-          <p className="text-xs" style={{ color: '#94afd4' }}>Counting picks…</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>Counting picks…</p>
         ) : (
           <>
             {short.length > 0 && (
@@ -324,7 +324,7 @@ export default function EntryTab() {
                   type="button"
                   onClick={() => setShowDone(v => !v)}
                   className="text-[11px] underline"
-                  style={{ color: '#94afd4' }}
+                  style={{ color: 'var(--muted)' }}
                 >
                   {showDone ? 'Hide' : 'Show'} {done.length} with a full slate
                 </button>
@@ -349,17 +349,17 @@ export default function EntryTab() {
       </div>
 
       {error && (
-        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
+        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red)' }}>
           {error}
         </p>
       )}
 
       {!userId ? (
-        <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>
+        <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>
           Pick a player to enter their week.
         </p>
       ) : games.length === 0 ? (
-        <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>
+        <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>
           No games in play for this week yet.
         </p>
       ) : (
@@ -372,10 +372,10 @@ export default function EntryTab() {
               borderColor: complete ? 'rgba(16,185,129,0.35)' : 'rgba(74,127,212,0.35)',
             }}
           >
-            <span className="text-xs font-semibold" style={{ color: complete ? '#10b981' : '#60a5fa' }}>
+            <span className="text-xs font-semibold" style={{ color: complete ? 'var(--green)' : 'var(--primary-light)' }}>
               {complete ? `✓ ${player?.display_name} is set` : `${player?.display_name}'s picks`}
             </span>
-            <span className="text-xs" style={{ color: '#94afd4' }}>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>
               {limits.nfl > 0 && `NFL ${used.nfl}/${limits.nfl}`}
               {limits.nfl > 0 && limits.college > 0 && ' · '}
               {limits.college > 0 && `CFB ${used.college}/${limits.college}`}
@@ -402,8 +402,8 @@ export default function EntryTab() {
                   key={game.id}
                   className="rounded-xl border p-3"
                   style={{
-                    background: '#1e293b',
-                    borderColor: pick ? '#60a5fa' : '#374e6b',
+                    background: 'var(--card)',
+                    borderColor: pick ? 'var(--primary-light)' : 'var(--border)',
                     opacity: blocked ? 0.5 : 1,
                   }}
                 >
@@ -411,17 +411,17 @@ export default function EntryTab() {
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded"
                       style={game.sport === 'nfl'
-                        ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
-                        : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
+                        ? { background: 'rgba(74,127,212,0.15)', color: 'var(--primary-light)' }
+                        : { background: 'rgba(16,185,129,0.15)', color: 'var(--green)' }}
                     >
                       {game.sport.toUpperCase()}
                     </span>
-                    <span className="text-[11px]" style={{ color: '#94afd4' }}>
+                    <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
                       {formatKickoff(game.kickoff_time)}
                     </span>
                     {final ? (
                       <span className="text-[10px] px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(148,175,212,0.15)', color: '#94afd4' }}>
+                            style={{ background: 'rgba(148,175,212,0.15)', color: 'var(--muted)' }}>
                         Final {game.away_score}–{game.home_score}
                       </span>
                     ) : started ? (
@@ -431,7 +431,7 @@ export default function EntryTab() {
                       </span>
                     ) : noLine ? (
                       <span className="text-[10px] px-2 py-0.5 rounded-full"
-                            style={{ background: 'rgba(148,175,212,0.15)', color: '#94afd4' }}>
+                            style={{ background: 'rgba(148,175,212,0.15)', color: 'var(--muted)' }}>
                         line to come
                       </span>
                     ) : null}
@@ -449,9 +449,9 @@ export default function EntryTab() {
                           disabled={saving === game.id || noLine || (blocked && !on)}
                           className="flex-1 py-2 px-2 rounded-lg border-2 text-center"
                           style={{
-                            borderColor: on ? '#60a5fa' : '#374e6b',
-                            background:  on ? 'rgba(74,127,212,0.15)' : '#0f172a',
-                            color:       on ? '#93c5fd' : '#94afd4',
+                            borderColor: on ? 'var(--primary-light)' : 'var(--border)',
+                            background:  on ? 'rgba(74,127,212,0.15)' : 'var(--bg)',
+                            color:       on ? 'var(--accent-text)' : 'var(--muted)',
                           }}
                         >
                           <span className="block text-[12px] font-bold leading-tight">{team}</span>
@@ -525,26 +525,26 @@ function PickConfirm({ pending, playerName, onCancel, onConfirm }) {
         aria-label={heading}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm rounded-2xl border p-4 space-y-3"
-        style={{ background: '#1e293b', borderColor: '#374e6b' }}
+        style={{ background: 'var(--card)', borderColor: 'var(--border)' }}
       >
-        <h3 className="text-sm font-bold" style={{ color: '#f0f6ff' }}>{heading}</h3>
+        <h3 className="text-sm font-bold" style={{ color: 'var(--text)' }}>{heading}</h3>
 
-        <div className="rounded-lg border px-3 py-2.5 space-y-1" style={{ background: '#0f172a', borderColor: '#374e6b' }}>
-          <p className="text-[11px]" style={{ color: '#94afd4' }}>
+        <div className="rounded-lg border px-3 py-2.5 space-y-1" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
             {game.away_team} @ {game.home_team}
           </p>
-          <p className="text-[11px]" style={{ color: '#94afd4' }}>
+          <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
             {formatKickoff(game.kickoff_time)}
           </p>
           {action === 'clear' ? (
-            <p className="text-sm font-bold" style={{ color: '#f87171' }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--red)' }}>
               Removing {fromTeam} {formatSpread(from === 'home' ? game.spread : -game.spread)}
             </p>
           ) : (
-            <p className="text-sm font-bold" style={{ color: '#93c5fd' }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--accent-text)' }}>
               {team} {formatSpread(spread)}
               {fromTeam && (
-                <span className="block text-[11px] font-normal mt-0.5" style={{ color: '#94afd4' }}>
+                <span className="block text-[11px] font-normal mt-0.5" style={{ color: 'var(--muted)' }}>
                   replacing {fromTeam}
                 </span>
               )}
@@ -556,7 +556,7 @@ function PickConfirm({ pending, playerName, onCancel, onConfirm }) {
         {isFinal ? (
           <p
             className="text-xs px-3 py-2 rounded-lg font-semibold"
-            style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}
+            style={{ background: 'rgba(248,113,113,0.12)', color: 'var(--red)' }}
           >
             ⚠ This game is already final, {game.away_score}–{game.home_score}. The
             result is known.
@@ -575,7 +575,7 @@ function PickConfirm({ pending, playerName, onCancel, onConfirm }) {
             type="button"
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-lg text-sm font-semibold border"
-            style={{ background: '#0f172a', borderColor: '#374e6b', color: '#94afd4' }}
+            style={{ background: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--muted)' }}
           >
             Cancel
           </button>
@@ -585,7 +585,7 @@ function PickConfirm({ pending, playerName, onCancel, onConfirm }) {
             autoFocus
             className="flex-1 py-2.5 rounded-lg text-sm font-bold"
             style={{
-              background: action === 'clear' ? '#b91c1c' : '#2563eb',
+              background: action === 'clear' ? '#b91c1c' : 'var(--primary)',
               color: '#ffffff',
             }}
           >
@@ -624,21 +624,21 @@ function PlayerSummaryRow({ player, slate, limits, selected, onSelect }) {
       {...rowProps}
       className="w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left"
       style={{
-        background:  isShort && !player.locked ? 'rgba(245,179,1,0.08)' : '#0f172a',
-        borderColor: selected ? '#60a5fa' : isShort && !player.locked ? 'rgba(245,179,1,0.35)' : '#374e6b',
+        background:  isShort && !player.locked ? 'rgba(245,179,1,0.08)' : 'var(--bg)',
+        borderColor: selected ? 'var(--primary-light)' : isShort && !player.locked ? 'rgba(245,179,1,0.35)' : 'var(--border)',
       }}
     >
       <span className="flex items-center gap-2 min-w-0">
         <span
           className="text-xs font-semibold truncate"
-          style={{ color: isShort && !player.locked ? '#f0f6ff' : '#94afd4' }}
+          style={{ color: isShort && !player.locked ? 'var(--text)' : 'var(--muted)' }}
         >
           {player.display_name}
         </span>
         {player.locked && (
           <span
             className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shrink-0"
-            style={{ background: 'rgba(148,175,212,0.15)', color: '#94afd4' }}
+            style={{ background: 'rgba(148,175,212,0.15)', color: 'var(--muted)' }}
             title="You cannot enter your own picks here — use the Picks page"
           >
             You
@@ -646,10 +646,10 @@ function PlayerSummaryRow({ player, slate, limits, selected, onSelect }) {
         )}
       </span>
       <span className="flex items-center gap-2 shrink-0">
-        {split && <span className="text-[10px]" style={{ color: '#94afd4' }}>{split}</span>}
+        {split && <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{split}</span>}
         <span
           className="text-xs font-bold"
-          style={{ color: isShort ? (player.locked ? '#94afd4' : '#f5b301') : '#10b981' }}
+          style={{ color: isShort ? (player.locked ? 'var(--muted)' : '#f5b301') : 'var(--green)' }}
         >
           {isShort ? `${player.total}/${slate}` : '✓'}
         </span>

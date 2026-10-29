@@ -22,14 +22,14 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
   // Per-place styles
   const styles = {
     1: {
-      avatarGrad: 'linear-gradient(135deg, #2563eb, #374e6b)',
-      blockGrad:  'linear-gradient(180deg, #2563eb, #374e6b)',
+      avatarGrad: 'linear-gradient(135deg, var(--primary), var(--border))',
+      blockGrad:  'linear-gradient(180deg, var(--primary), var(--border))',
       labelColor: '#fbbf24',
       placeLabel: '1st',
     },
     2: {
-      avatarGrad: 'linear-gradient(135deg, #60a5fa, #2a5aaa)',
-      blockGrad:  'linear-gradient(180deg, #60a5fa, #2a5aaa)',
+      avatarGrad: 'linear-gradient(135deg, var(--primary-light), var(--primary-dark))',
+      blockGrad:  'linear-gradient(180deg, var(--primary-light), var(--primary-dark))',
       labelColor: '#94a3b8',
       placeLabel: '2nd',
     },
@@ -78,7 +78,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
       {/* Name */}
       <p
         className="text-[11px] font-semibold text-center leading-tight mb-0.5 max-w-[72px] truncate"
-        style={{ color: '#f0f6ff' }}
+        style={{ color: 'var(--text)' }}
       >
         {shortName}
       </p>
@@ -86,7 +86,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
       {/* Points */}
       <p
         className="text-sm font-bold mb-0.5"
-        style={{ color: '#60a5fa' }}
+        style={{ color: 'var(--primary-light)' }}
       >
         {entry.total_points ?? 0} pts
       </p>
@@ -95,7 +95,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
       {payout != null && (
         <p
           className="text-[11px] font-bold mb-1.5 px-2 py-0.5 rounded-full"
-          style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}
+          style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--green)' }}
         >
           ${Number(payout).toFixed(0)}
         </p>

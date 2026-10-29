@@ -1,4 +1,5 @@
 import { useAuth } from '../../hooks/useAuth'
+import { activeTheme } from '../../lib/seasonalTheme'
 
 export default function TopNav() {
   const { profile } = useAuth()
@@ -18,6 +19,9 @@ export default function TopNav() {
         <div className="text-lg font-bold tracking-wider">
           <span className="text-primary-light">KH</span>
           <span className="text-white">FP</span>
+          {activeTheme() === 'halloween' && (
+            <span className="ml-1.5" role="img" aria-label="Happy Halloween">🎃</span>
+          )}
         </div>
 
         {/* User info */}

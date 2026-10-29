@@ -151,9 +151,9 @@ export default function WeeksTab() {
   return (
     <div className="space-y-5">
       {/* ── Create form ── */}
-      <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
-        <h2 className="text-sm font-bold" style={{ color: '#93c5fd' }}>Create Week</h2>
-        {error && <p className="text-xs" style={{ color: '#f87171' }}>{error}</p>}
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+        <h2 className="text-sm font-bold" style={{ color: 'var(--accent-text)' }}>Create Week</h2>
+        {error && <p className="text-xs" style={{ color: 'var(--red)' }}>{error}</p>}
         <form onSubmit={createWeek} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Week #">
@@ -173,11 +173,11 @@ export default function WeeksTab() {
               />
               {form.week_start && (
                 isValidWeekStart(form.week_start) ? (
-                  <p className="text-[10px] mt-1" style={{ color: '#94afd4' }}>
+                  <p className="text-[10px] mt-1" style={{ color: 'var(--muted)' }}>
                     {formatWeekWindow(weekWindow(form.week_start))}
                   </p>
                 ) : (
-                  <p className="text-[10px] mt-1" style={{ color: '#f87171' }}>
+                  <p className="text-[10px] mt-1" style={{ color: 'var(--red)' }}>
                     Not a Tuesday — odds won't auto-import
                   </p>
                 )
@@ -196,12 +196,12 @@ export default function WeeksTab() {
           {needsCollege && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold" style={{ color: '#94afd4' }}>College Focus</label>
+                <label className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>College Focus</label>
                 <button
                   type="button"
                   onClick={randomizeFocus}
                   className="text-xs px-3 py-1.5 rounded-lg font-semibold border"
-                  style={{ background: 'rgba(74,127,212,0.15)', borderColor: '#60a5fa', color: '#60a5fa' }}
+                  style={{ background: 'rgba(74,127,212,0.15)', borderColor: 'var(--primary-light)', color: 'var(--primary-light)' }}
                 >
                   🎲 Randomize
                 </button>
@@ -232,7 +232,7 @@ export default function WeeksTab() {
           <button
             type="submit" disabled={saving}
             className="w-full py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: '#2563eb', color: '#ffffff' }}
+            style={{ background: 'var(--primary)', color: '#ffffff' }}
           >
             {saving ? 'Creating...' : '+ Create Week'}
           </button>
@@ -241,30 +241,30 @@ export default function WeeksTab() {
 
       {/* ── Weeks list ── */}
       {weeks.length === 0 ? (
-        <p className="text-center text-sm py-8" style={{ color: '#94afd4' }}>No weeks yet. Create one above.</p>
+        <p className="text-center text-sm py-8" style={{ color: 'var(--muted)' }}>No weeks yet. Create one above.</p>
       ) : (
-        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
           {weeks.map((week) => (
             <div
               key={week.id}
               className="px-4 py-3 border-b"
-              style={{ borderColor: '#253347' }}
+              style={{ borderColor: 'var(--card2)' }}
             >
               {/* Top row: circle + info + status */}
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 border-2"
                   style={{
-                    color:       week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#94afd4',
-                    borderColor: week.is_complete ? '#10b981' : week.picks_open ? '#60a5fa' : '#374e6b',
+                    color:       week.is_complete ? 'var(--green)' : week.picks_open ? 'var(--primary-light)' : 'var(--muted)',
+                    borderColor: week.is_complete ? 'var(--green)' : week.picks_open ? 'var(--primary-light)' : 'var(--border)',
                   }}
                 >
                   {week.week_number}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>Week {week.week_number}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Week {week.week_number}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                     {week.container_type === 'nfl_college' ? '4 NFL · 2 CFB'
                       : week.container_type === 'nfl_only' ? '6 NFL' : '6 CFB'}
                     {week.conference ? ` · ${week.conference}` : ''}
@@ -275,10 +275,10 @@ export default function WeeksTab() {
                 <span
                   className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
                   style={week.is_complete
-                    ? { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
+                    ? { background: 'rgba(16,185,129,0.15)', color: 'var(--green)' }
                     : week.picks_open
-                    ? { background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }
-                    : { background: 'rgba(58,96,144,0.15)',  color: '#94afd4' }
+                    ? { background: 'rgba(74,127,212,0.15)', color: 'var(--primary-light)' }
+                    : { background: 'rgba(58,96,144,0.15)',  color: 'var(--muted)' }
                   }
                 >
                   {week.is_complete ? 'Complete' : week.picks_open ? 'Open' : 'Closed'}
@@ -292,8 +292,8 @@ export default function WeeksTab() {
                     onClick={() => toggleOpen(week)}
                     className="flex-1 py-2 rounded-lg text-xs font-semibold"
                     style={week.picks_open
-                      ? { background: 'rgba(248,113,113,0.15)', color: '#f87171' }
-                      : { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
+                      ? { background: 'rgba(248,113,113,0.15)', color: 'var(--red)' }
+                      : { background: 'rgba(16,185,129,0.15)', color: 'var(--green)' }
                     }
                   >
                     {week.picks_open ? 'Close Picks' : 'Open Picks'}
@@ -303,7 +303,7 @@ export default function WeeksTab() {
                   <button
                     onClick={() => markComplete(week)}
                     className="flex-1 py-2 rounded-lg text-xs font-semibold"
-                    style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
+                    style={{ background: 'rgba(74,127,212,0.15)', color: 'var(--primary-light)' }}
                   >
                     ✓ Complete
                   </button>
@@ -314,7 +314,7 @@ export default function WeeksTab() {
                   title={`Delete week ${week.week_number}`}
                   className="px-3 py-2 rounded-lg flex items-center justify-center
                              transition-colors hover:bg-red/20"
-                  style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171' }}
+                  style={{ background: 'rgba(248,113,113,0.08)', color: 'var(--red)' }}
                 >
                   <TrashIcon />
                 </button>
@@ -333,7 +333,7 @@ function Field({ label, children }) {
   // leaving these inputs unnamed to a screen reader.
   return (
     <label className="block">
-      <span className="text-xs font-semibold block mb-1" style={{ color: '#94afd4' }}>{label}</span>
+      <span className="text-xs font-semibold block mb-1" style={{ color: 'var(--muted)' }}>{label}</span>
       {children}
     </label>
   )

@@ -25,22 +25,22 @@ export default function Commissioner() {
   const [activeTab, setActiveTab] = useState('weeks')
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#0f172a' }}>
+    <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
       <TopNav />
 
       {/* ── Page header + tab nav ── */}
       <div
         className="pt-header border-b"
-        style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)', borderColor: '#374e6b' }}
+        style={{ background: 'linear-gradient(135deg, var(--bg-deep) 0%, var(--card) 100%)', borderColor: 'var(--border)' }}
       >
         <div className="px-4 pt-5 pb-3">
           <h1 className="text-xl font-bold text-white">⚙️ Commissioner</h1>
-          <p className="text-xs mt-1" style={{ color: '#94afd4' }}>Admin Dashboard</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>Admin Dashboard</p>
         </div>
 
         {/* Tab strip — scrollable on narrow screens */}
         <div className="overflow-x-auto">
-          <div className="flex border-t" style={{ borderColor: '#253347', width: 'max-content', minWidth: '100%' }}>
+          <div className="flex border-t" style={{ borderColor: 'var(--card2)', width: 'max-content', minWidth: '100%' }}>
             {TABS.map(({ key, label, icon }) => (
               <button
                 key={key}
@@ -48,8 +48,8 @@ export default function Commissioner() {
                 aria-pressed={activeTab === key}
                 className="flex items-center gap-1.5 px-5 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
                 style={{
-                  borderColor: activeTab === key ? '#60a5fa' : 'transparent',
-                  color:       activeTab === key ? '#93c5fd' : '#94afd4',
+                  borderColor: activeTab === key ? 'var(--primary-light)' : 'transparent',
+                  color:       activeTab === key ? 'var(--accent-text)' : 'var(--muted)',
                   background:  activeTab === key ? 'rgba(74,127,212,0.06)' : 'transparent',
                 }}
               >

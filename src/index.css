@@ -2,19 +2,139 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Palette.
+ *
+ * The *-rgb channels are the source of truth: Tailwind reads them (so opacity
+ * modifiers like bg-primary/20 work) and the plain variables below, which the
+ * components' inline styles use, are built from them. A theme therefore only
+ * has to override the channels.
+ */
 :root {
-  --primary:        #2563eb;
-  --primary-light:  #60a5fa;
-  --bg:             #0f172a;
-  --card:           #1e293b;
-  --card2:          #253347;
-  --border:         #374e6b;
-  --border2:        #4a6585;
-  --text:           #f0f6ff;
-  --muted:          #94afd4;
-  --green:          #10b981;
-  --red:            #f87171;
-  --accent-text:    #93c5fd;
+  --primary-rgb:        37 99 235;    /* #2563eb */
+  --primary-light-rgb:  96 165 250;   /* #60a5fa */
+  --primary-dark-rgb:   42 90 170;    /* #2a5aaa */
+  --bg-rgb:             15 23 42;     /* #0f172a */
+  --bg-deep-rgb:        20 30 46;     /* #141e2e */
+  --card-rgb:           30 41 59;     /* #1e293b */
+  --card2-rgb:          37 51 71;     /* #253347 */
+  --border-rgb:         55 78 107;    /* #374e6b */
+  --border2-rgb:        74 101 133;   /* #4a6585 */
+  --text-rgb:           240 246 255;  /* #f0f6ff */
+  --muted-rgb:          148 175 212;  /* #94afd4 */
+  --green-rgb:          16 185 129;   /* #10b981 */
+  --red-rgb:            248 113 113;  /* #f87171 */
+  --accent-text-rgb:    147 197 253;  /* #93c5fd */
+
+  --primary:        rgb(var(--primary-rgb));
+  --primary-light:  rgb(var(--primary-light-rgb));
+  --primary-dark:   rgb(var(--primary-dark-rgb));
+  --bg:             rgb(var(--bg-rgb));
+  --bg-deep:        rgb(var(--bg-deep-rgb));
+  --card:           rgb(var(--card-rgb));
+  --card2:          rgb(var(--card2-rgb));
+  --border:         rgb(var(--border-rgb));
+  --border2:        rgb(var(--border2-rgb));
+  --text:           rgb(var(--text-rgb));
+  --muted:          rgb(var(--muted-rgb));
+  --green:          rgb(var(--green-rgb));
+  --red:            rgb(var(--red-rgb));
+  --accent-text:    rgb(var(--accent-text-rgb));
+}
+
+/*
+ * Halloween. main.jsx puts this class on <html> only inside the window set in
+ * src/lib/seasonalTheme.js, so it switches itself off without a deploy.
+ * Orange takes the blue's place, the navy goes to night-purple; green and red
+ * keep their meaning (won / lost) and are left alone. Primary is the darker
+ * orange so white button text keeps the contrast the blue had.
+ */
+html.halloween {
+  --primary-rgb:        194 65 12;    /* #c2410c */
+  --primary-light-rgb:  251 146 60;   /* #fb923c */
+  --primary-dark-rgb:   124 45 18;    /* #7c2d12 */
+  --bg-rgb:             14 10 21;     /* #0e0a15 */
+  --bg-deep-rgb:        22 13 34;     /* #160d22 */
+  --card-rgb:           29 20 41;     /* #1d1429 */
+  --card2-rgb:          42 29 59;     /* #2a1d3b */
+  --border-rgb:         69 48 95;     /* #45305f */
+  --border2-rgb:        99 70 133;    /* #634685 */
+  --text-rgb:           253 244 255;  /* #fdf4ff */
+  --muted-rgb:          191 168 217;  /* #bfa8d9 */
+  --accent-text-rgb:    196 181 253;  /* #c4b5fd */
+}
+
+/* A low pumpkin glow from the top of the screen, over everything but the nav. */
+html.halloween body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 45% at 50% 0%, rgb(251 146 60 / 0.10), transparent 70%),
+    radial-gradient(ellipse 80% 40% at 50% 100%, rgb(126 34 206 / 0.10), transparent 70%);
+}
+
+/*
+ * The Halloween ghost (src/components/layout/Ghost.jsx). Above the glow, under
+ * the top and bottom navs so it never covers them.
+ */
+.ghost {
+  position: fixed;
+  z-index: 45;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  filter: drop-shadow(0 0 12px rgb(248 245 255 / 0.35));
+  animation: ghost-haunt 6s ease-in-out forwards;
+}
+
+.ghost svg {
+  animation: ghost-wobble 1.6s ease-in-out infinite;
+}
+
+.ghost-booed {
+  animation: ghost-flee 0.7s ease-in forwards;
+}
+
+.ghost-boo {
+  position: absolute;
+  left: 50%;
+  top: -1.5rem;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--primary-light);
+  white-space: nowrap;
+}
+
+@keyframes ghost-haunt {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.85); }
+  15%  { opacity: 0.95; }
+  80%  { opacity: 0.95; }
+  100% { opacity: 0; transform: translateY(-60px) scale(1); }
+}
+
+@keyframes ghost-wobble {
+  0%, 100% { rotate: -6deg; }
+  50%      { rotate: 6deg; }
+}
+
+@keyframes ghost-flee {
+  to { opacity: 0; transform: scale(1.6) translateY(-30px); }
+}
+
+/* No drifting or wobbling for anyone who has asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .ghost { animation: ghost-fade 6s linear forwards; }
+  .ghost svg { animation: none; }
+  .ghost-booed { animation: none; opacity: 0; }
+  @keyframes ghost-fade {
+    0%, 100% { opacity: 0; }
+    15%, 80% { opacity: 0.95; }
+  }
 }
 
 html {

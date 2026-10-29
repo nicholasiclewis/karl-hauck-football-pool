@@ -140,7 +140,7 @@ export default function ResultsTab() {
       {/* ── Week chips ── */}
       {weeks.length > 0 && (
         <div>
-          <label className="text-xs font-semibold block mb-2" style={{ color: '#94afd4' }}>Select Week</label>
+          <label className="text-xs font-semibold block mb-2" style={{ color: 'var(--muted)' }}>Select Week</label>
           <div className="flex gap-2 flex-wrap">
             {weeks.map(w => (
               <button
@@ -149,9 +149,9 @@ export default function ResultsTab() {
                 aria-pressed={selectedWeekId === w.id}
                 className="px-3 py-1.5 rounded-full text-xs font-medium border"
                 style={{
-                  background:  selectedWeekId === w.id ? '#2563eb' : '#1e293b',
-                  borderColor: selectedWeekId === w.id ? '#60a5fa' : '#374e6b',
-                  color:       selectedWeekId === w.id ? '#ffffff'  : '#94afd4',
+                  background:  selectedWeekId === w.id ? 'var(--primary)' : 'var(--card)',
+                  borderColor: selectedWeekId === w.id ? 'var(--primary-light)' : 'var(--border)',
+                  color:       selectedWeekId === w.id ? '#ffffff'  : 'var(--muted)',
                 }}
               >
                 Week {w.week_number}
@@ -163,12 +163,12 @@ export default function ResultsTab() {
 
       {/* ── Status messages ── */}
       {message && (
-        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--green)' }}>
           {message}
         </p>
       )}
       {error && (
-        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171' }}>
+        <p className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red)' }}>
           {error}
         </p>
       )}
@@ -176,21 +176,21 @@ export default function ResultsTab() {
       {/* ── Score entry ── */}
       {selectedWeekId && games.length > 0 && (
         <>
-          <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#374e6b' }}>
-            <div className="px-4 py-2 flex items-center justify-between" style={{ background: '#1e293b', borderBottom: '1px solid #253347' }}>
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+            <div className="px-4 py-2 flex items-center justify-between" style={{ background: 'var(--card)', borderBottom: '1px solid var(--card2)' }}>
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
                 Final Scores — Week {selectedWeek?.week_number}
               </span>
-              <span className="text-[10px]" style={{ color: '#94afd4' }}>Away – Home</span>
+              <span className="text-[10px]" style={{ color: 'var(--muted)' }}>Away – Home</span>
             </div>
             {games.map((game) => (
               <div
                 key={game.id}
                 className="flex items-center gap-3 px-4 py-3 border-b"
-                style={{ borderColor: '#253347' }}
+                style={{ borderColor: 'var(--card2)' }}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium" style={{ color: '#93c5fd' }}>
+                  <p className="text-xs font-medium" style={{ color: 'var(--accent-text)' }}>
                     {game.away_team} @ {game.home_team}
                   </p>
                 </div>
@@ -201,16 +201,16 @@ export default function ResultsTab() {
                     value={scores[game.id]?.away_score ?? ''}
                     onChange={e => setScores(s => ({ ...s, [game.id]: { ...s[game.id], away_score: e.target.value } }))}
                     className="w-14 text-center rounded-lg border px-2 py-1.5 text-sm"
-                    style={{ background: '#1e293b', borderColor: '#374e6b', color: '#f0f6ff' }}
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
                   />
-                  <span style={{ color: '#94afd4' }}>–</span>
+                  <span style={{ color: 'var(--muted)' }}>–</span>
                   <input
                     type="number" min="0" placeholder="–"
                     aria-label={`${game.home_team} score`}
                     value={scores[game.id]?.home_score ?? ''}
                     onChange={e => setScores(s => ({ ...s, [game.id]: { ...s[game.id], home_score: e.target.value } }))}
                     className="w-14 text-center rounded-lg border px-2 py-1.5 text-sm"
-                    style={{ background: '#1e293b', borderColor: '#374e6b', color: '#f0f6ff' }}
+                    style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -222,7 +222,7 @@ export default function ResultsTab() {
             onClick={fetchFromApi}
             disabled={fetching}
             className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: 'rgba(74,127,212,0.15)', color: '#60a5fa' }}
+            style={{ background: 'rgba(74,127,212,0.15)', color: 'var(--primary-light)' }}
           >
             {fetching ? 'Fetching...' : '⬇ Fetch Scores'}
           </button>
@@ -232,7 +232,7 @@ export default function ResultsTab() {
               onClick={saveScores}
               disabled={saving}
               className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#374e6b', color: '#93c5fd' }}
+              style={{ background: 'var(--border)', color: 'var(--accent-text)' }}
             >
               {saving ? 'Saving...' : 'Save Scores'}
             </button>
@@ -241,20 +241,20 @@ export default function ResultsTab() {
               disabled={resolving}
               title="Re-grade every pick in this week and rebuild the standings"
               className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#2563eb', color: '#ffffff' }}
+              style={{ background: 'var(--primary)', color: '#ffffff' }}
             >
               {resolving ? 'Refreshing...' : '↻ Refresh Standings'}
             </button>
           </div>
 
-          <p className="text-[10px] text-center" style={{ color: '#94afd4' }}>
+          <p className="text-[10px] text-center" style={{ color: 'var(--muted)' }}>
             Fetch pulls finals · Save stores manual edits · Refresh re-grades picks added later
           </p>
         </>
       )}
 
       {selectedWeekId && games.length === 0 && (
-        <p className="text-center text-sm py-6" style={{ color: '#94afd4' }}>No games for this week.</p>
+        <p className="text-center text-sm py-6" style={{ color: 'var(--muted)' }}>No games for this week.</p>
       )}
     </div>
   )

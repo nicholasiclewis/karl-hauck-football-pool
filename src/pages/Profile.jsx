@@ -88,32 +88,32 @@ export default function Profile() {
     .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#0f172a' }}>
+    <div className="min-h-screen pb-24" style={{ background: 'var(--bg)' }}>
       <TopNav />
 
       {/* ── Header ── */}
       <div
         className="pt-header border-b"
-        style={{ background: 'linear-gradient(135deg, #141e2e 0%, #1e293b 100%)', borderColor: '#374e6b' }}
+        style={{ background: 'linear-gradient(135deg, var(--bg-deep) 0%, var(--card) 100%)', borderColor: 'var(--border)' }}
       >
         <div className="px-4 pt-5 pb-6 flex items-center gap-4">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0"
-            style={{ background: '#374e6b', color: '#ffffff' }}
+            style={{ background: 'var(--border)', color: '#ffffff' }}
           >
             {initials}
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">{profile?.display_name ?? '—'}</h1>
-            <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>{profile?.email}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{profile?.email}</p>
             <div className="flex gap-2 mt-1.5">
               {profile?.is_commissioner && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(74,127,212,0.2)', color: '#60a5fa' }}>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(74,127,212,0.2)', color: 'var(--primary-light)' }}>
                   ⚙️ Commissioner
                 </span>
               )}
               {profile?.is_treasurer && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--green)' }}>
                   💰 Treasurer
                 </span>
               )}
@@ -129,23 +129,23 @@ export default function Profile() {
           <Section title="Dues">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold" style={{ color: '#f0f6ff' }}>{season.year} Season</p>
-                <p className="text-xs mt-0.5" style={{ color: '#94afd4' }}>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{season.year} Season</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                   ${season.dues_amount ?? 0} entry fee
                 </p>
               </div>
               <span
                 className="text-sm font-bold px-3 py-1.5 rounded-full border"
                 style={dues?.is_paid
-                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }
-                  : { background: 'rgba(248,113,113,0.1)',   color: '#f87171', borderColor: 'rgba(248,113,113,0.3)' }
+                  ? { background: 'rgba(16,185,129,0.15)', color: 'var(--green)', borderColor: 'rgba(16,185,129,0.3)' }
+                  : { background: 'rgba(248,113,113,0.1)',   color: 'var(--red)', borderColor: 'rgba(248,113,113,0.3)' }
                 }
               >
                 {dues?.is_paid ? '✓ Paid' : 'Unpaid'}
               </span>
             </div>
             {dues?.paid_at && (
-              <p className="text-xs mt-2" style={{ color: '#94afd4' }}>
+              <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
                 Paid {new Date(dues.paid_at).toLocaleDateString()}
               </p>
             )}
@@ -164,7 +164,7 @@ export default function Profile() {
               aria-label="Display name"
             />
             {nameMsg && (
-              <p className="text-xs" style={{ color: nameMsg === 'Saved!' ? '#10b981' : '#f87171' }}>
+              <p className="text-xs" style={{ color: nameMsg === 'Saved!' ? 'var(--green)' : 'var(--red)' }}>
                 {nameMsg}
               </p>
             )}
@@ -172,7 +172,7 @@ export default function Profile() {
               type="submit"
               disabled={nameSaving || nameVal.trim() === profile?.display_name}
               className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#2563eb', color: '#ffffff' }}
+              style={{ background: 'var(--primary)', color: '#ffffff' }}
             >
               {nameSaving ? 'Saving...' : 'Save Name'}
             </button>
@@ -211,13 +211,13 @@ export default function Profile() {
               className="input-field w-full"
               autoComplete="new-password"
             />
-            {passErr && <p className="text-xs" style={{ color: '#f87171' }}>{passErr}</p>}
-            {passMsg && <p className="text-xs" style={{ color: '#10b981' }}>{passMsg}</p>}
+            {passErr && <p className="text-xs" style={{ color: 'var(--red)' }}>{passErr}</p>}
+            {passMsg && <p className="text-xs" style={{ color: 'var(--green)' }}>{passMsg}</p>}
             <button
               type="submit"
               disabled={passSaving || !currPass || !newPass || !confPass}
               className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#2563eb', color: '#ffffff' }}
+              style={{ background: 'var(--primary)', color: '#ffffff' }}
             >
               {passSaving ? 'Updating...' : 'Update Password'}
             </button>
@@ -228,7 +228,7 @@ export default function Profile() {
         <button
           onClick={signOut}
           className="w-full py-2.5 rounded-lg text-sm font-bold"
-          style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+          style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--red)', border: '1px solid rgba(248,113,113,0.3)' }}
         >
           Sign Out
         </button>
@@ -241,8 +241,8 @@ export default function Profile() {
 
 function Section({ title, children }) {
   return (
-    <div className="rounded-xl border p-4 space-y-3" style={{ background: '#1e293b', borderColor: '#374e6b' }}>
-      <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#94afd4' }}>{title}</h2>
+    <div className="rounded-xl border p-4 space-y-3" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
+      <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>{title}</h2>
       {children}
     </div>
   )

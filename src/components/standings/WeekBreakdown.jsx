@@ -37,7 +37,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
   return (
     <div
       className="border-t border-border bg-bg"
-      style={{ borderTop: '1px solid #374e6b' }}
+      style={{ borderTop: '1px solid var(--border)' }}
     >
       {/* Header row */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-1.5">
@@ -58,16 +58,16 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
           <div
             key={row.week_id}
             className="flex items-center gap-2 px-4 py-2.5 border-t border-border"
-            style={{ borderTop: '1px solid #253347' }}
+            style={{ borderTop: '1px solid var(--card2)' }}
           >
             {/* Week chip */}
             <div className="flex-1 flex items-center gap-2">
               <span
                 className="inline-flex items-center justify-center rounded-full text-[10px] font-bold px-2.5 py-0.5 border"
                 style={{
-                  background: '#253347',
-                  borderColor: '#4a6585',
-                  color: '#93c5fd',
+                  background: 'var(--card2)',
+                  borderColor: 'var(--border2)',
+                  color: 'var(--accent-text)',
                   minWidth: '3rem',
                 }}
               >
@@ -78,7 +78,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
               {bonus > 0 && (
                 <span
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-                  style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }}
+                  style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--green)', borderColor: 'rgba(16,185,129,0.3)' }}
                 >
                   +{bonus} bonus
                 </span>
@@ -88,7 +88,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
             {/* Correct picks */}
             <span
               className="w-14 text-right text-sm font-medium"
-              style={{ color: '#f0f6ff' }}
+              style={{ color: 'var(--text)' }}
             >
               {totalCorrect}
               {nflCount > 0 && (
@@ -99,7 +99,7 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
             {/* Points */}
             <span
               className="w-14 text-right text-sm font-bold"
-              style={{ color: '#60a5fa' }}
+              style={{ color: 'var(--primary-light)' }}
             >
               {round1(pts)}
             </span>
@@ -110,13 +110,13 @@ export default function WeekBreakdown({ weekly = [], weeks = [] }) {
       {/* Season total footer */}
       <div
         className="flex items-center gap-2 px-4 py-2.5 border-t"
-        style={{ borderTop: '1px solid #374e6b', background: '#1e293b' }}
+        style={{ borderTop: '1px solid var(--border)', background: 'var(--card)' }}
       >
         <span className="flex-1 text-[11px] uppercase tracking-widest text-muted">Season Total</span>
-        <span className="w-14 text-right text-sm font-medium" style={{ color: '#f0f6ff' }}>
+        <span className="w-14 text-right text-sm font-medium" style={{ color: 'var(--text)' }}>
           {sorted.reduce((sum, r) => sum + (r.correct_picks ?? 0), 0)}
         </span>
-        <span className="w-14 text-right text-sm font-bold" style={{ color: '#60a5fa' }}>
+        <span className="w-14 text-right text-sm font-bold" style={{ color: 'var(--primary-light)' }}>
           {round1(sorted.reduce((sum, r) => sum + (r.total_points ?? 0), 0))}
         </span>
       </div>

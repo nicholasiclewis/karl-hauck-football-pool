@@ -22,9 +22,9 @@ export default function PickRow({ game, pick, subjectIsAdmin = false }) {
 
   const outcome = pick?.outcome ?? null
   const outcomeConfig = {
-    win:  { label: 'W', bg: 'rgba(16,185,129,0.15)', color: '#10b981', border: 'rgba(16,185,129,0.3)' },
-    loss: { label: 'L', bg: 'rgba(248,113,113,0.15)',  color: '#f87171', border: 'rgba(248,113,113,0.3)' },
-    push: { label: 'P', bg: 'rgba(58,96,144,0.2)',   color: '#94afd4', border: '#374e6b' },
+    win:  { label: 'W', bg: 'rgba(16,185,129,0.15)', color: 'var(--green)', border: 'rgba(16,185,129,0.3)' },
+    loss: { label: 'L', bg: 'rgba(248,113,113,0.15)',  color: 'var(--red)', border: 'rgba(248,113,113,0.3)' },
+    push: { label: 'P', bg: 'rgba(58,96,144,0.2)',   color: 'var(--muted)', border: 'var(--border)' },
   }
   const oc = outcome ? outcomeConfig[outcome] : null
 
@@ -34,30 +34,30 @@ export default function PickRow({ game, pick, subjectIsAdmin = false }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 border-b"
-      style={{ borderColor: '#253347' }}
+      style={{ borderColor: 'var(--card2)' }}
     >
       {/* Sport indicator */}
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 border"
-        style={{ background: '#1e293b', borderColor: '#374e6b', color: '#94afd4' }}
+        style={{ background: 'var(--card)', borderColor: 'var(--border)', color: 'var(--muted)' }}
       >
         {game.sport === 'nfl' ? 'NFL' : 'CFB'}
       </div>
 
       {/* Matchup */}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium" style={{ color: '#94afd4' }}>
+        <div className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
           {awayAbbr} @ {homeAbbr}
-          <span className="ml-2" style={{ color: '#94afd4' }}>
+          <span className="ml-2" style={{ color: 'var(--muted)' }}>
             {formatSpread(game.spread)}
           </span>
         </div>
         {pick ? (
-          <div className="text-sm font-semibold mt-0.5" style={{ color: '#93c5fd' }}>
+          <div className="text-sm font-semibold mt-0.5" style={{ color: 'var(--accent-text)' }}>
             {pickedTeamName} {pickedSpread}
           </div>
         ) : (
-          <div className="text-sm mt-0.5" style={{ color: '#94afd4' }}>No pick</div>
+          <div className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>No pick</div>
         )}
 
         {late && (
@@ -73,9 +73,9 @@ export default function PickRow({ game, pick, subjectIsAdmin = false }) {
 
       {/* Score (if final) */}
       {game.home_score !== null && (
-        <div className="text-xs text-center flex-shrink-0" style={{ color: '#94afd4' }}>
+        <div className="text-xs text-center flex-shrink-0" style={{ color: 'var(--muted)' }}>
           <span>{game.away_score}</span>
-          <span style={{ color: '#94afd4' }}> – </span>
+          <span style={{ color: 'var(--muted)' }}> – </span>
           <span>{game.home_score}</span>
         </div>
       )}
