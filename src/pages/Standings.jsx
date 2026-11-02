@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase'
 import { poolToday } from '../lib/weekWindow'
 import { assignRanks } from '../lib/placings'
 import { useElfChampion } from '../lib/elfGame'
+import { themeWindow } from '../lib/seasonalTheme'
 
 // ── Dues helper ─────────────────────────────────────────────────────────────
 /**
@@ -153,9 +154,11 @@ export default function Standings() {
   // ── Standings hook ─────────────────────────────────────────────────────────
   const { standings, loading: standingsLoading } = useStandings(season?.id)
 
-  // Whoever won the elf game at Christmas wears a 🎁 on both tabs.
+  // Whoever won the elf game at Christmas wears a 🎁 on both tabs for the rest
+  // of that season; next season starts everyone without one.
   const elfChampion = useElfChampion()
-  const hasGift = (userId) => Boolean(userId) && elfChampion?.userId === userId
+  const giftSeason = season?.year === themeWindow('christmas').start.getFullYear()
+  const hasGift = (userId) => giftSeason && Boolean(userId) && elfChampion?.userId === userId
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const loading = seasonLoading || standingsLoading || weeksLoading
