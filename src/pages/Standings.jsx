@@ -3,11 +3,13 @@ import TopNav from '../components/layout/TopNav'
 import BottomNav from '../components/layout/BottomNav'
 import PodiumSlot from '../components/standings/PodiumSlot'
 import PlayerRow from '../components/standings/PlayerRow'
+import GiftBadge from '../components/standings/GiftBadge'
 import { useStandings } from '../hooks/useStandings'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabase'
 import { poolToday } from '../lib/weekWindow'
 import { assignRanks } from '../lib/placings'
+import { useElfChampion } from '../lib/elfGame'
 
 // ── Dues helper ─────────────────────────────────────────────────────────────
 /**
@@ -151,6 +153,10 @@ export default function Standings() {
   // ── Standings hook ─────────────────────────────────────────────────────────
   const { standings, loading: standingsLoading } = useStandings(season?.id)
 
+  // Whoever won the elf game at Christmas wears a 🎁 on both tabs.
+  const elfChampion = useElfChampion()
+  const hasGift = (userId) => Boolean(userId) && elfChampion?.userId === userId
+
   // ── Derived values ─────────────────────────────────────────────────────────
   const loading = seasonLoading || standingsLoading || weeksLoading
 
@@ -262,6 +268,7 @@ export default function Standings() {
               place={standings[1]?.rank ?? 2}
               blockHeight={52}
               duesIcon={badgeFor(standings[1]?.user_id)}
+              gift={hasGift(standings[1]?.user_id)}
               payout={season?.payout_2nd ?? null}
             />
             {/* 1st place — center, tallest */}
@@ -270,6 +277,7 @@ export default function Standings() {
               place={standings[0]?.rank ?? 1}
               blockHeight={70}
               duesIcon={badgeFor(standings[0]?.user_id)}
+              gift={hasGift(standings[0]?.user_id)}
               payout={season?.payout_1st ?? null}
             />
             {/* 3rd place — right, shortest */}
@@ -278,6 +286,7 @@ export default function Standings() {
               place={standings[2]?.rank ?? 3}
               blockHeight={38}
               duesIcon={badgeFor(standings[2]?.user_id)}
+              gift={hasGift(standings[2]?.user_id)}
               payout={season?.payout_3rd ?? null}
             />
           </div>
@@ -332,6 +341,7 @@ export default function Standings() {
                     onToggle={() => toggleExpand(entry.user_id)}
                     weeks={weeks}
                     duesIcon={badgeFor(entry.user_id)}
+                    gift={hasGift(entry.user_id)}
                     payout={payoutMap[entry.rank] ?? null}
                   />
                 )
@@ -448,11 +458,14 @@ export default function Standings() {
                     </span>
 
                     {/* Avatar */}
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
-                      style={{ background: 'var(--border)', color: '#ffffff' }}
-                    >
-                      {initials}
+                    <div className="relative flex-shrink-0">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs"
+                        style={{ background: 'var(--border)', color: '#ffffff' }}
+                      >
+                        {initials}
+                      </div>
+                      {hasGift(entry.user_id) && <GiftBadge />}
                     </div>
 
                     {/* Name */}

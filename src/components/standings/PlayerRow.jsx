@@ -1,4 +1,5 @@
 import WeekBreakdown from './WeekBreakdown'
+import GiftBadge from './GiftBadge'
 
 /**
  * PlayerRow — a single row in the Season Standings list.
@@ -12,6 +13,7 @@ import WeekBreakdown from './WeekBreakdown'
  *   isExpanded  — whether the breakdown is open
  *   onToggle    — callback to toggle expansion
  *   weeks       — array of week rows for the WeekBreakdown label lookup
+ *   gift        — true for the elf game's champion, who gets a 🎁
  *   duesIcon    — 🤡 when dues are late, in which case it replaces the
  *                 player's initials entirely; null otherwise (paid, early in
  *                 the season, or status unknown) and the avatar is normal
@@ -25,6 +27,7 @@ export default function PlayerRow({
   weeks = [],
   duesIcon = null,
   payout = null,
+  gift = false,
 }) {
   const initials = (entry.display_name || '?')
     .split(' ')
@@ -100,6 +103,7 @@ export default function PlayerRow({
               </span>
             ) : initials}
           </div>
+          {gift && <GiftBadge />}
         </div>
 
         {/* Name + weeks played */}
