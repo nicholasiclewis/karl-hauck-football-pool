@@ -9,7 +9,9 @@
  *                 player's initials entirely; null otherwise (paid, early in
  *                 the season, or status unknown) and the avatar is normal
  */
-export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null, payout = null }) {
+import GiftBadge from './GiftBadge'
+
+export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null, payout = null, gift = false }) {
   if (!entry) return <div className="flex-1" />
 
   const initials = (entry.display_name || '?')
@@ -73,6 +75,7 @@ export default function PodiumSlot({ entry, place, blockHeight, duesIcon = null,
             </span>
           ) : initials}
         </div>
+        {gift && <GiftBadge size="text-base" />}
       </div>
 
       {/* Name */}
